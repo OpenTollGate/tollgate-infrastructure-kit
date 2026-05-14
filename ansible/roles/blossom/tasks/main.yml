@@ -52,7 +52,7 @@
       upload:
         enabled: true
         requireAuth: true
-        maxSize: "100 MB"
+        maxSize: 104857600
 
       mirror:
         enabled: true
@@ -85,7 +85,7 @@
 - name: Build and start blossom
   community.docker.docker_compose_v2:
     project_src: "{{ tollgate_base_dir }}/blossom"
-    build: yes
+    build: always
     state: present
 
 - name: Wait for blossom

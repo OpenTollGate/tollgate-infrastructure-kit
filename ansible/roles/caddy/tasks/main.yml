@@ -17,26 +17,36 @@
 
 - name: Deploy Caddyfile
   template:
-    src: Caddyfile.j2
+    src: Caddyfile.http.j2
     dest: "{{ tollgate_base_dir }}/caddy/Caddyfile"
     mode: '0644'
 
 - name: Deploy Caddy docker-compose
-  template:
-    src: docker-compose.yml.j2
+  copy:
     dest: "{{ tollgate_base_dir }}/caddy/docker-compose.yml"
+    content: |
+      services:
+        caddy:
+          build:
+            context: /opt/tollgate/caddy
+            dockerfile: Dockerfile
+          container_name: tollgate-caddy
+          network_mode: host
+          restart: unless-stopped
+          volumes:
+            - /opt/tollgate/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+            - /opt/tollgate/caddy/data:/data
+            - /opt/tollgate/caddy/config:/config
+            - {{ tollgate_static_dir }}:{{ tollgate_static_dir }}:ro
+          cap_add:
+            - NET_BIND_SERVICE
     mode: '0644'
 
 - name: Build and start Caddy
   community.docker.docker_compose_v2:
     project_src: "{{ tollgate_base_dir }}/caddy"
-    build: yes
+    build: always
     state: present
-  environment:
-    BASE_DOMAIN: "{{ base_domain }}"
-    MINT_DOMAIN: "{{ mint_domain }}"
-    CF_API_TOKEN: "{{ cloudflare_api_token }}"
-    ACME_EMAIL: "{{ acme_email }}"
 
 - name: Wait for Caddy to be ready
   wait_for:

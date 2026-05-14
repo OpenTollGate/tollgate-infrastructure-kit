@@ -1,11 +1,11 @@
-base_domain: "{{ lookup('env', 'BASE_DOMAIN') }}"
+base_domain: "{{ lookup('env', 'BASE_DOMAIN') | default('tollgate.local', true) }}"
 mint_domain: "{{ lookup('env', 'MINT_DOMAIN') | default('mints.' + base_domain, true) }}"
 
-cloudflare_api_token: "{{ lookup('env', 'CLOUDFLARE_API_TOKEN') }}"
-cloudflare_zone_id: "{{ lookup('env', 'CLOUDFLARE_ZONE_ID') }}"
+cloudflare_api_token: "{{ lookup('env', 'CLOUDFLARE_API_TOKEN') | default('', true) }}"
+cloudflare_zone_id: "{{ lookup('env', 'CLOUDFLARE_ZONE_ID') | default('', true) }}"
 cloudflare_zone_name: "{{ base_domain }}"
 
-vps_ip: "{{ lookup('env', 'VPS_IP') }}"
+vps_ip: "{{ lookup('env', 'VPS_IP') | default('127.0.0.1', true) }}"
 
 acme_email: "{{ lookup('env', 'ACME_EMAIL') | default('admin@' + base_domain, true) }}"
 
@@ -15,7 +15,7 @@ blossom_port: 3001
 nsite_gateway_port: 3002
 mint_base_port: 8085
 
-shadowsocks_password: "{{ lookup('env', 'SHADOWSOCKS_PASSWORD') }}"
+shadowsocks_password: "{{ lookup('env', 'SHADOWSOCKS_PASSWORD') | default('tollgate-mptcp', true) }}"
 shadowsocks_port: 65101
 shadowsocks_method: "chacha20-ietf-poly1305"
 glorytun_port: 65001
@@ -24,7 +24,7 @@ mptcp_max_subflows: 8
 
 fips_relay_urls: "{{ lookup('env', 'FIPS_RELAY_URLS') | default('wss://relay.damus.io,wss://nos.lol', true) }}"
 
-obelisk_admin_npub: "{{ lookup('env', 'OBELISK_ADMIN_NPUB') }}"
+obelisk_admin_npub: "{{ lookup('env', 'OBELISK_ADMIN_NPUB') | default('', true) }}"
 
 docker_network_name: tollgate-net
 

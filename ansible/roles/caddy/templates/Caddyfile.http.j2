@@ -1,0 +1,47 @@
+{{ base_domain }} {
+    log {
+        output stdout
+    }
+
+    handle_path /relay/* {
+        reverse_proxy localhost:{{ strfry_port }}
+    }
+
+    handle_path /chat/* {
+        reverse_proxy localhost:{{ obelisk_port }}
+    }
+
+    handle_path /blossom/* {
+        reverse_proxy localhost:{{ blossom_port }}
+    }
+
+    handle_path /nsite/* {
+        reverse_proxy localhost:{{ nsite_gateway_port }}
+    }
+
+    handle_path /releases/* {
+        root * {{ tollgate_static_dir }}/releases
+        file_server
+        try_files {path} /index.html
+    }
+
+    handle_path /ci/* {
+        root * {{ tollgate_static_dir }}/hive-ci
+        file_server
+        try_files {path} /index.html
+    }
+
+    handle / {
+        respond "Tollgate Infrastructure Kit - Running" 200
+    }
+
+    handle {
+        respond "Not found" 404
+    }
+}
+
+:80 {
+    handle {
+        respond "Tollgate Infrastructure Kit" 200
+    }
+}

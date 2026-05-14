@@ -14,30 +14,29 @@
     force: yes
 
 - name: Install release explorer dependencies
-  npm:
-    path: "{{ tollgate_base_dir }}/src/release-explorer"
-    production: yes
-  environment:
-    NPM_CONFIG_LEGACY_PEER_DEPS: "true"
+  command: npm install --legacy-peer-deps
+  args:
+    chdir: "{{ tollgate_base_dir }}/src/release-explorer"
+    creates: "{{ tollgate_base_dir }}/src/release-explorer/node_modules/.package-lock.json"
 
 - name: Build release explorer
-  command: npm run build
+  shell: |
+    export PATH="$PATH:$(npm bin -g)"
+    npx react-scripts build
   args:
     chdir: "{{ tollgate_base_dir }}/src/release-explorer"
     creates: "{{ tollgate_base_dir }}/src/release-explorer/build/index.html"
   environment:
     NPM_CONFIG_LEGACY_PEER_DEPS: "true"
+    PATH: "{{ ansible_env.PATH }}:/usr/bin:/usr/local/bin"
+
+- name: Ensure static files directory exists
+  file:
+    path: "{{ tollgate_static_dir }}/releases"
+    state: directory
+    mode: '0755'
 
 - name: Deploy release explorer static files
-  synchronize:
-    src: "{{ tollgate_base_dir }}/src/release-explorer/build/"
-    dest: "{{ tollgate_static_dir }}/releases/"
-    delete: yes
-  delegate_to: "{{ inventory_hostname }}"
-
-- name: Ensure 404.html exists for SPA routing
-  copy:
-    src: "{{ tollgate_static_dir }}/releases/index.html"
-    dest: "{{ tollgate_static_dir }}/releases/404.html"
-    remote_src: yes
-    mode: '0644'
+  shell: rsync -a --delete "{{ tollgate_base_dir }}/src/release-explorer/build/" "{{ tollgate_static_dir }}/releases/"
+  args:
+    creates: "{{ tollgate_static_dir }}/releases/index.html"

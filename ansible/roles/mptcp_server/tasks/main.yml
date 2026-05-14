@@ -11,6 +11,12 @@
     mode: '0600'
   notify: restart shadowsocks
 
+- name: Create systemd override directory
+  file:
+    path: /etc/systemd/system/shadowsocks-libev.service.d
+    state: directory
+    mode: '0755'
+
 - name: Deploy shadowsocks systemd override for MPTCP
   copy:
     dest: /etc/systemd/system/shadowsocks-libev.service.d/override.conf

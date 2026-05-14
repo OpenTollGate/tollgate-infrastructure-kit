@@ -42,7 +42,7 @@
 - name: Build and start nsite-gateway
   community.docker.docker_compose_v2:
     project_src: "{{ tollgate_base_dir }}/nsite-gateway"
-    build: yes
+    build: always
     state: present
 
 - name: Wait for nsite-gateway

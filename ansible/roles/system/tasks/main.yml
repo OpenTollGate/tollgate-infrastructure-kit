@@ -23,7 +23,6 @@
       - python3-pip
       - python3-venv
       - apt-transport-https
-      - software-properties-common
       - fail2ban
       - logrotate
       - net-tools
@@ -70,10 +69,11 @@
 
 - name: Set MPTCP max subflows
   sysctl:
-    name: net.mptcp.pm.add_addr_accepted
+    name: net.mptcp.add_addr_accepted
     value: '{{ mptcp_max_subflows }}'
     state: present
     sysctl_set: yes
+  ignore_errors: yes
   tags: system
 
 - name: Create tollgate directories
