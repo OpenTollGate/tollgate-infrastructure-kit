@@ -1,0 +1,28 @@
+---
+- name: Clone hive-ci-site mirror
+  git:
+    repo: "https://github.com/Origami74/hive-ci-site-mirror.git"
+    dest: "{{ tollgate_base_dir }}/src/hive-ci-site"
+    depth: 1
+    force: yes
+
+- name: Install hive-ci-site dependencies
+  npm:
+    path: "{{ tollgate_base_dir }}/src/hive-ci-site"
+    production: yes
+  when: false
+
+- name: Build hive-ci-site
+  command: npm run build
+  args:
+    chdir: "{{ tollgate_base_dir }}/src/hive-ci-site"
+    creates: "{{ tollgate_base_dir }}/src/hive-ci-site/dist/index.html"
+  ignore_errors: yes
+
+- name: Deploy hive-ci-site static files
+  synchronize:
+    src: "{{ tollgate_base_dir }}/src/hive-ci-site/dist/"
+    dest: "{{ tollgate_static_dir }}/hive-ci/"
+    delete: yes
+  delegate_to: "{{ inventory_hostname }}"
+  ignore_errors: yes

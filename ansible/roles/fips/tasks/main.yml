@@ -1,0 +1,52 @@
+---
+- name: Install Rust
+  shell: |
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+  args:
+    creates: /root/.cargo/bin/rustup
+  become: yes
+  become_user: root
+
+- name: Clone FIPS
+  git:
+    repo: "https://github.com/jmcorgan/fips.git"
+    dest: "{{ tollgate_base_dir }}/src/fips"
+    depth: 1
+    force: yes
+
+- name: Install cargo-deb
+  command: /root/.cargo/bin/cargo install cargo-deb
+  args:
+    creates: /root/.cargo/bin/cargo-deb
+
+- name: Build FIPS deb package
+  command: /root/.cargo/bin/cargo deb
+  args:
+    chdir: "{{ tollgate_base_dir }}/src/fips"
+    creates: "{{ tollgate_base_dir }}/src/fips/target/debian/fips_*.deb"
+  environment:
+    PATH: "/root/.cargo/bin:{{ ansible_env.PATH }}"
+
+- name: Find FIPS deb package
+  find:
+    paths: "{{ tollgate_base_dir }}/src/fips/target/debian/"
+    patterns: "fips_*.deb"
+  register: fips_deb
+
+- name: Install FIPS
+  apt:
+    deb: "{{ fips_deb.files[0].path }}"
+  when: fips_deb.files | length > 0
+
+- name: Deploy FIPS config
+  template:
+    src: fips.yaml.j2
+    dest: /etc/fips/fips.yaml
+    mode: '0600'
+  notify: restart fips
+
+- name: Enable and start FIPS
+  systemd:
+    name: fips
+    state: started
+    enabled: yes

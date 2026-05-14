@@ -1,0 +1,67 @@
+---
+- name: Validate Cloudflare API token
+  uri:
+    url: "https://api.cloudflare.com/client/v4/user/tokens/verify"
+    headers:
+      Authorization: "Bearer {{ cloudflare_api_token }}"
+    return_content: yes
+  register: cf_verify
+  failed_when: "'" not in cf_verify.content
+
+- name: Get Cloudflare zone ID if not provided
+  uri:
+    url: "https://api.cloudflare.com/client/v4/zones?name={{ cloudflare_zone_name }}"
+    headers:
+      Authorization: "Bearer {{ cloudflare_api_token }}"
+    return_content: yes
+  register: cf_zone_response
+  when: cloudflare_zone_id == ''
+
+- name: Set zone ID from API response
+  set_fact:
+    cloudflare_zone_id_resolved: "{{ cloudflare_zone_id if cloudflare_zone_id != '' else (cf_zone_response.json.result[0].id) }}"
+  when: cloudflare_zone_id != '' or (cf_zone_response.json.result | length > 0)
+
+- name: Get existing DNS records
+  uri:
+    url: "https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone_id_resolved }}/dns_records?type=A"
+    headers:
+      Authorization: "Bearer {{ cloudflare_api_token }}"
+    return_content: yes
+  register: cf_existing_records
+
+- name: Create A records for service subdomains
+  uri:
+    url: "https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone_id_resolved }}/dns_records"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ cloudflare_api_token }}"
+      Content-Type: "application/json"
+    body:
+      type: A
+      name: "{{ item }}.{{ base_domain }}"
+      content: "{{ vps_ip }}"
+      ttl: 300
+      proxied: false
+    body_format: json
+    status_code: [200, 400]
+  loop: "{{ cloudflare_subdomains }}"
+  register: cf_create_result
+  changed_when: "'" not in cf_create_result.json.errors | default([]) | map(attribute="code") | select('ne', 81057) | list'
+
+- name: Create wildcard A record for mints subdomain
+  uri:
+    url: "https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone_id_resolved }}/dns_records"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ cloudflare_api_token }}"
+      Content-Type: "application/json"
+    body:
+      type: A
+      name: "*.{{ mint_domain }}"
+      content: "{{ vps_ip }}"
+      ttl: 300
+      proxied: false
+    body_format: json
+    status_code: [200, 400]
+  register: cf_wildcard_result

@@ -1,0 +1,7 @@
+---
+- name: Deploy obelisk-relay 
+  hosts: tollgate-vps
+  become: yes
+  gather_facts: yes
+  roles:
+    - obelisk_relay

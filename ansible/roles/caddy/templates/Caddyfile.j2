@@ -1,0 +1,45 @@
+{{ base_domain }}, *.{{ mint_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    log {
+        output stdout
+    }
+
+    handle relay.{{ base_domain }} {
+        reverse_proxy localhost:{{ strfry_port }}
+    }
+
+    handle chat.{{ base_domain }} {
+        reverse_proxy localhost:{{ obelisk_port }}
+    }
+
+    handle blossom.{{ base_domain }} {
+        reverse_proxy localhost:{{ blossom_port }}
+    }
+
+    handle nsite.{{ base_domain }} {
+        reverse_proxy localhost:{{ nsite_gateway_port }}
+    }
+
+    handle releases.{{ base_domain }} {
+        root * {{ tollgate_static_dir }}/releases
+        file_server
+        try_files {path} /index.html
+    }
+
+    handle ci.{{ base_domain }} {
+        root * {{ tollgate_static_dir }}/hive-ci
+        file_server
+        try_files {path} /index.html
+    }
+
+    handle {
+        respond "Tollgate Infrastructure Kit - Service not found" 404
+    }
+}
+
+:80 {
+    respond "HTTPS required" 404
+}

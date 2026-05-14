@@ -1,0 +1,7 @@
+---
+- name: Deploy docker 
+  hosts: tollgate-vps
+  become: yes
+  gather_facts: yes
+  roles:
+    - docker

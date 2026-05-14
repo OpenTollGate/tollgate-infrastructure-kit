@@ -1,0 +1,46 @@
+---
+- name: Create Caddy directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ tollgate_base_dir }}/caddy"
+    - "{{ tollgate_base_dir }}/caddy/data"
+    - "{{ tollgate_base_dir }}/caddy/config"
+
+- name: Copy Caddy Dockerfile
+  copy:
+    src: Dockerfile
+    dest: "{{ tollgate_base_dir }}/caddy/Dockerfile"
+    mode: '0644'
+
+- name: Deploy Caddyfile
+  template:
+    src: Caddyfile.j2
+    dest: "{{ tollgate_base_dir }}/caddy/Caddyfile"
+    mode: '0644'
+
+- name: Deploy Caddy docker-compose
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ tollgate_base_dir }}/caddy/docker-compose.yml"
+    mode: '0644'
+
+- name: Build and start Caddy
+  community.docker.docker_compose_v2:
+    project_src: "{{ tollgate_base_dir }}/caddy"
+    build: yes
+    state: present
+  environment:
+    BASE_DOMAIN: "{{ base_domain }}"
+    MINT_DOMAIN: "{{ mint_domain }}"
+    CF_API_TOKEN: "{{ cloudflare_api_token }}"
+    ACME_EMAIL: "{{ acme_email }}"
+
+- name: Wait for Caddy to be ready
+  wait_for:
+    port: 80
+    host: localhost
+    delay: 5
+    timeout: 60

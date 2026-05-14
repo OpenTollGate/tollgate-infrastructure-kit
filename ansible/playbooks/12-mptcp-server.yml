@@ -1,0 +1,7 @@
+---
+- name: Deploy mptcp-server 
+  hosts: tollgate-vps
+  become: yes
+  gather_facts: yes
+  roles:
+    - mptcp_server

@@ -1,0 +1,21 @@
+---
+- name: Create mint base directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ tollgate_base_dir }}/mints"
+    - "{{ tollgate_base_dir }}/mints/config"
+
+- name: Check for existing mints
+  find:
+    paths: "{{ tollgate_base_dir }}/mints"
+    file_type: directory
+    excludes:
+      - config
+  register: existing_mints
+
+- name: Register mint port mapping
+  set_fact:
+    mint_next_port: "{{ mint_base_port | int + (existing_mints.files | default([]) | length | int) }}"

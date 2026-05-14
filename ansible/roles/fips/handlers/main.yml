@@ -1,0 +1,5 @@
+---
+- name: restart fips
+  systemd:
+    name: fips
+    state: restarted

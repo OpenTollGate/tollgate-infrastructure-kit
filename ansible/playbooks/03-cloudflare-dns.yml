@@ -1,0 +1,7 @@
+---
+- name: Deploy cloudflare-dns 
+  hosts: tollgate-vps
+  become: yes
+  gather_facts: yes
+  roles:
+    - cloudflare_dns

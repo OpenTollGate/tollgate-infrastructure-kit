@@ -1,0 +1,49 @@
+base_domain: "{{ lookup('env', 'BASE_DOMAIN') }}"
+mint_domain: "{{ lookup('env', 'MINT_DOMAIN') | default('mints.' + base_domain, true) }}"
+
+cloudflare_api_token: "{{ lookup('env', 'CLOUDFLARE_API_TOKEN') }}"
+cloudflare_zone_id: "{{ lookup('env', 'CLOUDFLARE_ZONE_ID') }}"
+cloudflare_zone_name: "{{ base_domain }}"
+
+vps_ip: "{{ lookup('env', 'VPS_IP') }}"
+
+acme_email: "{{ lookup('env', 'ACME_EMAIL') | default('admin@' + base_domain, true) }}"
+
+strfry_port: 7777
+obelisk_port: 8080
+blossom_port: 3001
+nsite_gateway_port: 3002
+mint_base_port: 8085
+
+shadowsocks_password: "{{ lookup('env', 'SHADOWSOCKS_PASSWORD') }}"
+shadowsocks_port: 65101
+shadowsocks_method: "chacha20-ietf-poly1305"
+glorytun_port: 65001
+glorytun_enabled: true
+mptcp_max_subflows: 8
+
+fips_relay_urls: "{{ lookup('env', 'FIPS_RELAY_URLS') | default('wss://relay.damus.io,wss://nos.lol', true) }}"
+
+obelisk_admin_npub: "{{ lookup('env', 'OBELISK_ADMIN_NPUB') }}"
+
+docker_network_name: tollgate-net
+
+tollgate_base_dir: /opt/tollgate
+tollgate_static_dir: /srv/tollgate
+
+firewall_enabled: true
+firewall_allowed_ports:
+  - "22"
+  - "80"
+  - "443"
+  - "7777"
+  - "65001"
+  - "65101"
+
+cloudflare_subdomains:
+  - relay
+  - chat
+  - blossom
+  - nsite
+  - releases
+  - ci

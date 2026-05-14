@@ -1,0 +1,7 @@
+---
+- name: Deploy system 
+  hosts: tollgate-vps
+  become: yes
+  gather_facts: yes
+  roles:
+    - system

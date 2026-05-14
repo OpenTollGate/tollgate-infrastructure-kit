@@ -1,0 +1,7 @@
+---
+- name: Deploy nsyte 
+  hosts: tollgate-vps
+  become: yes
+  gather_facts: yes
+  roles:
+    - nsyte_cli

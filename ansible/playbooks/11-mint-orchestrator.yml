@@ -1,0 +1,7 @@
+---
+- name: Deploy mint-orchestrator 
+  hosts: tollgate-vps
+  become: yes
+  gather_facts: yes
+  roles:
+    - mint_orchestrator

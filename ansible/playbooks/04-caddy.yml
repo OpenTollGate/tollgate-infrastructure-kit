@@ -1,0 +1,7 @@
+---
+- name: Deploy caddy 
+  hosts: tollgate-vps
+  become: yes
+  gather_facts: yes
+  roles:
+    - caddy

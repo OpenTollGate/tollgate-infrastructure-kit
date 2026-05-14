@@ -1,0 +1,18 @@
+fips:
+  identity:
+    generate: true
+    save_path: /etc/fips/identity.json
+
+  relays:
+{% for relay in fips_relay_urls.split(',') %}
+    - {{ relay }}
+{% endfor %}
+
+  tun:
+    enabled: true
+    device: fips0
+    address: "fd00::1/8"
+
+  logging:
+    level: info
+    file: /var/log/fips.log
