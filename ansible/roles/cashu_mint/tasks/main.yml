@@ -1,0 +1,144 @@
+---
+- name: Validate npub
+  assert:
+    that:
+      - npub is defined
+      - npub | length > 0
+    fail_msg: "npub is required (pass via --extra-vars 'npub=...')"
+
+- name: Validate custom_port or assign one
+  block:
+    - name: Load existing registry
+      slurp:
+        src: "{{ tollgate_base_dir }}/mints/registry.json"
+      register: registry_file
+      failed_when: false
+
+    - name: Parse registry
+      set_fact:
+        existing_mints: "{{ (registry_file.content | default('{}') | b64decode | from_json).mints | default([]) }}"
+
+    - name: Set port assignments
+      set_fact:
+        mint_rest_port: "{{ custom_port if (custom_port | default('')) | length > 0 else (existing_mints | map(attribute='rest_port') | max | default(3337)) | int + 1 }}"
+        mint_grpc_port: "{{ (existing_mints | map(attribute='grpc_port') | max | default(50050)) | int + 1 }}"
+
+- name: Generate mint subdomain from npub
+  set_fact:
+    mint_subdomain: "{{ npub[5:17] }}"
+
+- name: Generate mint private key
+  command: openssl rand -hex 32
+  register: mint_key_output
+  changed_when: false
+
+- name: Set mint facts
+  set_fact:
+    mint_private_key: "{{ mint_key_output.stdout }}"
+    mint_url: "https://{{ mint_subdomain }}.{{ mint_domain }}"
+    mint_container_name: "mint-{{ mint_subdomain }}"
+
+- name: Convert npub to hex pubkey
+  shell: |
+    python3 -c "
+    try:
+        from pynostr.nip19 import npub_decode
+        print(npub_decode('{{ npub }}'))
+    except:
+        from bech32 import bech32_decode, convertbits
+        hrp, data = bech32_decode('{{ npub }}')
+        decoded = convertbits(data, 5, 8, False)
+        print(bytes(decoded).hex())
+    "
+  register: hex_pubkey_output
+  changed_when: false
+
+- name: Set hex pubkey
+  set_fact:
+    mint_hex_pubkey: "{{ hex_pubkey_output.stdout }}"
+
+- name: Create mint directory
+  file:
+    path: "{{ tollgate_base_dir }}/mints/{{ mint_subdomain }}/data"
+    state: directory
+    mode: '0755'
+
+- name: Deploy mint docker-compose
+  template:
+    src: docker-compose.mint.yml.j2
+    dest: "{{ tollgate_base_dir }}/mints/{{ mint_subdomain }}/docker-compose.yml"
+    mode: '0644'
+
+- name: Start mint container
+  community.docker.docker_compose_v2:
+    project_src: "{{ tollgate_base_dir }}/mints/{{ mint_subdomain }}"
+    state: present
+    build: always
+  register: mint_deploy
+
+- name: Wait for mint to start
+  uri:
+    url: "http://localhost:{{ mint_rest_port }}/v1/info"
+    return_content: yes
+  register: mint_health
+  until: mint_health.status == 200
+  retries: 30
+  delay: 2
+
+- name: Add Caddy route for mint
+  block:
+    - name: Append mint block to Caddyfile
+      shell: |
+        grep -q '{{ mint_subdomain }}.{{ mint_domain }}' /opt/tollgate/caddy/Caddyfile || (
+          echo '' >> /opt/tollgate/caddy/Caddyfile
+          echo '{{ mint_subdomain }}.{{ mint_domain }} {' >> /opt/tollgate/caddy/Caddyfile
+          echo '    tls {' >> /opt/tollgate/caddy/Caddyfile
+          echo '        dns cloudflare {env.CF_API_TOKEN}' >> /opt/tollgate/caddy/Caddyfile
+          echo '    }' >> /opt/tollgate/caddy/Caddyfile
+          echo '    reverse_proxy localhost:{{ mint_rest_port }}' >> /opt/tollgate/caddy/Caddyfile
+          echo '}' >> /opt/tollgate/caddy/Caddyfile
+        )
+      args:
+        executable: /bin/bash
+
+    - name: Reload Caddy
+      shell: docker exec tollgate-caddy caddy reload --config /etc/caddy/Caddyfile 2>&1
+      register: caddy_reload
+
+- name: Update mint registry
+  shell: |
+    python3 -c "
+    import json, os
+    reg_path = '{{ tollgate_base_dir }}/mints/registry.json'
+    if os.path.exists(reg_path):
+        with open(reg_path) as f:
+            reg = json.load(f)
+    else:
+        reg = {'mints': []}
+    mints = [m for m in reg['mints'] if m['subdomain'] != '{{ mint_subdomain }}']
+    mints.append({
+        'npub': '{{ npub }}',
+        'hex_pubkey': '{{ mint_hex_pubkey }}',
+        'subdomain': '{{ mint_subdomain }}',
+        'url': '{{ mint_url }}',
+        'rest_port': {{ mint_rest_port }},
+        'grpc_port': {{ mint_grpc_port }},
+        'container_name': '{{ mint_container_name }}',
+        'created_at': '{{ ansible_date_time.iso8601 }}',
+        'max_single_issuance': 10000,
+        'max_balance': 1000000
+    })
+    reg['mints'] = mints
+    with open(reg_path, 'w') as f:
+        json.dump(reg, f, indent=2)
+    "
+
+- name: Display mint info
+  debug:
+    msg: |
+      Mint deployed successfully!
+      URL: {{ mint_url }}
+      Subdomain: {{ mint_subdomain }}.{{ mint_domain }}
+      REST Port: {{ mint_rest_port }}
+      gRPC Port: {{ mint_grpc_port }}
+      Container: {{ mint_container_name }}

@@ -50,10 +50,21 @@
 
 ## Cashu Mint Orchestrator
 - **Subdomain**: `*.mints.<domain>`
-- **Ports**: 8085+ (one per mint)
-- **Purpose**: Per-operator Cashu ecash mints
-- **Tech**: CDK mintd Docker containers
+- **Ports**: 3338+ REST, 50051+ gRPC (one per mint), 8090 API
+- **Purpose**: Per-operator Cashu ecash mints with Nostr-based approval gating
+- **Tech**: Nutshell (cashubtc/nutshell) Docker containers + Python orchestrator daemon
+- **Approval**: Mint owners sign kind 38010 Nostr events → orchestrator validates → gRPC sets quote PAID
+- **Units**: sat, usd, eur, B, KB, MB, GB, sec, min, hr, day, wk, mo
+- **Config**: `/opt/tollgate/mints/registry.json`
 - **Usage**: `./scripts/deploy-mint.sh <npub>`
+
+## GRASP Server (ngit-grasp)
+- **Subdomain**: `git.<domain>`
+- **Port**: 7334
+- **Purpose**: Decentralized Git hosting via Nostr authorization (GRASP protocol)
+- **Tech**: Rust (ngit-grasp), built from source
+- **Features**: GRASP-01/02/05, NIP-34/77, archive-all mode, proactive sync
+- **Config**: systemd unit with environment variables
 
 ## MPTCP Server
 - **No subdomain** (TCP/UDP service)

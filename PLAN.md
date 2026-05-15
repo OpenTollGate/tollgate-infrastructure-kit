@@ -22,10 +22,11 @@ A single Ansible-based repository that deploys all Tollgate-related infrastructu
 | 5 | nsite-gateway (Nostr site gateway) | `nsite.` | 3002 | Docker (build from hzrd149/nsite-gateway) |
 | 6 | tollgate-release-explorer | `releases.` | — | Static build, Caddy file_server |
 | 7 | hive-ci-site | `ci.` | — | Static build, Caddy file_server |
-| 8 | tg-mint-orchestrator (Cashu mints) | `*.mints.` | 8085+ | Docker per-mint, Caddy routes |
+| 8 | tg-mint-orchestrator (Cashu mints) | `*.mints.` | 3338+, 50051+, 8090 | Docker per-mint + Python daemon |
 | 9 | tg-mptcp-server (MPTCP) | none | 65101/65001 | Systemd |
 | 10 | FIPS (mesh network) | none | TUN | Systemd (Debian package) |
 | 11 | nsyte CLI | N/A | N/A | Deno binary in PATH |
+| 12 | GRASP server (ngit-grasp) | `git.` | 7334 | Systemd (built from source) |
 
 ## Architecture
 

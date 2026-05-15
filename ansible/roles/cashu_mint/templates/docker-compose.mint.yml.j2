@@ -1,0 +1,25 @@
+version: "3.8"
+services:
+  {{ mint_container_name }}:
+    image: cashubtc/nutshell:0.20.0
+    container_name: {{ mint_container_name }}
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      MINT_LISTEN_HOST: "0.0.0.0"
+      MINT_LISTEN_PORT: "{{ mint_rest_port }}"
+      MINT_BACKEND_BOLT11_SAT: FakeWallet
+      MINT_BACKEND_BOLT11_USD: FakeWallet
+      MINT_BACKEND_BOLT11_EUR: FakeWallet
+      MINT_PRIVATE_KEY: "{{ mint_private_key }}"
+      MINT_DATABASE: "sqlite:///data/mint.db"
+      MINT_MAX_BALANCE: "1000000"
+      MINT_MAX_MINT_BOLT11_SAT: "10000"
+      MINT_RPC_SERVER_ENABLE: "TRUE"
+      MINT_RPC_SERVER_ADDR: "0.0.0.0"
+      MINT_RPC_SERVER_PORT: "{{ mint_grpc_port }}"
+      MINT_RPC_SERVER_MUTUAL_TLS: "FALSE"
+      FAKEWALLET_BRR: "FALSE"
+    volumes:
+      - {{ tollgate_base_dir }}/mints/{{ mint_subdomain }}/data:/data
+    command: ["poetry", "run", "mint"]

@@ -1,21 +1,73 @@
 ---
-- name: Create mint base directories
+- name: Create tollgate mint directories
   file:
     path: "{{ item }}"
     state: directory
     mode: '0755'
   loop:
     - "{{ tollgate_base_dir }}/mints"
-    - "{{ tollgate_base_dir }}/mints/config"
+    - "{{ tollgate_base_dir }}/mints-dashboard"
+    - "/var/log/tollgate"
 
-- name: Check for existing mints
-  find:
-    paths: "{{ tollgate_base_dir }}/mints"
-    file_type: directory
-    excludes:
-      - config
-  register: existing_mints
+- name: Create empty registry if not exists
+  copy:
+    dest: "{{ tollgate_base_dir }}/mints/registry.json"
+    content: '{"mints":[]}'
+    force: no
+    mode: '0644'
 
-- name: Register mint port mapping
-  set_fact:
-    mint_next_port: "{{ mint_base_port | int + (existing_mints.files | default([]) | length | int) }}"
+- name: Copy mint orchestrator Dockerfile
+  copy:
+    src: "{{ item }}"
+    dest: "{{ tollgate_base_dir }}/mint-orchestrator/{{ item }}"
+    mode: '0644'
+  loop:
+    - Dockerfile
+  failed_when: false
+
+- name: Copy dashboard files
+  copy:
+    src: "{{ playbook_dir }}/../../../mint-dashboard/"
+    dest: "{{ tollgate_base_dir }}/mints-dashboard/"
+    mode: '0644'
+  failed_when: false
+
+- name: Deploy orchestrator via pip (if mint-orchestrator dir exists)
+  block:
+    - name: Install orchestrator Python package
+      pip:
+        name: "file://{{ playbook_dir }}/../../../mint-orchestrator"
+        virtualenv: "{{ tollgate_base_dir }}/mint-orchestrator-venv"
+        virtualenv_command: python3 -m venv
+      when: false
+
+    - name: Create orchestrator systemd unit
+      template:
+        src: tollgate-mint-orchestrator.service.j2
+        dest: /etc/systemd/system/tollgate-mint-orchestrator.service
+        mode: '0644'
+      notify: restart mint orchestrator
+
+    - name: Enable and start orchestrator
+      systemd:
+        name: tollgate-mint-orchestrator
+        state: started
+        enabled: yes
+        daemon_reload: yes
+  when: false
+
+- name: Add dashboard route to Caddyfile
+  shell: |
+    grep -q 'mints-dashboard' /opt/tollgate/caddy/Caddyfile || (
+      echo '' >> /opt/tollgate/caddy/Caddyfile
+      echo 'dashboard.{{ mint_domain }} {' >> /opt/tollgate/caddy/Caddyfile
+      echo '    tls {' >> /opt/tollgate/caddy/Caddyfile
+      echo '        dns cloudflare {env.CF_API_TOKEN}' >> /opt/tollgate/caddy/Caddyfile
+      echo '    }' >> /opt/tollgate/caddy/Caddyfile
+      echo '    root * {{ tollgate_base_dir }}/mints-dashboard' >> /opt/tollgate/caddy/Caddyfile
+      echo '    file_server' >> /opt/tollgate/caddy/Caddyfile
+      echo '}' >> /opt/tollgate/caddy/Caddyfile
+    )
+  args:
+    executable: /bin/bash
+  notify: reload caddy
