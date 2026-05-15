@@ -1,0 +1,7 @@
+---
+- name: Deploy ngit-grasp GRASP server
+  hosts: tollgate-vps
+  become: yes
+  gather_facts: yes
+  roles:
+    - grasp

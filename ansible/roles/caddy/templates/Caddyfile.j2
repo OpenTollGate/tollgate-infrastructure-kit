@@ -1,4 +1,4 @@
-{% for sub in ['relay', 'chat', 'blossom', 'nsite', 'releases', 'ci'] %}
+{% for sub in ['relay', 'chat', 'blossom', 'nsite', 'releases', 'ci', 'git'] %}
 {{ sub }}.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
@@ -19,6 +19,8 @@
     root * {{ tollgate_static_dir }}/hive-ci
     file_server
     try_files {path} /index.html
+{% elif sub == 'git' %}
+    reverse_proxy localhost:{{ grasp_port }}
 {% endif %}
 }
 

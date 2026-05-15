@@ -42,6 +42,7 @@ test_service "nsite-gateway" "3002" "200|302|404"
 test_service "caddy" "80" "200|404"
 test_service "caddy-tls" "443" ""
 test_service "shadowsocks" "65101" ""
+test_service "ngit-grasp" "7334" ""
 
 echo ""
 echo "Static file tests:"
@@ -78,7 +79,7 @@ done
 
 echo ""
 echo "System service tests:"
-for svc in shadowsocks-libev; do
+for svc in shadowsocks-libev ngit-grasp; do
     echo -n "  [$svc] ... "
     if ssh "$VPS" "systemctl is-active --quiet $svc 2>/dev/null"; then
         echo "OK (active)"

@@ -1,8 +1,13 @@
 ---
-- name: Update apt cache and upgrade
+- name: Update apt cache
   apt:
     update_cache: yes
+  tags: system
+
+- name: Upgrade system packages
+  apt:
     upgrade: dist
+  when: system_upgrade | default(false)
   tags: system
 
 - name: Install base packages
@@ -46,6 +51,7 @@
 - name: Set timezone to UTC
   timezone:
     name: UTC
+  when: manage_timezone | default(false)
   tags: system
 
 - name: Enable IP forwarding
@@ -93,6 +99,10 @@
     - "{{ tollgate_base_dir }}/nsite-gateway"
     - "{{ tollgate_base_dir }}/mints"
     - "{{ tollgate_base_dir }}/mptcp"
+    - "{{ tollgate_base_dir }}/grasp"
+    - "{{ tollgate_base_dir }}/grasp/data"
+    - "{{ tollgate_base_dir }}/grasp/data/git"
+    - "{{ tollgate_base_dir }}/grasp/data/relay"
   tags: system
 
 - name: Configure UFW firewall
@@ -100,8 +110,8 @@
     rule: allow
     port: "{{ item }}"
     proto: tcp
-  loop: "{{ firewall_allowed_ports }}"
-  when: firewall_enabled
+  loop: "{{ firewall_allowed_ports + (firewall_extra_ports | default([])) }}"
+  when: manage_firewall | default(false)
   tags: system
 
 - name: Allow UFW for Glorytun UDP
@@ -109,14 +119,14 @@
     rule: allow
     port: "{{ glorytun_port }}"
     proto: udp
-  when: firewall_enabled and glorytun_enabled
+  when: manage_firewall | default(false) and glorytun_enabled
   tags: system
 
 - name: Enable UFW
   ufw:
     state: enabled
     policy: deny
-  when: firewall_enabled
+  when: manage_firewall | default(false)
   tags: system
 
 - name: Enable fail2ban
@@ -124,4 +134,5 @@
     name: fail2ban
     state: started
     enabled: yes
+  when: manage_fail2ban | default(false)
   tags: system

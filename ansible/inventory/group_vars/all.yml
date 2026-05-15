@@ -26,10 +26,23 @@ fips_relay_urls: "{{ lookup('env', 'FIPS_RELAY_URLS') | default('wss://relay.dam
 
 obelisk_admin_npub: "{{ lookup('env', 'OBELISK_ADMIN_NPUB') | default('', true) }}"
 
+grasp_port: 7334
+grasp_domain: "git.{{ base_domain }}"
+grasp_repo_url: "https://github.com/chebizarro/ngit-grasp-fork1.git"
+grasp_archive_all: true
+grasp_archive_read_only: false
+grasp_bootstrap_relay_url: "wss://relay.{{ base_domain }}"
+
 docker_network_name: tollgate-net
 
 tollgate_base_dir: /opt/tollgate
 tollgate_static_dir: /srv/tollgate
+
+system_upgrade: false
+manage_timezone: false
+manage_firewall: false
+manage_fail2ban: false
+firewall_extra_ports: []
 
 firewall_enabled: true
 firewall_allowed_ports:
@@ -47,3 +60,4 @@ cloudflare_subdomains:
   - nsite
   - releases
   - ci
+  - git

@@ -31,6 +31,10 @@
         try_files {path} /index.html
     }
 
+    handle_path /git/* {
+        reverse_proxy localhost:{{ grasp_port }}
+    }
+
     handle / {
         respond "Tollgate Infrastructure Kit - Running" 200
     }

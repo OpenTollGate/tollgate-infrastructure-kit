@@ -1,0 +1,52 @@
+---
+- name: Install build dependencies for ngit-grasp
+  apt:
+    name:
+      - build-essential
+      - pkg-config
+      - libssl-dev
+      - git
+    state: present
+
+- name: Install Rust
+  shell: |
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+  args:
+    creates: /root/.cargo/bin/rustup
+
+- name: Clone ngit-grasp
+  git:
+    repo: "{{ grasp_repo_url }}"
+    dest: "{{ tollgate_base_dir }}/src/ngit-grasp"
+    depth: 1
+    force: yes
+
+- name: Build ngit-grasp (release)
+  command: /root/.cargo/bin/cargo build --release
+  args:
+    chdir: "{{ tollgate_base_dir }}/src/ngit-grasp"
+    creates: "{{ tollgate_base_dir }}/src/ngit-grasp/target/release/ngit-grasp"
+  environment:
+    PATH: "/root/.cargo/bin:{{ ansible_env.PATH }}"
+
+- name: Install ngit-grasp binary
+  copy:
+    src: "{{ tollgate_base_dir }}/src/ngit-grasp/target/release/ngit-grasp"
+    dest: /usr/local/bin/ngit-grasp
+    mode: '0755'
+    remote_src: yes
+  notify: restart ngit-grasp
+
+- name: Deploy ngit-grasp systemd unit
+  template:
+    src: ngit-grasp.service.j2
+    dest: /etc/systemd/system/ngit-grasp.service
+    mode: '0644'
+  notify: restart ngit-grasp
+
+- name: Enable and start ngit-grasp
+  systemd:
+    name: ngit-grasp
+    state: started
+    enabled: yes
+    daemon_reload: yes
