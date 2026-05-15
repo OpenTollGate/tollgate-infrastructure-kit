@@ -1,45 +1,37 @@
-{{ base_domain }}, *.{{ mint_domain }} {
+{% for sub in ['relay', 'chat', 'blossom', 'nsite', 'releases', 'ci'] %}
+{{ sub }}.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
     }
+{% if sub == 'relay' %}
+    reverse_proxy localhost:{{ strfry_port }}
+{% elif sub == 'chat' %}
+    reverse_proxy localhost:{{ obelisk_port }}
+{% elif sub == 'blossom' %}
+    reverse_proxy localhost:{{ blossom_port }}
+{% elif sub == 'nsite' %}
+    reverse_proxy localhost:{{ nsite_gateway_port }}
+{% elif sub == 'releases' %}
+    root * {{ tollgate_static_dir }}/releases
+    file_server
+    try_files {path} /index.html
+{% elif sub == 'ci' %}
+    root * {{ tollgate_static_dir }}/hive-ci
+    file_server
+    try_files {path} /index.html
+{% endif %}
+}
 
-    log {
-        output stdout
+{% endfor %}
+*.{{ mint_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
     }
-
-    handle relay.{{ base_domain }} {
-        reverse_proxy localhost:{{ strfry_port }}
-    }
-
-    handle chat.{{ base_domain }} {
-        reverse_proxy localhost:{{ obelisk_port }}
-    }
-
-    handle blossom.{{ base_domain }} {
-        reverse_proxy localhost:{{ blossom_port }}
-    }
-
-    handle nsite.{{ base_domain }} {
-        reverse_proxy localhost:{{ nsite_gateway_port }}
-    }
-
-    handle releases.{{ base_domain }} {
-        root * {{ tollgate_static_dir }}/releases
-        file_server
-        try_files {path} /index.html
-    }
-
-    handle ci.{{ base_domain }} {
-        root * {{ tollgate_static_dir }}/hive-ci
-        file_server
-        try_files {path} /index.html
-    }
-
     handle {
-        respond "Tollgate Infrastructure Kit - Service not found" 404
+        respond "Mint not found - deploy with ./scripts/deploy-mint.sh" 404
     }
 }
 
 :80 {
-    respond "HTTPS required" 404
+    respond "Use HTTPS" 301
 }
