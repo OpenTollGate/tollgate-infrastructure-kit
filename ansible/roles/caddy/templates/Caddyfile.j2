@@ -25,6 +25,28 @@
 }
 
 {% endfor %}
+dashboard.{{ mint_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+    root * {{ tollgate_base_dir }}/mints-dashboard
+    file_server
+}
+
+print.{{ mint_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+    handle /api/* {
+        reverse_proxy localhost:3000
+    }
+    handle {
+        root * {{ tollgate_static_dir }}/cashu-brrr
+        file_server
+        try_files {path} /index.html
+    }
+}
+
 *.{{ mint_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}

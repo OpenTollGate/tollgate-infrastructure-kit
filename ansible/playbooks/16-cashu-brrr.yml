@@ -1,0 +1,7 @@
+---
+- name: Deploy cashu-brrr money printer frontend
+  hosts: tollgate-vps
+  become: yes
+  gather_facts: yes
+  roles:
+    - cashu_brrr

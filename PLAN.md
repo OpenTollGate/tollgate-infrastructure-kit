@@ -23,10 +23,12 @@ A single Ansible-based repository that deploys all Tollgate-related infrastructu
 | 6 | tollgate-release-explorer | `releases.` | — | Static build, Caddy file_server |
 | 7 | hive-ci-site | `ci.` | — | Static build, Caddy file_server |
 | 8 | Cashu mint infrastructure | `*.mints.` | 3338+, 50051+ | Docker per-mint (CDK mintd) |
-| 9 | MPTCP server | none | 65101/65001 | Systemd |
-| 10 | FIPS (mesh network) | none | TUN | Systemd (Debian package) |
-| 11 | nsyte CLI | N/A | N/A | Deno binary in PATH |
-| 12 | GRASP server (ngit-grasp) | `git.` | 7334 | Systemd (built from source) |
+| 9 | cashu-brrr (money printer) | `print.mints.` | — | Static build, Caddy file_server |
+| 10 | Mint operator proxy | `print.mints./api/` | 3000 | Node.js systemd (tsx) |
+| 11 | MPTCP server | none | 65101/65001 | Systemd |
+| 12 | FIPS (mesh network) | none | TUN | Systemd (Debian package) |
+| 13 | nsyte CLI | N/A | N/A | Deno binary in PATH |
+| 14 | GRASP server (ngit-grasp) | `git.` | 7334 | Systemd (built from source) |
 
 ## Architecture
 
@@ -41,7 +43,8 @@ Internet → Cloudflare DNS (auto A records via API)
       ├── releases.BASE_DOMAIN  → /srv/tollgate/releases/ (Caddy file_server)
       ├── ci.BASE_DOMAIN        → /srv/tollgate/hive-ci/ (Caddy file_server)
       ├── git.BASE_DOMAIN       → ngit-grasp (Systemd :7334)
-      └── *.mints.BASE_DOMAIN   → CDK mintd containers (:3338, :3339, ...)
+       ├── *.mints.BASE_DOMAIN   → CDK mintd containers (:3338, :3339, ...)
+       └── print.mints.BASE_DOMAIN → cashu-brrr static + /api/* proxy → mint operator proxy (:3000)
 
     Mint orchestrator:
       ├── tollgate-mint-orchestrator (Python daemon :8090)

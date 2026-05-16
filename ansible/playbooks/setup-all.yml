@@ -16,6 +16,8 @@
     - release_explorer
     - hive_ci
     - mint_orchestrator
+    - cashu_brrr
+    - mint_operator_proxy
     - mptcp_server
     - fips
     - nsyte_cli

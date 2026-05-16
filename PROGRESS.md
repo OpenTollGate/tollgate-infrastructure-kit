@@ -31,16 +31,23 @@
 - [x] PROGRESS.md — this checklist
 - [x] PLAN.md updated for CDK architecture
 
+- [x] **Test coverage** — 108 tests (94 orchestrator + 14 CLI), ~96% business logic coverage
+- [x] HANDOVER.md written for cashu-brrr mint operator mode
+- [x] **REST API proxy** — Node.js/Express in cashu-brrr `server/`, 45 vitest tests passing
+- [x] **Ansible roles** — `cashu_brrr` (frontend build + deploy), `mint_operator_proxy` (systemd + caddy)
+- [x] **mint_orchestrator role** — activated (removed `when: false`), pip venv install
+- [x] **Caddyfile template** — updated with `print.mints` domain + `/api/*` proxy route
+- [x] **Integration test script** — updated to run all new test files
+
 ## In Progress
 
 - [ ] Deploy first test mint on VPS with CDK mintd
 - [ ] Deploy mint orchestrator daemon on VPS
+- [ ] Deploy cashu-brrr + proxy on VPS
 - [ ] End-to-end mint approval flow test on VPS
 
 ## Blocked / Pending
 
-- [ ] Deploy first test mint on VPS with CDK mintd
-- [ ] Deploy mint orchestrator daemon on VPS
+- [ ] Frontend admin mode in cashu-brrr (HANDOVER.md has full spec)
 - [ ] Build/deploy Hive CI content to `ci.orangesync.tech`
 - [ ] Install `websocat` locally for full Playwright WebSocket tests
-- [ ] End-to-end mint approval flow test on VPS (create quote → approve via CLI → mint tokens)

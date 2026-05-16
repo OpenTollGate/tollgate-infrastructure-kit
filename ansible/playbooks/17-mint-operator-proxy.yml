@@ -1,0 +1,7 @@
+---
+- name: Deploy mint operator REST API proxy
+  hosts: tollgate-vps
+  become: yes
+  gather_facts: yes
+  roles:
+    - mint_operator_proxy

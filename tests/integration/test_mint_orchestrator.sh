@@ -4,6 +4,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
 ORCHESTRATOR_DIR="$PROJECT_DIR/mint-orchestrator"
+APPROVE_DIR="$PROJECT_DIR/mint-approve"
+CASHU_BRRR_DIR="/home/c03rad0r/money-printer/cashu-brrr"
 
 echo "=== Mint Orchestrator Integration Tests ==="
 PASS=0
@@ -49,17 +51,36 @@ run_test_verbose "daemon imports" python3 -c "from tollgate_mint_orchestrator.da
 run_test_verbose "cli imports" python3 -c "from tollgate_mint_approve.cli import main, SUPPORTED_UNITS as CLI_UNITS"
 
 echo ""
-echo "Unit tests:"
+echo "Unit tests - orchestrator:"
 if command -v pytest >/dev/null 2>&1; then
     export PYTHONPATH="$ORCHESTRATOR_DIR/src:$PROJECT_DIR/mint-approve/src"
-    run_test_verbose "pytest registry" pytest "$ORCHESTRATOR_DIR/tests/test_mint_registry.py" -v --tb=short 2>&1
-    run_test_verbose "pytest validator" pytest "$ORCHESTRATOR_DIR/tests/test_event_validator.py" -v --tb=short 2>&1
+    run_test_verbose "pytest api" pytest "$ORCHESTRATOR_DIR/tests/test_api.py" -v --tb=short 2>&1
     run_test_verbose "pytest audit" pytest "$ORCHESTRATOR_DIR/tests/test_audit_log.py" -v --tb=short 2>&1
-    run_test_verbose "pytest grpc" pytest "$ORCHESTRATOR_DIR/tests/test_grpc_client.py" -v --tb=short 2>&1
     run_test_verbose "pytest daemon" pytest "$ORCHESTRATOR_DIR/tests/test_daemon.py" -v --tb=short 2>&1
+    run_test_verbose "pytest daemon_full" pytest "$ORCHESTRATOR_DIR/tests/test_daemon_full.py" -v --tb=short 2>&1
+    run_test_verbose "pytest event_validator" pytest "$ORCHESTRATOR_DIR/tests/test_event_validator.py" -v --tb=short 2>&1
+    run_test_verbose "pytest event_validator_full" pytest "$ORCHESTRATOR_DIR/tests/test_event_validator_full.py" -v --tb=short 2>&1
+    run_test_verbose "pytest grpc_client" pytest "$ORCHESTRATOR_DIR/tests/test_grpc_client.py" -v --tb=short 2>&1
+    run_test_verbose "pytest grpc_client_full" pytest "$ORCHESTRATOR_DIR/tests/test_grpc_client_full.py" -v --tb=short 2>&1
+    run_test_verbose "pytest mint_registry" pytest "$ORCHESTRATOR_DIR/tests/test_mint_registry.py" -v --tb=short 2>&1
 else
     echo "  pytest not found, skipping unit tests"
     ((FAIL++))
+fi
+
+echo ""
+echo "Unit tests - mint-approve CLI:"
+if command -v pytest >/dev/null 2>&1; then
+    export PYTHONPATH="$APPROVE_DIR/src"
+    run_test_verbose "pytest cli" pytest "$APPROVE_DIR/tests/test_cli.py" -v --tb=short 2>&1
+fi
+
+echo ""
+echo "Unit tests - cashu-brrr proxy server:"
+if [[ -d "$CASHU_BRRR_DIR/server" ]] && command -v npm >/dev/null 2>&1; then
+    run_test_verbose "server vitest" bash -c "cd '$CASHU_BRRR_DIR/server' && npm test" 2>&1
+else
+    echo "  cashu-brrr server not found, skipping"
 fi
 
 echo ""

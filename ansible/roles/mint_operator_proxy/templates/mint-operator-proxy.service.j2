@@ -1,0 +1,17 @@
+[Unit]
+Description=Mint Operator REST API Proxy
+After=network.target docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+WorkingDirectory={{ tollgate_base_dir }}/src/cashu-brrr/server
+ExecStart={{ tollgate_base_dir }}/cashu-brrr-proxy-node/node_modules/.bin/tsx src/index.ts
+Environment=PORT={{ mint_operator_proxy_port }}
+Environment=CDK_MINTD_REST_URL={{ mint_operator_proxy_cdk_url }}
+Environment=OPERATOR_NPUBS={{ mint_operator_proxy_npubs }}
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
