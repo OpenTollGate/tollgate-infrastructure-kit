@@ -41,19 +41,14 @@
 - [x] **cashu-brrr deployed to VPS** — `https://print.mints.orangesync.tech` (static frontend)
 - [x] **mint operator proxy deployed to VPS** — systemd service, port 3000, `/api/health` responding
 - [x] **Caddy routes added** — `print.mints` and `dashboard.mints` on port 80 (Cloudflare proxy mode)
-- [x] **Server code rsynced** — local cashu-brrr/server/ deployed to VPS (not in upstream repo)
+- [x] **4 CDK test mints deployed** — test-mb (MB:8085), test-kb (KB:8086), test-gb (GB:8087), test-min (min:8088)
+- [x] **Cloudflare DNS** — 4 A records (proxied) for test-{mb,kb,gb,min}.mints.orangesync.tech
+- [x] **Caddy routes** — 4 mint subdomains on :80
+- [x] **cashu-brrr updated** — 4 mint URLs added to Step1.svelte (7 total mints listed)
+- [x] **Proxy operator npubs** — 4 npubs configured, proxy connected to mintd
 
 ## In Progress
 
-- [ ] Fix cashu_mint Ansible role (mint_name override, single unit, Caddy :80)
-- [ ] Create deploy-test-mints.yml playbook for 4 mints (MB, KB, GB, min)
-- [ ] Create Cloudflare DNS records for test-mb, test-kb, test-gb, test-min
-- [ ] Deploy 4 CDK mintd containers on VPS
-- [ ] Add Caddy routes for 4 mints on VPS
-- [ ] Add 4 mint URLs to cashu-brrr Step1.svelte
-- [ ] Update proxy OPERATOR_NPUBS on VPS (4 operator npubs)
-- [ ] Rebuild + redeploy cashu-brrr frontend
-- [ ] Smoke test all mints + cashu-brrr UI
 - [ ] Deploy mint orchestrator daemon on VPS
 - [ ] End-to-end mint approval flow test on VPS
 
