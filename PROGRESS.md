@@ -26,17 +26,16 @@
 - [x] **Mint dashboard** — web UI with client-side nsec signing
 - [x] **Ansible roles** — `cashu_mint` (per-mint deployment) + `mint_orchestrator` (daemon + dashboard)
 - [x] **Playwright E2E tests** — mint orchestrator API, dashboard, mint REST API
+- [x] **Switch from Nutshell to CDK mintd** — Docker image, gRPC proto, env vars, all 42 tests passing
+- [x] AGENTS.md — standing instructions (commit on test pass, no comments, no secrets, etc.)
+- [x] PROGRESS.md — this checklist
+- [x] PLAN.md updated for CDK architecture
 
 ## In Progress
 
-- [ ] Switch from Nutshell to **CDK mintd** Docker image
-- [ ] Switch gRPC proto from Nutshell (`cashu` package) to CDK (`cdk_mint_management_v1` package)
-- [ ] Regenerate Python gRPC stubs from CDK proto
-- [ ] Update `grpc_client.py` for CDK proto package
-- [ ] Update Docker template with CDK env vars
-- [ ] Update Ansible roles for CDK mintd
-- [ ] Update all tests for CDK
-- [ ] Run all tests and verify they pass
+- [ ] Deploy first test mint on VPS with CDK mintd
+- [ ] Deploy mint orchestrator daemon on VPS
+- [ ] End-to-end mint approval flow test on VPS
 
 ## Blocked / Pending
 
