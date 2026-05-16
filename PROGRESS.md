@@ -38,12 +38,15 @@
 - [x] **mint_orchestrator role** — activated (removed `when: false`), pip venv install
 - [x] **Caddyfile template** — updated with `print.mints` domain + `/api/*` proxy route
 - [x] **Integration test script** — updated to run all new test files
+- [x] **cashu-brrr deployed to VPS** — `https://print.mints.orangesync.tech` (static frontend)
+- [x] **mint operator proxy deployed to VPS** — systemd service, port 3000, `/api/health` responding
+- [x] **Caddy routes added** — `print.mints` and `dashboard.mints` on port 80 (Cloudflare proxy mode)
+- [x] **Server code rsynced** — local cashu-brrr/server/ deployed to VPS (not in upstream repo)
 
 ## In Progress
 
-- [ ] Deploy first test mint on VPS with CDK mintd
+- [ ] Deploy first test mint on VPS with CDK mintd (proxy shows "mintd: disconnected")
 - [ ] Deploy mint orchestrator daemon on VPS
-- [ ] Deploy cashu-brrr + proxy on VPS
 - [ ] End-to-end mint approval flow test on VPS
 
 ## Blocked / Pending
