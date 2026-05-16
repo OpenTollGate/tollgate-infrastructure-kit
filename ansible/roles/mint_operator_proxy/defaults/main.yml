@@ -1,5 +1,5 @@
 mint_operator_proxy_repo_url: "https://github.com/gandlafbtc/cashu-brrr.git"
-mint_operator_proxy_repo_branch: "main"
+mint_operator_proxy_repo_branch: "master"
 mint_operator_proxy_port: 3000
 mint_operator_proxy_cdk_url: "http://localhost:8085"
 mint_operator_proxy_npubs: ""

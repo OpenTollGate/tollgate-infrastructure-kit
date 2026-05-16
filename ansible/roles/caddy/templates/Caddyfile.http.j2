@@ -44,6 +44,22 @@
     }
 }
 
+print.{{ mint_domain }}:80 {
+    handle /api/* {
+        reverse_proxy localhost:{{ mint_operator_proxy_port | default(3000) }}
+    }
+    handle {
+        root * {{ tollgate_static_dir }}/cashu-brrr
+        file_server
+        try_files {path} /index.html
+    }
+}
+
+dashboard.{{ mint_domain }}:80 {
+    root * {{ tollgate_base_dir }}/mints-dashboard
+    file_server
+}
+
 :80 {
     handle {
         respond "Tollgate Infrastructure Kit" 200
