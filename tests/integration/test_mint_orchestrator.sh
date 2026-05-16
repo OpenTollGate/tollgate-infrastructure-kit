@@ -7,6 +7,8 @@ ORCHESTRATOR_DIR="$PROJECT_DIR/mint-orchestrator"
 APPROVE_DIR="$PROJECT_DIR/mint-approve"
 CASHU_BRRR_DIR="/home/c03rad0r/money-printer/cashu-brrr"
 
+export PYTHONPATH="$ORCHESTRATOR_DIR/src:$APPROVE_DIR/src"
+
 echo "=== Mint Orchestrator Integration Tests ==="
 PASS=0
 FAIL=0
@@ -17,10 +19,10 @@ run_test() {
     echo -n "  [$name] ... "
     if "$@" >/dev/null 2>&1; then
         echo "OK"
-        ((PASS++))
+        PASS=$((PASS + 1))
     else
         echo "FAIL"
-        ((FAIL++))
+        FAIL=$((FAIL + 1))
     fi
 }
 
@@ -31,11 +33,11 @@ run_test_verbose() {
     output=$("$@" 2>&1) && rc=$? || rc=$?
     if [[ $rc -eq 0 ]]; then
         echo "OK"
-        ((PASS++))
+        PASS=$((PASS + 1))
     else
         echo "FAIL"
         echo "$output" | head -5
-        ((FAIL++))
+        FAIL=$((FAIL + 1))
     fi
 }
 
