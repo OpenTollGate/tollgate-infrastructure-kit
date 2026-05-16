@@ -6,8 +6,8 @@ import grpc.aio
 logger = logging.getLogger(__name__)
 
 try:
-    from tollgate_mint_orchestrator import management_pb2
-    from tollgate_mint_orchestrator import management_pb2_grpc
+    from tollgate_mint_orchestrator import cdk_mint_rpc_pb2
+    from tollgate_mint_orchestrator import cdk_mint_rpc_pb2_grpc
 
     HAS_GRPC_STUBS = True
 except ImportError:
@@ -26,7 +26,7 @@ class MintGrpcClient:
         target = f"{self.host}:{self.port}"
         self.channel = grpc.aio.insecure_channel(target)
         if HAS_GRPC_STUBS:
-            self.stub = management_pb2_grpc.MintStub(self.channel)
+            self.stub = cdk_mint_rpc_pb2_grpc.CdkMintStub(self.channel)
         logger.info(f"Connected to mint gRPC at {target}")
 
     async def close(self):
@@ -40,7 +40,7 @@ class MintGrpcClient:
             logger.error("gRPC stub not connected")
             return False
         try:
-            request = management_pb2.UpdateQuoteRequest(quote_id=quote_id, state=state)
+            request = cdk_mint_rpc_pb2.UpdateNut04QuoteRequest(quote_id=quote_id, state=state)
             await self.stub.UpdateNut04Quote(request)
             logger.info(f"Updated quote {quote_id} to state {state}")
             return True
@@ -52,7 +52,7 @@ class MintGrpcClient:
         if not self.stub:
             return None
         try:
-            request = management_pb2.GetNut04QuoteRequest(quote_id=quote_id)
+            request = cdk_mint_rpc_pb2.GetNut04QuoteRequest(quote_id=quote_id)
             response = await self.stub.GetNut04Quote(request)
             quote = response.quote
             return {
@@ -75,12 +75,13 @@ class MintGrpcClient:
         if not self.stub:
             return None
         try:
-            response = await self.stub.GetInfo(management_pb2.GetInfoRequest())
+            response = await self.stub.GetInfo(cdk_mint_rpc_pb2.GetInfoRequest())
             return {
                 "name": response.name,
-                "pubkey": response.pubkey,
                 "version": response.version,
                 "description": response.description,
+                "total_issued": response.total_issued,
+                "total_redeemed": response.total_redeemed,
             }
         except grpc.aio.AioRpcError:
             return None

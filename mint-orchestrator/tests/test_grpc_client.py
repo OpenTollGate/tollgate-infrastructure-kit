@@ -1,7 +1,5 @@
-import asyncio
-import json
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from tollgate_mint_orchestrator.grpc_client import MintGrpcClient
 
 

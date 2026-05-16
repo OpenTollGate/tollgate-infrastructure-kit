@@ -11,7 +11,7 @@ A single Ansible-based repository that deploys all Tollgate-related infrastructu
 - **Domain**: User brings their own (`BASE_DOMAIN` variable)
 - **Secrets**: `.env` file (not committed to git)
 
-## Services (11 total)
+## Services (12 total)
 
 | # | Service | Subdomain | Internal Port | Install Method |
 |---|---------|-----------|---------------|----------------|
@@ -22,8 +22,8 @@ A single Ansible-based repository that deploys all Tollgate-related infrastructu
 | 5 | nsite-gateway (Nostr site gateway) | `nsite.` | 3002 | Docker (build from hzrd149/nsite-gateway) |
 | 6 | tollgate-release-explorer | `releases.` | — | Static build, Caddy file_server |
 | 7 | hive-ci-site | `ci.` | — | Static build, Caddy file_server |
-| 8 | tg-mint-orchestrator (Cashu mints) | `*.mints.` | 3338+, 50051+, 8090 | Docker per-mint + Python daemon |
-| 9 | tg-mptcp-server (MPTCP) | none | 65101/65001 | Systemd |
+| 8 | Cashu mint infrastructure | `*.mints.` | 3338+, 50051+ | Docker per-mint (CDK mintd) |
+| 9 | MPTCP server | none | 65101/65001 | Systemd |
 | 10 | FIPS (mesh network) | none | TUN | Systemd (Debian package) |
 | 11 | nsyte CLI | N/A | N/A | Deno binary in PATH |
 | 12 | GRASP server (ngit-grasp) | `git.` | 7334 | Systemd (built from source) |
@@ -40,7 +40,17 @@ Internet → Cloudflare DNS (auto A records via API)
       ├── nsite.BASE_DOMAIN     → nsite-gateway (Docker :3002)
       ├── releases.BASE_DOMAIN  → /srv/tollgate/releases/ (Caddy file_server)
       ├── ci.BASE_DOMAIN        → /srv/tollgate/hive-ci/ (Caddy file_server)
-      └── *.mints.BASE_DOMAIN   → mint containers (Docker :8085, :8086, ...)
+      ├── git.BASE_DOMAIN       → ngit-grasp (Systemd :7334)
+      └── *.mints.BASE_DOMAIN   → CDK mintd containers (:3338, :3339, ...)
+
+    Mint orchestrator:
+      ├── tollgate-mint-orchestrator (Python daemon :8090)
+      │     Subscribes to Nostr relay for kind:38010 approval events
+      │     Validates Nostr signatures + npub ownership
+      │     Calls CDK gRPC UpdateNut04Quote to approve issuance
+      │     Publishes confirmation events to relay
+      ├── mint-approve CLI (Python, for mint owners)
+      └── mint-dashboard (static HTML, client-side nsec signing)
 
     System services (not HTTP):
       ├── shadowsocks-libev (TCP :65101, MPTCP enabled)
@@ -51,42 +61,56 @@ Internet → Cloudflare DNS (auto A records via API)
       └── nsyte (global Deno binary)
 ```
 
-## Key Decisions
+## Mint Orchestrator Design
 
-- **Single proxy**: Caddy (not Traefik) — serves static files natively, simpler config, automatic HTTPS
-- **Caddy deployment**: Docker with host network mode, custom build with `caddy-dns/cloudflare` plugin
-- **Cloudflare**: Full automation — creates individual A records for each subdomain via API, plus DNS-01 TLS challenge
-- **Blossom server**: hzrd149/blossom-server (reference implementation by protocol author)
-- **Chatty relay**: obelisk-app/obelisk-relay (NIP-29, Docker, admin UI)
-- **General relay**: strfry (C++, high-performance, production-grade)
-- **Mint routing**: Ansible-managed Caddyfile entries with `caddy reload` per mint deployment
-- **FIPS**: Full installation including kernel TUN/nftables
+### Cashu Mint (CDK mintd)
+
+- **Docker image**: `cashubtc/mintd:latest` (official, not a fork)
+- **Lightning backend**: `fakewallet` — auto-fills quotes
+- **gRPC management**: `cdk-mint-rpc` built into CDK — `UpdateNut04Quote` sets quote state
+- **Per-mint containers**: each npub gets its own mintd instance with unique ports
+- **Multi-unit support**: sat, usd, eur, MB, GB, KB, B, sec, min, hr, day, wk, mo
+- **Database**: SQLite per mint
+
+### Approval Flow (Nostr-based)
+
+1. User creates mint quote via Cashu wallet → `POST /v1/mint/quote/bolt11`
+2. Quote starts UNPAID (fakewallet auto-fills after delay, but orchestrator can gate via gRPC)
+3. Mint owner signs kind 38010 Nostr event approving the quote
+4. Orchestrator validates signature, calls gRPC `UpdateNut04Quote` → PAID
+5. User mints tokens → `POST /v1/mint/bolt11`
+
+### CDK gRPC (cdk-mint-rpc)
+
+Proto: `crates/cdk-mint-rpc/src/proto/cdk-mint-rpc.proto` from `cashubtc/cdk`
+- Package: `cdk_mint_management_v1`
+- Key RPC: `UpdateNut04Quote(UpdateNut04QuoteRequest) → UpdateNut04QuoteRequest`
+- Env vars: `CDK_MINTD_MINT_MANAGEMENT_ENABLED`, `CDK_MINTD_MANAGEMENT_PORT`
+
+### CDK mintd Key Environment Variables
+
+| Variable | Purpose |
+|----------|---------|
+| `CDK_MINTD_URL` | Mint public URL |
+| `CDK_MINTD_LN_BACKEND` | `fakewallet` for testing |
+| `CDK_MINTD_LISTEN_HOST` | `0.0.0.0` in Docker |
+| `CDK_MINTD_LISTEN_PORT` | REST API port |
+| `CDK_MINTD_DATABASE` | `sqlite` |
+| `CDK_MINTD_MNEMONIC` | Seed for key derivation |
+| `CDK_MINTD_FAKE_WALLET_SUPPORTED_UNITS` | Comma-separated units |
+| `CDK_MINTD_MINT_MANAGEMENT_ENABLED` | `true` to enable gRPC |
+| `CDK_MINTD_MANAGEMENT_PORT` | gRPC port |
+| `CDK_MINTD_LN_MIN_MINT` / `CDK_MINTD_LN_MAX_MINT` | Mint amount limits |
 
 ## Cloudflare DNS Automation
 
-The `cloudflare_dns` Ansible role:
-1. Authenticates with Cloudflare API using `CLOUDFLARE_API_TOKEN`
-2. Looks up zone ID for `BASE_DOMAIN`
-3. Creates/updates A records for: `relay`, `chat`, `blossom`, `nsite`, `releases`, `ci`, `*.mints`
-4. All pointing at `VPS_IP`
-
-Required secrets:
-- `CLOUDFLARE_API_TOKEN` — Zone:DNS:Edit + Zone:Zone:Read
-- `BASE_DOMAIN` — the user's domain
-
-## Per-Mint Routing
-
-When deploying a new Cashu mint:
-1. `./scripts/deploy-mint.sh <npub>` runs an Ansible playbook
-2. The playbook creates a new mint container on a unique port (8085, 8086, ...)
-3. Appends a `handle` block to the Caddyfile for the mint's subdomain
-4. Runs `caddy reload` (graceful, zero downtime)
+The `cloudflare_dns` Ansible role creates A records for: `relay`, `chat`, `blossom`, `nsite`, `releases`, `ci`, `git`, `*.mints`
 
 ## Deployment Flow
 
 ```
 make deploy  (or ./scripts/deploy.sh)
-  01. System setup (packages, locale, firewall, sysctl, users)
+  01. System setup (packages, locale, sysctl)
   02. Docker + Compose V2 installation
   03. Cloudflare DNS record creation
   04. Caddy reverse proxy deployment
@@ -96,10 +120,11 @@ make deploy  (or ./scripts/deploy.sh)
   08. nsite-gateway
   09. tollgate-release-explorer (static)
   10. hive-ci-site (static)
-  11. Cashu mint infrastructure
+  11. Mint orchestrator + dashboard
   12. MPTCP server (Shadowsocks + Glorytun)
   13. FIPS mesh network
   14. nsyte CLI installation
+  15. GRASP server (ngit-grasp)
   → Integration tests
   → Playwright E2E tests
 ```
@@ -108,98 +133,6 @@ make deploy  (or ./scripts/deploy.sh)
 
 | Level | Tool | What it tests |
 |-------|------|---------------|
-| Unit | Molecule + testinfra | Ansible role idempotency, package/service/config verification |
-| Integration | Bash scripts | Health endpoints, DNS resolution, port connectivity, WebSocket, inter-service |
-| E2E | Playwright (TypeScript) | Full browser tests: UI loads, WebSocket connections, API responses, TLS certs |
-
-## Repository Structure
-
-```
-tollgate-infrastructure-kit/
-├── PLAN.md
-├── README.md
-├── .env.example
-├── .gitignore
-├── Makefile
-├── ansible/
-│   ├── ansible.cfg
-│   ├── inventory/
-│   │   └── hosts.yml
-│   ├── group_vars/
-│   │   └── all.yml
-│   ├── playbooks/
-│   │   ├── setup-all.yml
-│   │   ├── 01-system.yml
-│   │   ├── 02-docker.yml
-│   │   ├── 03-cloudflare-dns.yml
-│   │   ├── 04-caddy.yml
-│   │   ├── 05-strfry.yml
-│   │   ├── 06-obelisk-relay.yml
-│   │   ├── 07-blossom.yml
-│   │   ├── 08-nsite-gateway.yml
-│   │   ├── 09-release-explorer.yml
-│   │   ├── 10-hive-ci-site.yml
-│   │   ├── 11-mint-orchestrator.yml
-│   │   ├── 12-mptcp-server.yml
-│   │   ├── 13-fips.yml
-│   │   └── 14-nsyte.yml
-│   └── roles/
-│       ├── system/
-│       ├── docker/
-│       ├── cloudflare_dns/
-│       ├── caddy/
-│       ├── strfry/
-│       ├── obelisk_relay/
-│       ├── blossom/
-│       ├── nsite_gateway/
-│       ├── release_explorer/
-│       ├── hive_ci/
-│       ├── mint_orchestrator/
-│       ├── mptcp_server/
-│       ├── fips/
-│       └── nsyte_cli/
-├── scripts/
-│   ├── deploy.sh
-│   ├── deploy-mint.sh
-│   ├── remove-mint.sh
-│   ├── teardown.sh
-│   └── test.sh
-├── tests/
-│   ├── integration/
-│   │   ├── test_services.sh
-│   │   ├── test_dns.sh
-│   │   └── test_connectivity.sh
-│   └── e2e/
-│       ├── playwright.config.ts
-│       ├── package.json
-│       └── tests/
-│           ├── relay.spec.ts
-│           ├── chat.spec.ts
-│           ├── blossom.spec.ts
-│           ├── nsite.spec.ts
-│           ├── releases.spec.ts
-│           ├── mint.spec.ts
-│           └── tls.spec.ts
-└── docs/
-    ├── getting-started.md
-    ├── configuration.md
-    ├── services.md
-    ├── adding-services.md
-    ├── cloudflare-setup.md
-    └── troubleshooting.md
-```
-
-## Source Repositories
-
-| Service | Repository |
-|---------|-----------|
-| Tollgate Release Explorer | `git@github.com:OpenTollGate/tollgate-release-explorer-site.git` |
-| TG MPTCP Server | `https://github.com/Rits1272/tg-mptcp-server.git` |
-| TG Mint Orchestrator | `https://github.com/Rits1272/tg-mint-orchestrator.git` |
-| Blossom Server | `https://github.com/hzrd149/blossom-server.git` |
-| NSite Gateway | `https://github.com/hzrd149/nsite-gateway.git` |
-| Obelisk Relay (NIP-29) | `https://github.com/obelisk-app/obelisk-relay.git` |
-| strfry (Nostr relay) | `https://github.com/hoytech/strfry.git` |
-| FIPS (mesh network) | `https://github.com/jmcorgan/fips.git` |
-| nsyte CLI | `https://github.com/sandwichfarm/nsyte.git` |
-| Hive CI Site | GitHub mirror: `https://github.com/Origami74/hive-ci-site-mirror.git` |
+| Unit | pytest | Registry, event validator, gRPC client, audit log, daemon |
+| Integration | Bash + pytest | Package imports, full pytest suite, service health |
+| E2E | Playwright (TypeScript) | API endpoints, dashboard UI, mint REST API, TLS |

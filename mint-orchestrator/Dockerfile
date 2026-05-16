@@ -16,7 +16,7 @@ RUN python -m grpc_tools.protoc \
     -I protos \
     --python_out=src/tollgate_mint_orchestrator \
     --grpc_python_out=src/tollgate_mint_orchestrator \
-    protos/management.proto
+    protos/cdk-mint-rpc.proto
 
 EXPOSE 8090
 

@@ -52,7 +52,7 @@
 - **Subdomain**: `*.mints.<domain>`
 - **Ports**: 3338+ REST, 50051+ gRPC (one per mint), 8090 API
 - **Purpose**: Per-operator Cashu ecash mints with Nostr-based approval gating
-- **Tech**: Nutshell (cashubtc/nutshell) Docker containers + Python orchestrator daemon
+- **Tech**: CDK mintd (`cashubtc/mintd` Docker image) + Python orchestrator daemon
 - **Approval**: Mint owners sign kind 38010 Nostr events → orchestrator validates → gRPC sets quote PAID
 - **Units**: sat, usd, eur, B, KB, MB, GB, sec, min, hr, day, wk, mo
 - **Config**: `/opt/tollgate/mints/registry.json`
