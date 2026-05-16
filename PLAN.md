@@ -22,7 +22,7 @@ A single Ansible-based repository that deploys all Tollgate-related infrastructu
 | 5 | nsite-gateway (Nostr site gateway) | `nsite.` | 3002 | Docker (build from hzrd149/nsite-gateway) |
 | 6 | tollgate-release-explorer | `releases.` | — | Static build, Caddy file_server |
 | 7 | hive-ci-site | `ci.` | — | Static build, Caddy file_server |
-| 8 | Cashu mint infrastructure | `*.mints.` | 3338+, 50051+ | Docker per-mint (CDK mintd) |
+| 8 | Cashu mint infrastructure | `*.mints.` | 8085-8088, 50051-50054 | 4 CDK mintd containers (MB, KB, GB, min) |
 | 9 | cashu-brrr (money printer) | `print.mints.` | — | Static build, Caddy file_server |
 | 10 | Mint operator proxy | `print.mints./api/` | 3000 | Node.js systemd (tsx) |
 | 11 | MPTCP server | none | 65101/65001 | Systemd |
@@ -71,8 +71,8 @@ Internet → Cloudflare DNS (auto A records via API)
 - **Docker image**: `cashubtc/mintd:latest` (official, not a fork)
 - **Lightning backend**: `fakewallet` — auto-fills quotes
 - **gRPC management**: `cdk-mint-rpc` built into CDK — `UpdateNut04Quote` sets quote state
-- **Per-mint containers**: each npub gets its own mintd instance with unique ports
-- **Multi-unit support**: sat, usd, eur, MB, GB, KB, B, sec, min, hr, day, wk, mo
+- **Per-mint containers**: each unit gets its own mintd instance with unique ports
+- **Active mints**: `test-mb` (MB), `test-kb` (KB), `test-gb` (GB), `test-min` (min)
 - **Database**: SQLite per mint
 
 ### Approval Flow (Nostr-based)

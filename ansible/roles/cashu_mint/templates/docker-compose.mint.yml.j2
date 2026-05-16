@@ -1,4 +1,3 @@
-version: "3.8"
 services:
   {{ mint_container_name }}:
     image: cashubtc/mintd:latest
@@ -11,9 +10,9 @@ services:
       CDK_MINTD_LISTEN_HOST: "0.0.0.0"
       CDK_MINTD_LISTEN_PORT: "{{ mint_rest_port }}"
       CDK_MINTD_DATABASE: sqlite
-      CDK_MINTD_MNEMONIC: "{{ mint_private_key }}"
-      CDK_MINTD_FAKE_WALLET_SUPPORTED_UNITS: "sat,usd,eur,B,KB,MB,GB,sec,min,hr,day,wk,mo"
-      CDK_MINTD_LN_MAX_MINT: "{{ max_single_issuance }}"
+      CDK_MINTD_MNEMONIC: "{{ mint_mnemonic }}"
+      CDK_MINTD_FAKE_WALLET_SUPPORTED_UNITS: "{{ mint_supported_units }}"
+      CDK_MINTD_LN_MAX_MINT: "{{ max_single_issuance | default(10000) }}"
       CDK_MINTD_MINT_MANAGEMENT_ENABLED: "true"
       CDK_MINTD_MANAGEMENT_ADDRESS: "0.0.0.0"
       CDK_MINTD_MANAGEMENT_PORT: "{{ mint_grpc_port }}"

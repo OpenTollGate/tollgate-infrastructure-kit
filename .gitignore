@@ -29,3 +29,4 @@ tests/e2e/playwright-report/
 acme.json
 *.db
 *.sqlite
+.coverage

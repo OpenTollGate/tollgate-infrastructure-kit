@@ -45,7 +45,15 @@
 
 ## In Progress
 
-- [ ] Deploy first test mint on VPS with CDK mintd (proxy shows "mintd: disconnected")
+- [ ] Fix cashu_mint Ansible role (mint_name override, single unit, Caddy :80)
+- [ ] Create deploy-test-mints.yml playbook for 4 mints (MB, KB, GB, min)
+- [ ] Create Cloudflare DNS records for test-mb, test-kb, test-gb, test-min
+- [ ] Deploy 4 CDK mintd containers on VPS
+- [ ] Add Caddy routes for 4 mints on VPS
+- [ ] Add 4 mint URLs to cashu-brrr Step1.svelte
+- [ ] Update proxy OPERATOR_NPUBS on VPS (4 operator npubs)
+- [ ] Rebuild + redeploy cashu-brrr frontend
+- [ ] Smoke test all mints + cashu-brrr UI
 - [ ] Deploy mint orchestrator daemon on VPS
 - [ ] End-to-end mint approval flow test on VPS
 
