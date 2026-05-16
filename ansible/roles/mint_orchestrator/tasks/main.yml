@@ -8,7 +8,6 @@
     - "{{ tollgate_base_dir }}/mints"
     - "{{ tollgate_base_dir }}/mints-dashboard"
     - "/var/log/tollgate"
-    - "{{ tollgate_base_dir }}/mint-orchestrator-venv"
 
 - name: Create empty registry if not exists
   copy:
@@ -43,19 +42,3 @@
     state: started
     enabled: yes
     daemon_reload: yes
-
-- name: Add dashboard route to Caddyfile
-  shell: |
-    grep -q 'dashboard.{{ mint_domain }}' /opt/tollgate/caddy/Caddyfile || (
-      echo '' >> /opt/tollgate/caddy/Caddyfile
-      echo 'dashboard.{{ mint_domain }} {' >> /opt/tollgate/caddy/Caddyfile
-      echo '    tls {' >> /opt/tollgate/caddy/Caddyfile
-      echo '        dns cloudflare {env.CF_API_TOKEN}' >> /opt/tollgate/caddy/Caddyfile
-      echo '    }' >> /opt/tollgate/caddy/Caddyfile
-      echo '    root * {{ tollgate_base_dir }}/mints-dashboard' >> /opt/tollgate/caddy/Caddyfile
-      echo '    file_server' >> /opt/tollgate/caddy/Caddyfile
-      echo '}' >> /opt/tollgate/caddy/Caddyfile
-    )
-  args:
-    executable: /bin/bash
-  notify: reload caddy

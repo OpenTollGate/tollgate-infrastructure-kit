@@ -1,12 +1,4 @@
 ---
-- name: Install Node.js and npm
-  apt:
-    name: "{{ item }}"
-    state: present
-  loop:
-    - nodejs
-    - npm
-
 - name: Clone or update cashu-brrr repository
   git:
     repo: "{{ mint_operator_proxy_repo_url }}"
@@ -23,7 +15,7 @@
   npm:
     name: tsx
     global: no
-    path: "{{ tollgate_base_dir }}/cashu-brrr-proxy-node"
+    path: "{{ tollgate_base_dir }}/src/cashu-brrr/server"
   register: tsx_install
 
 - name: Create systemd unit for mint operator proxy
@@ -48,15 +40,6 @@
   until: proxy_health.status == 200
   retries: 15
   delay: 2
-
-- name: Add proxy Caddy route
-  shell: |
-    grep -q 'handle /api/' /opt/tollgate/caddy/Caddyfile || (
-      sed -i '/^\s\+try_files/i\    handle /api/* {\n        reverse_proxy localhost:{{ mint_operator_proxy_port }}\n    }' /opt/tollgate/caddy/Caddyfile
-    )
-  args:
-    executable: /bin/bash
-  notify: reload caddy
 
 - name: Display proxy info
   debug:

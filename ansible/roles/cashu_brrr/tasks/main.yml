@@ -1,18 +1,17 @@
 ---
-- name: Install Node.js and npm
-  apt:
-    name: "{{ item }}"
-    state: present
-  loop:
-    - nodejs
-    - npm
-  when: cashu_brrr_local_repo | length == 0
-
 - name: Ensure static directory exists
   file:
     path: "{{ cashu_brrr_static_dir }}"
     state: directory
     mode: "0755"
+
+- name: Install build dependencies
+  apt:
+    name:
+      - nodejs
+      - npm
+    state: present
+  when: cashu_brrr_local_repo | length == 0
 
 - name: Clone or update cashu-brrr repository
   git:
@@ -45,23 +44,6 @@
     remote_src: yes
     mode: "0644"
   when: cashu_brrr_local_repo | length == 0
-
-- name: Add Caddy route for cashu-brrr
-  shell: |
-    grep -q '{{ cashu_brrr_domain }}' /opt/tollgate/caddy/Caddyfile || (
-      echo '' >> /opt/tollgate/caddy/Caddyfile
-      echo '{{ cashu_brrr_domain }} {' >> /opt/tollgate/caddy/Caddyfile
-      echo '    tls {' >> /opt/tollgate/caddy/Caddyfile
-      echo '        dns cloudflare {env.CF_API_TOKEN}' >> /opt/tollgate/caddy/Caddyfile
-      echo '    }' >> /opt/tollgate/caddy/Caddyfile
-      echo '    root * {{ cashu_brrr_static_dir }}' >> /opt/tollgate/caddy/Caddyfile
-      echo '    file_server' >> /opt/tollgate/caddy/Caddyfile
-      echo '    try_files {path} /index.html' >> /opt/tollgate/caddy/Caddyfile
-      echo '}' >> /opt/tollgate/caddy/Caddyfile
-    )
-  args:
-    executable: /bin/bash
-  notify: reload caddy
 
 - name: Display cashu-brrr info
   debug:
