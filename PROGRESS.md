@@ -51,9 +51,9 @@
 
 ## In Progress
 
-- [ ] Upgrade `@cashu/cashu-ts` to latest stable in cashu-brrr (fix hex keyset ID support)
-- [ ] Add try/catch error handling to `confirm()` in Step1.svelte
-- [ ] Rebuild and redeploy cashu-brrr frontend on VPS
+- [ ] ~~Upgrade `@cashu/cashu-ts` to latest stable in cashu-brrr~~ **Done** — upgraded to 2.9.0 with @noble/curves 1.4.0 compat
+- [ ] ~~Add try/catch error handling to `confirm()` in Step1.svelte~~ **Done**
+- [ ] ~~Rebuild and redeploy cashu-brrr frontend on VPS~~ **Done**
 - [ ] Smoke test full flow: connect → confirm → Step2 → Step3
 
 ## Blocked / Pending
