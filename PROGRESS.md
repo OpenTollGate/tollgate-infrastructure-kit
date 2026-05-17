@@ -2,6 +2,7 @@
 
 ## Done
 
+### Base Infrastructure
 - [x] PLAN.md — full implementation plan
 - [x] PROGRESS.md — this checklist
 - [x] AGENTS.md — standing instructions
@@ -15,60 +16,85 @@
 - [x] **Caddy** deployed — reverse proxy with TLS via Cloudflare DNS-01
 - [x] **Shadowsocks/MPTCP** deployed — port 65101, systemd
 - [x] **Mints dashboard** deployed — `https://mints.orangesync.tech`
-- [x] **Cloudflare DNS** — 9 A records created
-- [x] **TLS** — 9 Let's Encrypt certs via Cloudflare DNS-01
+- [x] **Cloudflare DNS** — 9+ A records created
+- [x] **TLS** — Let's Encrypt certs via Cloudflare DNS-01
 - [x] **Integration tests** — 37/37 passing
 - [x] **FIPS** built and installed, systemd service running
 - [x] **GRASP server** deployed — `https://git.orangesync.tech` (port 7334, ngit-grasp v0.1.0)
-- [x] GRASP DNS record created, TLS cert issued
+- [x] **nsyte CLI** installed — global Deno binary in PATH
+
+### Mint Infrastructure
+- [x] **Switch from Nutshell to CDK mintd** — Docker image, gRPC proto, env vars, all 42 tests passing
+- [x] **4 CDK test mints deployed** — test-mb (sat:8085), test-kb (sat:8086), test-gb (sat:8087), test-min (sat:8088)
+- [x] **Cloudflare DNS** — 4 A records (DNS-only) for test-{mb,kb,gb,min}.mints.orangesync.tech
+- [x] **Caddy wildcard TLS** — `*.mints.orangesync.tech` via Cloudflare DNS-01, cert valid until Aug 2026
+- [x] **CDK mintd keyset ID compatibility diagnosed** — v0.16.0 uses hex IDs (`01...`), cashu-ts rc4 only accepts base64 IDs (`00...`)
+- [x] **CDK mintd custom unit bug diagnosed and fixed** — Two bugs found in CDK v0.16.0:
+  - `CurrencyUnit::Custom` serialization lowercases but `FromStr` preserves case → HashMap key mismatch
+  - Fakewallet `convert_currency_amount()` has no path for custom units → msat conversion fails
+  - **Fix**: all 4 mints switched to `sat` unit. Custom unit semantics handled via mint URL → display unit mapping in cashu-brrr UI (see HANDOVER.md Phase 5)
+- [x] **All 4 mints fully functional** — bolt11 quotes created, fakewallet auto-pays within seconds, tokens can be minted
+- [x] **Ansible playbook updated** — `deploy-test-mints.yml` uses `sat` for all test mints
+- [x] **Mint registry** — `/opt/tollgate/mints/registry.json` with all 4 mints, units set to `sat`
+
+### cashu-brrr Frontend + Operator Proxy
+- [x] **Upgrade `@cashu/cashu-ts` to v2.9.0** — fixes hex keyset ID compatibility with CDK mintd v0.16.0. Required `@noble/curves@1.4.0` + `@noble/hashes@1.4.0`
+- [x] **Add error handling** to `confirm()` in Step1.svelte — toast error instead of silent failure
+- [x] **4 mint URLs added** to Step1.svelte (7 total mints listed: 4 ours + 3 public)
+- [x] **cashu-brrr deployed** — `https://print.mints.orangesync.tech` (static Svelte frontend)
+- [x] **Mint operator proxy deployed** — Node.js/Express systemd service, port 3000, `{"status":"ok","mintd":"connected"}`
+- [x] **Proxy operator npubs** — 4 npubs configured, proxy connected to mintd
+- [x] **Caddy routes** — `print.mints` static + `/api/*` proxy, `dashboard.mints`, 4 mint subdomains
+
+### Mint Orchestrator + Dashboard
 - [x] **Mint orchestrator** Python package — 7 modules, 42 unit tests passing
 - [x] **Mint approve CLI** — signs and publishes kind 38010 Nostr approval events
 - [x] **Mint dashboard** — web UI with client-side nsec signing
-- [x] **Ansible roles** — `cashu_mint` (per-mint deployment) + `mint_orchestrator` (daemon + dashboard)
+- [x] **Ansible roles** — `cashu_mint` (per-mint), `mint_orchestrator` (daemon + dashboard), `cashu_brrr` (frontend), `mint_operator_proxy` (systemd)
 - [x] **Playwright E2E tests** — mint orchestrator API, dashboard, mint REST API
-- [x] **Switch from Nutshell to CDK mintd** — Docker image, gRPC proto, env vars, all 42 tests passing
-- [x] AGENTS.md — standing instructions (commit on test pass, no comments, no secrets, etc.)
-- [x] PROGRESS.md — this checklist
-- [x] PLAN.md updated for CDK architecture
-
 - [x] **Test coverage** — 108 tests (94 orchestrator + 14 CLI), ~96% business logic coverage
-- [x] HANDOVER.md written for cashu-brrr mint operator mode
 - [x] **REST API proxy** — Node.js/Express in cashu-brrr `server/`, 45 vitest tests passing
-- [x] **Ansible roles** — `cashu_brrr` (frontend build + deploy), `mint_operator_proxy` (systemd + caddy)
-- [x] **mint_orchestrator role** — activated (removed `when: false`), pip venv install
-- [x] **Caddyfile template** — updated with `print.mints` domain + `/api/*` proxy route
-- [x] **Integration test script** — updated to run all new test files
-- [x] **cashu-brrr deployed to VPS** — `https://print.mints.orangesync.tech` (static frontend)
-- [x] **mint operator proxy deployed to VPS** — systemd service, port 3000, `/api/health` responding
-- [x] **Caddy routes added** — `print.mints` and `dashboard.mints` on port 80 (Cloudflare proxy mode)
-- [x] **4 CDK test mints deployed** — test-mb (sat:8085), test-kb (sat:8086), test-gb (sat:8087), test-min (sat:8088)
-- [x] **Cloudflare DNS** — 4 A records (DNS-only) for test-{mb,kb,gb,min}.mints.orangesync.tech
-- [x] **Caddy routes** — 4 mint subdomains with wildcard TLS `*.mints.orangesync.tech`
-- [x] **cashu-brrr updated** — 4 mint URLs added to Step1.svelte (7 total mints listed)
-- [x] **Proxy operator npubs** — 4 npubs configured, proxy connected to mintd
-- [x] **Mint HTTPS fixed** — wildcard TLS for `*.mints.orangesync.tech` via Cloudflare DNS-01, DNS records switched to DNS-only
-- [x] **CDK mintd keyset ID compatibility diagnosed** — v0.16.0 uses hex IDs (`01...`), cashu-ts rc4 only accepts base64 IDs (`00...`)
-- [x] **Upgrade `@cashu/cashu-ts` to latest stable in cashu-brrr** — upgraded to 2.9.0 with @noble/curves 1.4.0 compat
-- [x] **Add try/catch error handling to `confirm()` in Step1.svelte**
-- [x] **Rebuild and redeploy cashu-brrr frontend on VPS**
+- [x] **HANDOVER.md** — full spec for admin mode + Phase 5 display unit mapping instructions
 
-- [x] **CDK mintd custom unit bug diagnosed and fixed** — CDK's `CurrencyUnit::Custom` serialization lowercases the string but `FromStr` preserves case, causing a key mismatch in the payment processor HashMap. Also: fakewallet cannot create invoices for custom units (tries to convert to msat). **Fix**: switched all 4 mints to `sat` unit.
-- [x] **All 4 mints fully functional** — bolt11 quotes created, fakewallet auto-pays, tokens can be minted
-- [x] **Ansible playbook updated** — `deploy-test-mints.yml` uses `sat` for all test mints
+## Next Up
 
-## In Progress
+### cashu-brrr Phase 5: Display Unit Mapping (in cashu-brrr repo)
+- [ ] Add `MINT_DISPLAY_UNITS` map + `getDisplayUnit()` to `src/lib/utils.ts`
+- [ ] Fix `getWalletWithUnit()` bug: `find((ks) => ks.unit)` → `find((ks) => ks.unit === unit)`
+- [ ] Add `displayUnit` store to `stores.svelte.ts`
+- [ ] Set display unit in `Step1.svelte` `confirm()` and `reprint()`
+- [ ] Update `UnitSelector.svelte` to show display unit (e.g. "MB (internal: sat)")
+- [ ] Update `Step2.svelte`, `Step3.svelte`, `LNInvoice.svelte` — pass `$displayUnit` instead of `$wallet.unit`
+- [ ] Update `AdminStep3.svelte` — pass display unit to `issueTokens()`
+- [ ] Update `operator.ts` — `issueTokens()` accepts optional `displayUnit`
+- [ ] Update server `routes/operator.ts` + `services/blind-mint.ts` — use display unit in token metadata, keep `sat` for CDK API calls
+- [ ] Rebuild and redeploy cashu-brrr frontend on VPS
+- [ ] Smoke test full flow: connect to test-mb → see "MB" → mint tokens → print
 
-- [ ] Smoke test full flow: connect → confirm → Step2 → Step3 via cashu-brrr UI
+### cashu-brrr Admin Mode Polish
+- [ ] Test admin mode end-to-end on VPS (nsec auth → issue tokens → print)
+- [ ] Verify NIP-07 auth works with browser extension
 
-## Blocked / Pending
-
-- [ ] Frontend admin mode in cashu-brrr (HANDOVER.md has full spec)
+## Blocked / Deferred
+- [ ] True custom unit support (MB, KB, GB, min in keyset) — requires gRPC payment processor or CDK upstream fix. See HANDOVER.md Appendix A.
 - [ ] Build/deploy Hive CI content to `ci.orangesync.tech`
 - [ ] Install `websocat` locally for full Playwright WebSocket tests
-- [ ] True custom unit support (MB, KB, GB, min) — requires gRPC payment processor or CDK fork
 
-## Routstr Node Deployment
+## Auditable Voting Deployment
 
+- [ ] **Ansible role** — `ansible/roles/auditable_voting/` (defaults, tasks, templates)
+- [ ] **Playbook** — `ansible/playbooks/17-auditable-voting.yml`
+- [ ] **Clone and build** — `tidley/auditable-voting` static site (React + Vite + WASM)
+- [ ] **Static deployment** — `/srv/tollgate/auditable-voting/` served by Caddy at `vote.orangesync.tech`
+- [ ] **Caddy route** — `vote.BASE_DOMAIN` with TLS via Cloudflare DNS-01
+- [ ] **Cloudflare DNS** — A record for `vote` subdomain (DNS-only)
+- [ ] **Nsite config** — `.nsite/config.json` with our relay + blossom + public relays/servers
+- [ ] **Nsite keypair** — generate dedicated nsec/npub, store in `.env`
+- [ ] **Nsite deployment** — `nsyte deploy` using our blossom + relay
+- [ ] **Integration tests** — `tests/integration/test_auditable_voting.sh` (6 tests)
+- [ ] Smoke test: `https://vote.orangesync.tech` loads, nsite accessible via gateway
+
+## Routstr Node Deployment (future)
 - [ ] **Routstr Ansible role** — `ansible/roles/routstr/` (defaults, tasks, templates, handlers)
 - [ ] **Routstr playbook** — `ansible/playbooks/18-routstr.yml`
 - [ ] **Dedicated routstr-mint** — CDK mintd container on :8089, gRPC :50055, units sat/msat

@@ -6,7 +6,7 @@
       Authorization: "Bearer {{ cloudflare_api_token }}"
     return_content: yes
   register: cf_verify
-  failed_when: "'" not in cf_verify.content
+  failed_when: '"status" not in cf_verify.content'
 
 - name: Get Cloudflare zone ID if not provided
   uri:
@@ -47,7 +47,7 @@
     status_code: [200, 400]
   loop: "{{ cloudflare_subdomains }}"
   register: cf_create_result
-  changed_when: "'" not in cf_create_result.json.errors | default([]) | map(attribute="code") | select('ne', 81057) | list'
+  changed_when: cf_create_result.json.success is defined and cf_create_result.json.success
 
 - name: Create wildcard A record for mints subdomain
   uri:

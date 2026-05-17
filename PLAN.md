@@ -11,7 +11,7 @@ A single Ansible-based repository that deploys all Tollgate-related infrastructu
 - **Domain**: User brings their own (`BASE_DOMAIN` variable)
 - **Secrets**: `.env` file (not committed to git)
 
-## Services (16 total)
+## Services (18 total)
 
 | # | Service | Subdomain | Internal Port | Install Method |
 |---|---------|-----------|---------------|----------------|
@@ -31,6 +31,8 @@ A single Ansible-based repository that deploys all Tollgate-related infrastructu
 | 14 | GRASP server (ngit-grasp) | `git.` | 7334 | Systemd (built from source) |
 | 15 | Routstr AI inference node | `routstr.` | 8000 | Docker (ghcr.io/routstr/proxy) |
 | 16 | Routstr Tor hidden service | `.onion` | 80 | Docker (tor-hidden-service) |
+| 17 | Auditable Voting (static) | `vote.` | — | Static build (React+Vite+WASM), Caddy file_server |
+| 18 | Auditable Voting (nsite) | `nsite./<npub>/` | — | Nostr static site via blossom + nsyte |
 
 ## Architecture
 
@@ -53,6 +55,10 @@ Internet → Cloudflare DNS (auto A records via API)
        │   ├── test-min (:8088)
        │   └── routstr-mint (:8089) ← dedicated mint for AI credits
        └── print.mints.BASE_DOMAIN → cashu-brrr static + /api/* proxy → mint operator proxy (:3000)
+
+    Auditable Voting:
+      ├── vote.BASE_DOMAIN        → Static React+Vite+WASM build (Caddy file_server)
+      └── nsite via blossom        → Same build published to Nostr (our relay + blossom + public)
 
     Routstr AI Inference Node:
       ├── Routstr Core (Docker :8000)
@@ -85,6 +91,18 @@ Internet → Cloudflare DNS (auto A records via API)
       └── nsyte (global Deno binary)
 ```
 
+## CDK Fakewallet Custom Unit Bug
+
+CDK v0.16.0 has two bugs that prevent custom units (MB, KB, GB, min) with the fakewallet:
+
+1. **Case mismatch**: `CurrencyUnit::Custom` serializes to lowercase (`Custom("MB")` → `"mb"`) but `FromStr` preserves case. The payment processor HashMap key `Custom("MB")` doesn't match the deserialized `Custom("mb")` from requests → "No payment processor set for pair mb, bolt11".
+
+2. **No msat conversion**: Fakewallet calls `convert_currency_amount(custom_unit, Msat)` but only knows `Sat↔Msat` and `Usd/Eur→Msat`. No path for custom units → "Could not create invoice: Unknown invoice amount".
+
+**Workaround**: All mints use `CDK_MINTD_FAKE_WALLET_SUPPORTED_UNITS=sat`. Display unit mapping is handled in the cashu-brrr frontend (mint URL → display unit). See `cashu-brrr/HANDOVER.md` Phase 5.
+
+**Future fix options**: gRPC payment processor, CDK fork, or upstream fix.
+
 ## Mint Orchestrator Design
 
 ### Cashu Mint (CDK mintd)
@@ -93,8 +111,9 @@ Internet → Cloudflare DNS (auto A records via API)
 - **Lightning backend**: `fakewallet` — auto-fills quotes
 - **gRPC management**: `cdk-mint-rpc` built into CDK — `UpdateNut04Quote` sets quote state
 - **Per-mint containers**: each unit gets its own mintd instance with unique ports
-- **Active mints**: `test-mb` (sat→MB), `test-kb` (sat→KB), `test-gb` (sat→GB), `test-min` (sat→min), `routstr-mint` (sat/msat for AI credits)
+- **Active mints**: `test-mb` (sat, displayed as MB), `test-kb` (sat, displayed as KB), `test-gb` (sat, displayed as GB), `test-min` (sat, displayed as min)
 - **Database**: SQLite per mint
+- **Key constraint**: All mints use `sat` internally due to CDK fakewallet bug. Custom unit display is a frontend concern.
 
 ### Approval Flow (Nostr-based)
 
@@ -128,7 +147,7 @@ Proto: `crates/cdk-mint-rpc/src/proto/cdk-mint-rpc.proto` from `cashubtc/cdk`
 
 ## Cloudflare DNS Automation
 
-The `cloudflare_dns` Ansible role creates A records for: `relay`, `chat`, `blossom`, `nsite`, `releases`, `ci`, `git`, `routstr`, `*.mints`
+The `cloudflare_dns` Ansible role creates A records for: `relay`, `chat`, `blossom`, `nsite`, `releases`, `ci`, `git`, `routstr`, `vote`, `*.mints`
 
 ## Deployment Flow
 
@@ -150,6 +169,7 @@ make deploy  (or ./scripts/deploy.sh)
   14. nsyte CLI installation
   15. GRASP server (ngit-grasp)
   16. Routstr AI inference node + dedicated mint + Tor
+  17. Auditable Voting (static + nsite)
   → Integration tests
   → Playwright E2E tests
 ```

@@ -53,6 +53,11 @@ firewall_allowed_ports:
   - "65001"
   - "65101"
 
+routstr_port: 8000
+routstr_domain: "routstr.{{ base_domain }}"
+routstr_mint_rest_port: 8089
+routstr_mint_grpc_port: 50055
+
 cloudflare_subdomains:
   - relay
   - chat
@@ -61,3 +66,5 @@ cloudflare_subdomains:
   - releases
   - ci
   - git
+  - routstr
+  - vote

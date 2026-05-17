@@ -22,3 +22,5 @@
     - fips
     - nsyte_cli
     - grasp
+    - routstr
+    - auditable_voting
