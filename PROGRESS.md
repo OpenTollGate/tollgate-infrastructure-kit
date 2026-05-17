@@ -46,11 +46,15 @@
 - [x] **Caddy routes** — 4 mint subdomains on :80
 - [x] **cashu-brrr updated** — 4 mint URLs added to Step1.svelte (7 total mints listed)
 - [x] **Proxy operator npubs** — 4 npubs configured, proxy connected to mintd
+- [x] **Mint HTTPS fixed** — wildcard TLS for `*.mints.orangesync.tech` via Cloudflare DNS-01, DNS records switched to DNS-only
+- [x] **CDK mintd keyset ID compatibility diagnosed** — v0.16.0 uses hex IDs (`01...`), cashu-ts rc4 only accepts base64 IDs (`00...`)
 
 ## In Progress
 
-- [ ] Deploy mint orchestrator daemon on VPS
-- [ ] End-to-end mint approval flow test on VPS
+- [ ] Upgrade `@cashu/cashu-ts` to latest stable in cashu-brrr (fix hex keyset ID support)
+- [ ] Add try/catch error handling to `confirm()` in Step1.svelte
+- [ ] Rebuild and redeploy cashu-brrr frontend on VPS
+- [ ] Smoke test full flow: connect → confirm → Step2 → Step3
 
 ## Blocked / Pending
 
