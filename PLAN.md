@@ -11,7 +11,7 @@ A single Ansible-based repository that deploys all Tollgate-related infrastructu
 - **Domain**: User brings their own (`BASE_DOMAIN` variable)
 - **Secrets**: `.env` file (not committed to git)
 
-## Services (12 total)
+## Services (16 total)
 
 | # | Service | Subdomain | Internal Port | Install Method |
 |---|---------|-----------|---------------|----------------|
@@ -22,13 +22,15 @@ A single Ansible-based repository that deploys all Tollgate-related infrastructu
 | 5 | nsite-gateway (Nostr site gateway) | `nsite.` | 3002 | Docker (build from hzrd149/nsite-gateway) |
 | 6 | tollgate-release-explorer | `releases.` | — | Static build, Caddy file_server |
 | 7 | hive-ci-site | `ci.` | — | Static build, Caddy file_server |
-| 8 | Cashu mint infrastructure | `*.mints.` | 8085-8088, 50051-50054 | 4 CDK mintd containers (MB, KB, GB, min) |
+| 8 | Cashu mint infrastructure | `*.mints.` | 8085-8088, 50051-50054 | 4 CDK mintd containers (sat unit, mapped to MB/KB/GB/min in UI) |
 | 9 | cashu-brrr (money printer) | `print.mints.` | — | Static build, Caddy file_server |
 | 10 | Mint operator proxy | `print.mints./api/` | 3000 | Node.js systemd (tsx) |
 | 11 | MPTCP server | none | 65101/65001 | Systemd |
 | 12 | FIPS (mesh network) | none | TUN | Systemd (Debian package) |
 | 13 | nsyte CLI | N/A | N/A | Deno binary in PATH |
 | 14 | GRASP server (ngit-grasp) | `git.` | 7334 | Systemd (built from source) |
+| 15 | Routstr AI inference node | `routstr.` | 8000 | Docker (ghcr.io/routstr/proxy) |
+| 16 | Routstr Tor hidden service | `.onion` | 80 | Docker (tor-hidden-service) |
 
 ## Architecture
 
@@ -43,8 +45,27 @@ Internet → Cloudflare DNS (auto A records via API)
       ├── releases.BASE_DOMAIN  → /srv/tollgate/releases/ (Caddy file_server)
       ├── ci.BASE_DOMAIN        → /srv/tollgate/hive-ci/ (Caddy file_server)
       ├── git.BASE_DOMAIN       → ngit-grasp (Systemd :7334)
-       ├── *.mints.BASE_DOMAIN   → CDK mintd containers (:3338, :3339, ...)
+      ├── routstr.BASE_DOMAIN   → Routstr Core (Docker :8000) ← AI inference proxy
+       ├── *.mints.BASE_DOMAIN   → CDK mintd containers (:8085-:8089)
+       │   ├── test-mb  (:8085)
+       │   ├── test-kb  (:8086)
+       │   ├── test-gb  (:8087)
+       │   ├── test-min (:8088)
+       │   └── routstr-mint (:8089) ← dedicated mint for AI credits
        └── print.mints.BASE_DOMAIN → cashu-brrr static + /api/* proxy → mint operator proxy (:3000)
+
+    Routstr AI Inference Node:
+      ├── Routstr Core (Docker :8000)
+      │     FastAPI reverse proxy for OpenAI-compatible APIs
+      │     Accepts Cashu eCash payments via routstr-mint
+      │     Proxies to Z.ai Coding Plan (GLM-5.1) upstream
+      │     Admin dashboard at /admin/
+      │     Nostr discovery (kind 38421) via local relay
+      ├── Tor hidden service (Docker host network)
+      │     Anonymous .onion access to Routstr API
+      └── Dedicated CDK mint (routstr-mint, :8089, gRPC :50055)
+            Node operator issues AI credits (sat/msat units)
+            Connected to mint orchestrator for approval flow
 
     Mint orchestrator:
       ├── tollgate-mint-orchestrator (Python daemon :8090)
@@ -72,7 +93,7 @@ Internet → Cloudflare DNS (auto A records via API)
 - **Lightning backend**: `fakewallet` — auto-fills quotes
 - **gRPC management**: `cdk-mint-rpc` built into CDK — `UpdateNut04Quote` sets quote state
 - **Per-mint containers**: each unit gets its own mintd instance with unique ports
-- **Active mints**: `test-mb` (MB), `test-kb` (KB), `test-gb` (GB), `test-min` (min)
+- **Active mints**: `test-mb` (sat→MB), `test-kb` (sat→KB), `test-gb` (sat→GB), `test-min` (sat→min), `routstr-mint` (sat/msat for AI credits)
 - **Database**: SQLite per mint
 
 ### Approval Flow (Nostr-based)
@@ -107,7 +128,7 @@ Proto: `crates/cdk-mint-rpc/src/proto/cdk-mint-rpc.proto` from `cashubtc/cdk`
 
 ## Cloudflare DNS Automation
 
-The `cloudflare_dns` Ansible role creates A records for: `relay`, `chat`, `blossom`, `nsite`, `releases`, `ci`, `git`, `*.mints`
+The `cloudflare_dns` Ansible role creates A records for: `relay`, `chat`, `blossom`, `nsite`, `releases`, `ci`, `git`, `routstr`, `*.mints`
 
 ## Deployment Flow
 
@@ -128,6 +149,7 @@ make deploy  (or ./scripts/deploy.sh)
   13. FIPS mesh network
   14. nsyte CLI installation
   15. GRASP server (ngit-grasp)
+  16. Routstr AI inference node + dedicated mint + Tor
   → Integration tests
   → Playwright E2E tests
 ```
