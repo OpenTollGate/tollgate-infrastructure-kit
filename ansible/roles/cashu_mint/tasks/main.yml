@@ -122,22 +122,19 @@
   retries: 30
   delay: 2
 
-- name: Add Caddy route for mint
-  block:
-    - name: Append mint block to Caddyfile
-      shell: |
-        grep -q '{{ mint_subdomain }}.{{ mint_domain }}' /opt/tollgate/caddy/Caddyfile || (
-          echo '' >> /opt/tollgate/caddy/Caddyfile
-          echo '{{ mint_subdomain }}.{{ mint_domain }}:80 {' >> /opt/tollgate/caddy/Caddyfile
-          echo '    reverse_proxy localhost:{{ mint_rest_port }}' >> /opt/tollgate/caddy/Caddyfile
-          echo '}' >> /opt/tollgate/caddy/Caddyfile
-        )
-      args:
-        executable: /bin/bash
+- name: Verify mint is accessible via Caddy
+  uri:
+    url: "https://{{ mint_subdomain }}.{{ mint_domain }}/v1/info"
+    return_content: yes
+    validate_certs: no
+  register: mint_caddy_health
+  until: mint_caddy_health.status == 200
+  retries: 15
+  delay: 2
 
-    - name: Reload Caddy
-      shell: docker exec tollgate-caddy caddy reload --config /etc/caddy/Caddyfile 2>&1
-      register: caddy_reload
+- name: Reload Caddy to pick up new routes
+  shell: docker exec tollgate-caddy caddy reload --config /etc/caddy/Caddyfile 2>&1
+  register: caddy_reload
 
 - name: Update mint registry
   shell: |

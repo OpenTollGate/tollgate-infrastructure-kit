@@ -1,3 +1,51 @@
+*.{{ mint_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    @test-mb host test-mb.{{ mint_domain }}
+    handle @test-mb {
+        reverse_proxy localhost:8085
+    }
+
+    @test-kb host test-kb.{{ mint_domain }}
+    handle @test-kb {
+        reverse_proxy localhost:8086
+    }
+
+    @test-gb host test-gb.{{ mint_domain }}
+    handle @test-gb {
+        reverse_proxy localhost:8087
+    }
+
+    @test-min host test-min.{{ mint_domain }}
+    handle @test-min {
+        reverse_proxy localhost:8088
+    }
+
+    @print host print.{{ mint_domain }}
+    handle @print {
+        handle /api/* {
+            reverse_proxy localhost:{{ mint_operator_proxy_port | default(3000) }}
+        }
+        handle {
+            root * {{ tollgate_static_dir }}/cashu-brrr
+            file_server
+            try_files {path} /index.html
+        }
+    }
+
+    @dashboard host dashboard.{{ mint_domain }}
+    handle @dashboard {
+        root * {{ tollgate_base_dir }}/mints-dashboard
+        file_server
+    }
+
+    handle {
+        respond "Mint not found" 404
+    }
+}
+
 {{ base_domain }} {
     log {
         output stdout
@@ -42,22 +90,6 @@
     handle {
         respond "Not found" 404
     }
-}
-
-print.{{ mint_domain }}:80 {
-    handle /api/* {
-        reverse_proxy localhost:{{ mint_operator_proxy_port | default(3000) }}
-    }
-    handle {
-        root * {{ tollgate_static_dir }}/cashu-brrr
-        file_server
-        try_files {path} /index.html
-    }
-}
-
-dashboard.{{ mint_domain }}:80 {
-    root * {{ tollgate_base_dir }}/mints-dashboard
-    file_server
 }
 
 :80 {
