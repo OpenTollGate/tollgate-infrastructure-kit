@@ -92,6 +92,14 @@
 
 ## Next Up
 
+### Smoke Tests (completed)
+- [x] **18/18 services up** — all return HTTP 200/404 (dashboard 404 on root, vote 404 before build)
+- [x] **Mint tokens on test-mb** — 100 sat invoice → fakewallet auto-pay → mint → send (cashu CLI)
+- [x] **Routstr models endpoint** — `/v1/models` returns GLM-4.5 + other models
+- [x] **Routstr AI inference** — token payment fails due to cashu Python lib vs CDK keyset ID format mismatch (8-byte vs 33-byte hex). cashu-ts frontend handles this correctly.
+- [x] **ngit relay WebSocket** — REQ/EOSE flow works, relay accepting connections
+- [x] **Auditable voting deployed** — `https://vote.orangesync.tech` (WASM built, npm install fixed with `--ignore-scripts`, static files deployed)
+
 ### Services Status Page (`services.orangesync.tech`)
 - [x] **Static HTML/CSS/JS** — `static/services/index.html`, dark theme with bitcoin orange + nostr purple
 - [x] **17 services monitored** — Core, Mints, Frontend, AI, Other groups
@@ -100,6 +108,15 @@
 - [x] **Cloudflare DNS** — A record for `services` subdomain
 - [x] **Ansible deploy** — Caddy role copies static file to `/srv/tollgate/services/`
 - [x] **Live** — `https://services.orangesync.tech`
+
+### Auditable Voting (`vote.orangesync.tech`)
+- [x] **WASM build** — core + coordinator WASM compiled on VPS via cargo wasm-pack
+- [x] **npm install** — fixed wasm-pack 404 by using `--ignore-scripts`
+- [x] **Vite build** — static site built successfully
+- [x] **Static deploy** — files copied to `/srv/tollgate/auditable-voting/`
+- [x] **Keypair generated** — VOTING_NSEC/VOTING_NPUB stored in `/opt/tollgate/.env`
+- [x] **Live** — `https://vote.orangesync.tech`
+- [ ] **nsite deploy** — skipped (nsyte not installed on VPS)
 
 ### cashu-brrr Phase 5: Display Unit Mapping (in cashu-brrr repo)
 - [ ] Add `MINT_DISPLAY_UNITS` map + `getDisplayUnit()` to `src/lib/utils.ts`
@@ -122,4 +139,6 @@
 - [ ] True custom unit support (MB, KB, GB, min in keyset) — requires gRPC payment processor or CDK upstream fix. See HANDOVER.md Appendix A.
 - [ ] Build/deploy Hive CI content to `ci.orangesync.tech`
 - [ ] Install `websocat` locally for full Playwright WebSocket tests
-- [ ] Auditable voting — static build + nsite deploy (WASM build partially done on VPS)
+- [ ] Auditable voting nsite deploy — needs nsyte installed on VPS
+- [ ] Routstr AI inference via cashu Python lib — keyset ID format mismatch (8-byte vs 33-byte hex). cashu-ts works correctly.
+- [ ] Dashboard root path returns 404 — dashboard serves on a specific route, not root

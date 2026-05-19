@@ -90,10 +90,12 @@
     PATH: "{{ ansible_env.PATH }}:/root/.cargo/bin"
 
 - name: Install web dependencies
-  command: npm install
+  shell: npm install --ignore-scripts && npx vite --version
   args:
     chdir: "{{ auditable_voting_src_dir }}/web"
     creates: "{{ auditable_voting_src_dir }}/web/node_modules/.package-lock.json"
+  environment:
+    PATH: "{{ ansible_env.PATH }}:/usr/bin:/usr/local/bin:/root/.cargo/bin"
 
 - name: Build static site
   shell: npm run build
@@ -110,12 +112,11 @@
     mode: '0755'
 
 - name: Deploy static files
-  synchronize:
-    src: "{{ auditable_voting_src_dir }}/web/dist/"
-    dest: "{{ auditable_voting_static_dir }}/"
-    delete: yes
-    rsync_opts:
-      - "--chmod=D0755,F0644"
+  shell: |
+    rm -rf {{ auditable_voting_static_dir }}/*
+    cp -r {{ auditable_voting_src_dir }}/web/dist/* {{ auditable_voting_static_dir }}/
+    find {{ auditable_voting_static_dir }} -type d -exec chmod 0755 {} \;
+    find {{ auditable_voting_static_dir }} -type f -exec chmod 0644 {} \;
 
 - name: Deploy nsite config
   template:
@@ -134,8 +135,9 @@
     voting_nsec_exists: "{{ env_file.content is defined and 'VOTING_NSEC' in (env_file.content | b64decode) }}"
 
 - name: Generate nsite keypair
-  shell: >
-    python3 -c "
+  shell: |
+    set -o pipefail
+    python3 << 'PYEOF'
     import secrets, hashlib, json
     from bech32 import bech32_encode, convertbits
     sk = secrets.token_bytes(32)
@@ -143,7 +145,7 @@
     pk = hashlib.sha256(sk).digest()[-32:]
     npub = bech32_encode('npub', convertbits(pk, 8, 5))
     print(json.dumps({'nsec': nsec, 'npub': npub}))
-    "
+    PYEOF
   register: voting_keypair
   when: not voting_nsec_exists
 
