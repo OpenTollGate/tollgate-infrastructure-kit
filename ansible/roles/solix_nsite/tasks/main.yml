@@ -149,3 +149,89 @@
       Nsite: skipped or failed (nsyte rc={{ nsyte_check.rc }})
       {% endif %}
       Repo: {{ solix_nsite_repo }}
+
+# ---------------------------------------------------------------------------
+# Telemetry Logger (nostr subscriber service)
+# ---------------------------------------------------------------------------
+
+- name: Create solix-logger user
+  user:
+    name: "{{ solix_logger_user }}"
+    system: yes
+    shell: /usr/sbin/nologin
+    create_home: no
+
+- name: Ensure logger directory exists
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ solix_logger_user }}"
+    group: "{{ solix_logger_user }}"
+    mode: '0755'
+  loop:
+    - "{{ solix_logger_dir }}"
+    - "{{ solix_logger_dir }}/scripts"
+    - "{{ solix_logger_csv_dir }}"
+
+- name: Create Python virtual environment for logger
+  command: python3 -m venv {{ solix_logger_dir }}/venv
+  args:
+    creates: "{{ solix_logger_dir }}/venv/bin/python3"
+
+- name: Install Python dependencies in venv
+  pip:
+    name:
+      - websockets>=12.0
+    virtualenv: "{{ solix_logger_dir }}/venv"
+
+- name: Copy logger script
+  copy:
+    src: "{{ solix_nsite_src_dir }}/scripts/solix_logger.py"
+    dest: "{{ solix_logger_dir }}/scripts/solix_logger.py"
+    owner: "{{ solix_logger_user }}"
+    group: "{{ solix_logger_user }}"
+    mode: '0755'
+
+- name: Set venv ownership
+  file:
+    path: "{{ solix_logger_dir }}"
+    owner: "{{ solix_logger_user }}"
+    group: "{{ solix_logger_user }}"
+    recurse: yes
+
+- name: Read daemon npub from .env (for logger subscription)
+  shell: "grep SOLIX_DAEMON_NPUB /opt/tollgate/.env 2>/dev/null | cut -d= -f2 || echo ''"
+  register: solix_daemon_npub_val
+  changed_when: false
+
+- name: Set daemon npub fact
+  set_fact:
+    _solix_daemon_npub: "{{ solix_daemon_npub_val.stdout | default(solix_daemon_npub, true) }}"
+
+- name: Deploy nostr logger systemd service
+  template:
+    src: solix-logger-nostr.service.j2
+    dest: "/etc/systemd/system/solix-logger-nostr.service"
+    mode: '0644'
+  when: _solix_daemon_npub | length > 0
+
+- name: Enable and start nostr logger service
+  systemd:
+    name: solix-logger-nostr
+    enabled: yes
+    state: restarted
+    daemon_reload: yes
+  when: _solix_daemon_npub | length > 0
+  register: logger_service
+
+- name: Display logger info
+  debug:
+    msg: |
+      {% if _solix_daemon_npub | length > 0 %}
+      Solix telemetry logger (nostr) deployed and running!
+      Subscribing to: {{ _solix_daemon_npub }}
+      CSV output: {{ solix_logger_csv_path }}
+      Journal: journalctl -u solix-logger-nostr -f
+      {% else %}
+      Solix logger: skipped (no SOLIX_DAEMON_NPUB in /opt/tollgate/.env)
+      {% endif %}
