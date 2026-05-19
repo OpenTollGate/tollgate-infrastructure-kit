@@ -116,9 +116,126 @@
 - [x] **Static deploy** — files copied to `/srv/tollgate/auditable-voting/`
 - [x] **Keypair generated** — VOTING_NSEC/VOTING_NPUB stored in `/opt/tollgate/.env`
 - [x] **Live** — `https://vote.orangesync.tech`
-- [ ] **nsite deploy** — skipped (nsyte not installed on VPS)
+- [x] **nsite deploy** — 24/24 blobs uploaded, manifest published to 4/4 relays
 
-### cashu-brrr Phase 5: Display Unit Mapping (in cashu-brrr repo)
+### 1A. Fix nsyte installation on VPS
+- [x] Deno + nsyte installed via playbook `14-nsyte.yml` (nsyte v0.27.0)
+
+### 1B. Fix dashboard root 404
+- [x] Caddy route added: bare `mints.{{ base_domain }}` redirects to `dashboard.mints.{{ base_domain }}`
+- [x] DNS A record added for `mints` subdomain
+- [x] Caddy redeployed
+
+### 1C. Deploy Hive CI (`ci.orangesync.tech`)
+- [x] Source cloned from Nostr (`nostr://npub1hw6amg.../relay.ngit.dev/hive-ci-site`)
+- [x] Built locally (Vue.js + Vite), deployed to VPS
+- [x] Live at `https://ci.orangesync.tech`
+
+### Smoke Tests
+- [x] 18/18 services up
+- [x] Mint tokens: 100 sat invoice → fakewallet auto-pay → PAID → mint → send
+- [x] ngit relay WebSocket: REQ/EOSE confirmed
+- [x] Routstr models: `/v1/models` returns GLM-4.5 etc.
+- [x] Auditable voting: WASM built, deployed at `https://vote.orangesync.tech`
+
+### 4A. Add Playwright E2E tests for missing services
+- [ ] Routstr: check `/v1/models` returns model list
+- [ ] Auditable voting: page loads at `vote.{{ base_domain }}`
+- [ ] Services status page: page loads at `services.{{ base_domain }}`
+- [ ] ngit relay: HTTP endpoint responds
+- [ ] GRASP: `git.{{ base_domain }}` responds
+- [ ] cashu-brrr: `print.mints.{{ base_domain }}` loads
+- [ ] Run all Playwright tests and verify passing
+
+## In Progress
+
+### 5. Backup Infrastructure (Syncthing + strfry export)
+- [x] `backup` Ansible role created — daily systemd timer at 02:00 UTC
+  - [x] `ansible/roles/backup/defaults/main.yml`
+  - [x] `ansible/roles/backup/tasks/main.yml`
+  - [x] `ansible/roles/backup/templates/tollgate-backup.sh.j2`
+  - [x] `ansible/roles/backup/templates/tollgate-backup.service.j2`
+  - [x] `ansible/roles/backup/templates/tollgate-backup.timer.j2`
+  - [x] `ansible/playbooks/22-backup.yml`
+- [x] 6 backup components working: strfry JSONL, ngit-relay JSONL, GRASP git mirror, mint SQLite, Routstr data, Caddy certs
+- [x] Staging dir `/opt/tollgate/backups/` with 7-day retention
+- [x] Backup timer active and running
+
+### 5B. Syncthing (VPS send-only + laptop receive-only)
+- [x] `syncthing` Ansible role created — VPS + localhost + peering plays
+  - [x] `ansible/roles/syncthing/defaults/main.yml`
+  - [x] `ansible/roles/syncthing/tasks/vps.yml`
+  - [x] `ansible/roles/syncthing/tasks/localhost.yml`
+  - [x] `ansible/roles/syncthing/tasks/peering.yml`
+  - [x] `ansible/roles/syncthing/handlers/main.yml`
+  - [x] `ansible/playbooks/21-syncthing.yml`
+- [x] Syncthing installed and running on VPS (`syncthing@syncthing.service`)
+- [x] VPS config: GUI on 127.0.0.1:8384, global discovery disabled, local discovery enabled
+- [x] VPS device ID: `XZ4W24N-XSKW6EB-RWR7KX5-2NSQZIK-GT66W7U-LA3NV7L-WHIZ7TL-IBEERAQ`
+- [x] Local syncthing config updated with VPS device + 6 receive-only folders
+- [ ] Syncthing peering not yet connected (needs root restart on local machine for config to take effect)
+
+### 6. Relay Advertisement (Nostr + ngit)
+- [x] `relay_advertisement` Ansible role created
+  - [x] `ansible/roles/relay_advertisement/defaults/main.yml`
+  - [x] `ansible/roles/relay_advertisement/tasks/main.yml`
+  - [x] `ansible/playbooks/23-relay-advertisement.yml`
+- [ ] Generate Nostr keypair for relay operator identity
+- [ ] Publish kind:10002 relay list event
+- [ ] Advertise GRASP-hosted git repos via ngit
+- [ ] Verify: relay list discoverable on public relays
+
+### 7. GitWorkshop (`workshop.orangesync.tech`)
+- [x] Cloned from Nostr via ngit (`nostr://npub1543u4xsk6aztnreelappadcq9282yy2qm8q5ll9gkeza9t5dwxxqxncfg6/relay.primal.net/gitworkshop`)
+- [x] Built locally with pnpm + Vite (React SPA, 39MB dist)
+- [x] `gitworkshop` Ansible role created — builds locally, rsyncs dist to VPS
+- [x] Playbook `ansible/playbooks/24-gitworkshop.yml`
+- [x] Caddy route: `workshop.{{ base_domain }}` → static files
+- [x] Cloudflare DNS: A record for `workshop`
+- [x] Live at `https://workshop.orangesync.tech`
+
+### 8. Testnut Mints
+- [x] **testnut-cdk** (`testnut-cdk.mints.orangesync.tech`) — CDK v0.16.0, sat, fakewallet, port 8091
+  - Keyset format: 64-char hex (new format)
+- [x] **testnut-nutshell** (`testnut-nutshell.mints.orangesync.tech`) — Nutshell v0.20.0, sat, FakeWallet, port 8092
+  - Keyset format: 64-char hex (new format, NOT compatible with gonuts-tollgate)
+- [x] **testnut-compat** (`testnut-compat.mints.orangesync.tech`) — Nutshell v0.18.2, sat, FakeWallet, port 8093
+  - Keyset format: 16-char hex with "00" prefix (old format, compatible with gonuts-tollgate)
+  - Keyset ID confirmed: `000476d21553c414` (16 chars)
+  - For use by `tollgate-module-basic-go` router daemon and `gonuts-tollgate` Go library
+- [x] Caddy routes for all 3 testnut mints
+- [x] Services status page updated with all 3 entries
+- [x] Requirement documented in `docs/nutshell-test-mint-requirement.md`
+
+### 9. nsite Gateway Wildcard Fix
+- [x] Diagnosed: individual nsites fail because `*.nsite.orangesync.tech` wildcard DNS missing + Caddy only served `nsite.orangesync.tech` (not wildcard)
+- [x] Cloudflare DNS: wildcard A record added for `*.nsite.orangesync.tech`
+- [x] Caddy config updated: `*.nsite.orangesync.tech` wildcard block + `nsite.orangesync.tech` block (both proxy to :3002)
+- [x] TLS cert obtained: `*.nsite.orangesync.tech` via Cloudflare DNS-01
+- [x] Verified: individual nsites load (e.g. `npub1d88s....nsite.orangesync.tech` → HTTP 200)
+- [x] Verified: status page still works at `nsite.orangesync.tech/status`
+
+### 10. Solix C1000 BLE Bridge nsite (`solix.orangesync.tech`)
+- [x] `solix_nsite` Ansible role created
+  - [x] `ansible/roles/solix_nsite/defaults/main.yml` — relays, blossom servers, repo URL
+  - [x] `ansible/roles/solix_nsite/tasks/main.yml` — clone, build, deploy static + nsyte + keygen
+  - [x] `ansible/roles/solix_nsite/templates/nsite.config.json.j2`
+- [x] Playbook `ansible/playbooks/25-solix-nsite.yml`
+- [x] Added `solix` to `cloudflare_subdomains` in `group_vars/all.yml`
+- [x] Caddy route: `solix.{{ base_domain }}` → static files with SPA fallback
+- [x] Added to `setup-all.yml` and `watchdog.json`
+- [x] Keypair auto-generated on VPS (SOLIX_NSEC/SOLIX_NPUB in /opt/tollgate/.env)
+- [x] Source repo: `nostr://npub12m5exm2uk3xa674cc5r0hlyvccs5xxn7qv83ezuteefv5972nquq4j4szl/relay.ngit.dev/contextvm-anker-solix`
+- [ ] Deploy and verify at `https://solix.orangesync.tech`
+
+### Services Status Page Update
+- [x] Updated to 21 services (was 17)
+- [x] Added: testnut-cdk, testnut-nutshell, testnut-compat, GitWorkshop
+
+## Separate Repo
+
+### cashu-brrr Phase 5: Display Unit Mapping (in gandlafbtc/cashu-brrr repo)
+- [ ] Upgrade frontend `@cashu/cashu-ts` from rc4 → 2.9.0 (+ `@noble/curves`, `@noble/hashes`)
 - [ ] Add `MINT_DISPLAY_UNITS` map + `getDisplayUnit()` to `src/lib/utils.ts`
 - [ ] Fix `getWalletWithUnit()` bug: `find((ks) => ks.unit)` → `find((ks) => ks.unit === unit)`
 - [ ] Add `displayUnit` store to `stores.svelte.ts`
@@ -135,10 +252,7 @@
 - [ ] Test admin mode end-to-end on VPS (nsec auth → issue tokens → print)
 - [ ] Verify NIP-07 auth works with browser extension
 
-## Blocked / Deferred
-- [ ] True custom unit support (MB, KB, GB, min in keyset) — requires gRPC payment processor or CDK upstream fix. See HANDOVER.md Appendix A.
-- [ ] Build/deploy Hive CI content to `ci.orangesync.tech`
-- [ ] Install `websocat` locally for full Playwright WebSocket tests
-- [ ] Auditable voting nsite deploy — needs nsyte installed on VPS
-- [ ] Routstr AI inference via cashu Python lib — keyset ID format mismatch (8-byte vs 33-byte hex). cashu-ts works correctly.
-- [ ] Dashboard root path returns 404 — dashboard serves on a specific route, not root
+## Blocked / Upstream
+- [ ] True custom unit support (MB, KB, GB, min in keyset) — requires gRPC payment processor or CDK upstream fix
+- [ ] Routstr AI inference via cashu Python lib — keyset ID format mismatch. Pre-built Docker image, needs upstream update or custom build
+- [ ] Install `websocat` for full Playwright WebSocket tests (low priority, HTTP checks sufficient)

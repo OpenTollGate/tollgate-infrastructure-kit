@@ -1,0 +1,16 @@
+---
+solix_nsite_repo: "nostr://npub12m5exm2uk3xa674cc5r0hlyvccs5xxn7qv83ezuteefv5972nquq4j4szl/relay.ngit.dev/contextvm-anker-solix"
+solix_nsite_branch: "master"
+solix_nsite_domain: "solix.{{ base_domain }}"
+solix_nsite_static_dir: "{{ tollgate_static_dir }}/solix"
+solix_nsite_src_dir: "{{ tollgate_base_dir }}/src/contextvm-anker-solix"
+solix_nsite_relays:
+  - "wss://relay.orangesync.tech"
+  - "wss://ngit.orangesync.tech"
+  - "wss://relay.damus.io"
+  - "wss://nos.lol"
+  - "wss://relay.nostr.net"
+solix_nsite_servers:
+  - "https://blossom.orangesync.tech"
+  - "https://blossom.primal.net"
+  - "https://cdn.sovbit.host"

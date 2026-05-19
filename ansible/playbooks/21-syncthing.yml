@@ -1,0 +1,27 @@
+---
+- name: Deploy Syncthing on VPS
+  hosts: tollgate-vps
+  become: yes
+  gather_facts: yes
+  tasks:
+    - include_role:
+        name: syncthing
+        tasks_from: vps.yml
+
+- name: Setup Syncthing on localhost
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  tasks:
+    - include_role:
+        name: syncthing
+        tasks_from: localhost.yml
+
+- name: Configure Syncthing peering
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  tasks:
+    - include_role:
+        name: syncthing
+        tasks_from: peering.yml

@@ -1,0 +1,43 @@
+---
+- name: Check if Syncthing is installed locally
+  command: which syncthing
+  register: local_syncthing_check
+  changed_when: false
+  failed_when: false
+
+- name: Install Syncthing locally (Debian/Ubuntu)
+  apt:
+    name: syncthing
+    state: present
+  become: yes
+  when: local_syncthing_check.rc != 0
+  ignore_errors: yes
+
+- name: Install Syncthing locally (macOS)
+  homebrew:
+    name: syncthing
+    state: present
+  when:
+    - local_syncthing_check.rc != 0
+    - ansible_system == 'Darwin'
+  ignore_errors: yes
+
+- name: Create local backup directories
+  file:
+    path: "{{ syncthing_local_backup_root }}/{{ item.label | lower | replace(' ', '-') }}"
+    state: directory
+    mode: '0755'
+  loop: "{{ syncthing_backup_dirs }}"
+
+- name: Get local syncthing device ID
+  command: syncthing --device-id
+  register: local_device_id
+  changed_when: false
+
+- name: Store local device ID as fact
+  set_fact:
+    local_syncthing_id: "{{ local_device_id.stdout | trim }}"
+
+- name: Display local device ID
+  debug:
+    msg: "Local Syncthing Device ID: {{ local_syncthing_id }}"

@@ -22,6 +22,10 @@
         unit: "min"
         rest_port: 8088
         grpc_port: 50054
+      - name: testnut
+        unit: "sat"
+        rest_port: 8091
+        grpc_port: 50055
   tasks:
     - name: Deploy each test mint
       include_role:

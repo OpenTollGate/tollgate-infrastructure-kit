@@ -1,4 +1,10 @@
 ---
+- name: Install build dependencies
+  apt:
+    name:
+      - build-essential
+    state: present
+
 - name: Clone hive-ci-site mirror
   git:
     repo: "https://github.com/Origami74/hive-ci-site-mirror.git"
@@ -7,22 +13,26 @@
     force: yes
 
 - name: Install hive-ci-site dependencies
-  npm:
-    path: "{{ tollgate_base_dir }}/src/hive-ci-site"
-    production: yes
-  when: false
+  command: npm install
+  args:
+    chdir: "{{ tollgate_base_dir }}/src/hive-ci-site"
+    creates: "{{ tollgate_base_dir }}/src/hive-ci-site/node_modules/.package-lock.json"
 
 - name: Build hive-ci-site
   command: npm run build
   args:
     chdir: "{{ tollgate_base_dir }}/src/hive-ci-site"
     creates: "{{ tollgate_base_dir }}/src/hive-ci-site/dist/index.html"
-  ignore_errors: yes
+
+- name: Ensure static directory exists
+  file:
+    path: "{{ tollgate_static_dir }}/hive-ci"
+    state: directory
+    mode: '0755'
 
 - name: Deploy hive-ci-site static files
-  synchronize:
-    src: "{{ tollgate_base_dir }}/src/hive-ci-site/dist/"
-    dest: "{{ tollgate_static_dir }}/hive-ci/"
-    delete: yes
-  delegate_to: "{{ inventory_hostname }}"
-  ignore_errors: yes
+  shell: |
+    rm -rf {{ tollgate_static_dir }}/hive-ci/*
+    cp -r {{ tollgate_base_dir }}/src/hive-ci-site/dist/* {{ tollgate_static_dir }}/hive-ci/
+    find {{ tollgate_static_dir }}/hive-ci -type d -exec chmod 0755 {} \;
+    find {{ tollgate_static_dir }}/hive-ci -type f -exec chmod 0644 {} \;

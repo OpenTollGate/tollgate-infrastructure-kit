@@ -1,0 +1,24 @@
+---
+syncthing_user: syncthing
+syncthing_home: "/var/lib/{{ syncthing_user }}"
+syncthing_config_dir: "{{ syncthing_home }}/.config/syncthing"
+syncthing_backup_dirs:
+  - id: orangesync-strfry
+    label: Strfry Relay Exports
+    vps_path: "{{ backup_staging_dir }}/strfry"
+  - id: orangesync-ngit-relay
+    label: ngit Relay Exports
+    vps_path: "{{ backup_staging_dir }}/ngit-relay"
+  - id: orangesync-grasp
+    label: GRASP Git Repos
+    vps_path: "{{ backup_staging_dir }}/grasp"
+  - id: orangesync-mints
+    label: Mint Databases
+    vps_path: "{{ backup_staging_dir }}/mints"
+  - id: orangesync-routstr
+    label: Routstr Data
+    vps_path: "{{ backup_staging_dir }}/routstr"
+  - id: orangesync-caddy
+    label: Caddy Certs
+    vps_path: "{{ backup_staging_dir }}/caddy"
+syncthing_local_backup_root: "{{ lookup('env', 'HOME') }}/backups/orangesync"

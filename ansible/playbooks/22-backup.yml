@@ -1,0 +1,7 @@
+---
+- name: Deploy backup infrastructure
+  hosts: tollgate-vps
+  become: yes
+  gather_facts: yes
+  roles:
+    - backup

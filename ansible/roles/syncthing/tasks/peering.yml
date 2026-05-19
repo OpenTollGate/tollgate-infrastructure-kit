@@ -1,0 +1,53 @@
+---
+- name: Configure syncthing peering (run after both sides have device IDs)
+  block:
+    - name: Get VPS syncthing API key
+      xml:
+        path: "{{ syncthing_config_dir }}/config.xml"
+        xpath: /configuration/gui/apikey
+        value: ""
+      register: apikey_result
+      delegate_to: "{{ groups['tollgate-vps'] | first }}"
+
+    - name: Read VPS API key
+      command: "grep -oP '(?<=<apikey>)[^<]+' {{ syncthing_config_dir }}/config.xml"
+      register: vps_api_key
+      changed_when: false
+      delegate_to: "{{ groups['tollgate-vps'] | first }}"
+
+    - name: Add local device to VPS syncthing
+      uri:
+        url: "http://127.0.0.1:8384/rest/config/devices"
+        method: POST
+        headers:
+          X-API-Key: "{{ vps_api_key.stdout | trim }}"
+        body_format: json
+        body:
+          deviceID: "{{ local_syncthing_id }}"
+          name: "backup-laptop"
+          addresses:
+            - "dynamic"
+      delegate_to: "{{ groups['tollgate-vps'] | first }}"
+      ignore_errors: yes
+
+    - name: Create send-only folders on VPS for each backup dir
+      uri:
+        url: "http://127.0.0.1:8384/rest/config/folders"
+        method: POST
+        headers:
+          X-API-Key: "{{ vps_api_key.stdout | trim }}"
+        body_format: json
+        body:
+          id: "{{ item.id }}"
+          label: "{{ item.label }}"
+          path: "{{ item.vps_path }}"
+          type: sendonly
+          devices:
+            - deviceID: "{{ local_syncthing_id }}"
+          rescanIntervalS: 300
+          fsWatcherEnabled: true
+          fsWatcherDelayS: 10
+      loop: "{{ syncthing_backup_dirs }}"
+      delegate_to: "{{ groups['tollgate-vps'] | first }}"
+      ignore_errors: yes
+  when: local_syncthing_id is defined and vps_syncthing_id is defined

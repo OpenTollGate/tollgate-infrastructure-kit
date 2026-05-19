@@ -23,6 +23,21 @@
         reverse_proxy localhost:8088
     }
 
+    @testnut-cdk host testnut-cdk.{{ mint_domain }}
+    handle @testnut-cdk {
+        reverse_proxy localhost:8091
+    }
+
+    @testnut-nutshell host testnut-nutshell.{{ mint_domain }}
+    handle @testnut-nutshell {
+        reverse_proxy localhost:8092
+    }
+
+    @testnut-compat host testnut-compat.{{ mint_domain }}
+    handle @testnut-compat {
+        reverse_proxy localhost:8093
+    }
+
     @routstr-mint host routstr-mint.{{ mint_domain }}
     handle @routstr-mint {
         reverse_proxy localhost:{{ routstr_mint_rest_port | default(8089) }}
@@ -44,6 +59,11 @@
     handle @dashboard {
         root * {{ tollgate_base_dir }}/mints-dashboard
         file_server
+    }
+
+    @bare_mints host {{ mint_domain }}
+    handle @bare_mints {
+        redir https://dashboard.{{ mint_domain }}{uri} permanent
     }
 
     handle {
@@ -86,6 +106,16 @@ vote.{{ base_domain }} {
     try_files {path} /index.html
 }
 
+solix.{{ base_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    root * {{ tollgate_static_dir }}/solix
+    file_server
+    try_files {path} /index.html
+}
+
 relay.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
@@ -108,6 +138,14 @@ blossom.{{ base_domain }} {
     }
 
     reverse_proxy localhost:{{ blossom_port }}
+}
+
+*.nsite.{{ base_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    reverse_proxy localhost:{{ nsite_gateway_port }}
 }
 
 nsite.{{ base_domain }} {
@@ -144,6 +182,16 @@ git.{{ base_domain }} {
     }
 
     reverse_proxy localhost:{{ grasp_port }}
+}
+
+{{ gitworkshop_subdomain | default('workshop') }}.{{ base_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    root * {{ tollgate_static_dir }}/gitworkshop
+    file_server
+    try_files {path} /index.html
 }
 
 {{ base_domain }} {

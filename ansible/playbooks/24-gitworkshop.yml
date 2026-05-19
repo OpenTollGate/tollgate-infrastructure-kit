@@ -1,0 +1,7 @@
+---
+- name: Deploy GitWorkshop
+  hosts: tollgate-vps
+  roles:
+    - gitworkshop
+  tags:
+    - gitworkshop

@@ -1,0 +1,7 @@
+---
+- name: Deploy Solix C1000 BLE Bridge nsite
+  hosts: tollgate-vps
+  become: yes
+  gather_facts: yes
+  roles:
+    - solix_nsite

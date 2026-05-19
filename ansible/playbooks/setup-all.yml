@@ -24,7 +24,10 @@
     - grasp
     - routstr
     - auditable_voting
+    - solix_nsite
     - ngit_relay
+    - backup
+    - gitworkshop
 
 - name: Deploy VPS watchdog (local health monitor + auto-redeploy)
   hosts: localhost
@@ -33,3 +36,9 @@
   gather_facts: yes
   roles:
     - watchdog
+
+- name: Deploy Syncthing on VPS and localhost
+  import_playbook: 21-syncthing.yml
+
+- name: Publish relay advertisement events
+  import_playbook: 23-relay-advertisement.yml

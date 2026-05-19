@@ -63,13 +63,17 @@ const SERVICES=[
 {group:"Mints",name:"test-kb Mint",url:"https://test-kb.mints.orangesync.tech/v1/info"},
 {group:"Mints",name:"test-gb Mint",url:"https://test-gb.mints.orangesync.tech/v1/info"},
 {group:"Mints",name:"test-min Mint",url:"https://test-min.mints.orangesync.tech/v1/info"},
+{group:"Mints",name:"testnut-cdk Mint",url:"https://testnut-cdk.mints.orangesync.tech/v1/info"},
+{group:"Mints",name:"testnut-nutshell Mint (0.20)",url:"https://testnut-nutshell.mints.orangesync.tech/v1/info"},
+{group:"Mints",name:"testnut-compat Mint (0.18)",url:"https://testnut-compat.mints.orangesync.tech/v1/info"},
 {group:"Mints",name:"Routstr Mint",url:"https://routstr-mint.mints.orangesync.tech/v1/info"},
 {group:"Frontend",name:"cashu-brrr (Money Printer)",url:"https://print.mints.orangesync.tech"},
 {group:"Frontend",name:"Mint Operator Proxy",url:"https://print.mints.orangesync.tech/api/health"},
 {group:"Frontend",name:"Releases",url:"https://releases.orangesync.tech"},
 {group:"AI",name:"Routstr (AI Inference)",url:"https://routstr.orangesync.tech/v1/models"},
 {group:"Other",name:"Auditable Voting",url:"https://vote.orangesync.tech"},
-{group:"Other",name:"ngit Relay (Git Events)",url:"https://ngit.orangesync.tech"}
+{group:"Other",name:"ngit Relay (Git Events)",url:"https://ngit.orangesync.tech"},
+{group:"Other",name:"GitWorkshop",url:"https://workshop.orangesync.tech"}
 ];
 
 const state=SERVICES.map(()=>({status:"pending",ms:null,retryTimer:null}));

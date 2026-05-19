@@ -168,17 +168,7 @@
 
 - name: Deploy to nsite
   shell: |
-    source /opt/tollgate/.env
-    cd {{ auditable_voting_src_dir }}
-    nsyte deploy web/dist \
-      --sec "$VOTING_NSEC" \
-      --publish-server-list \
-      --publish-relay-list \
-      --publish-profile \
-      --skip-secrets-scan \
-      --non-interactive \
-      --force \
-      --verbose
+    bash -c 'set -a && . /opt/tollgate/.env && set +a && cd {{ auditable_voting_src_dir }} && nsyte deploy web/dist --sec "$VOTING_NSEC" --publish-server-list --publish-relay-list --publish-profile --skip-secrets-scan --non-interactive --force --verbose'
   when: nsyte_check.rc == 0
   ignore_errors: yes
   register: nsite_deploy

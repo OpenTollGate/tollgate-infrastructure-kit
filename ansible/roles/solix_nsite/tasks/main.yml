@@ -1,0 +1,118 @@
+---
+- name: Check if Node.js is installed
+  command: node --version
+  register: node_check
+  changed_when: false
+  failed_when: false
+
+- name: Install Node.js
+  shell: |
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    apt-get install -y nodejs
+  when: node_check.rc != 0
+
+- name: Clone contextvm-anker-solix repo
+  git:
+    repo: "{{ solix_nsite_repo }}"
+    dest: "{{ solix_nsite_src_dir }}"
+    depth: 1
+    force: yes
+    version: "{{ solix_nsite_branch }}"
+  register: solix_clone
+
+- name: Install site dependencies
+  shell: npm install --ignore-scripts
+  args:
+    chdir: "{{ solix_nsite_src_dir }}/site"
+    creates: "{{ solix_nsite_src_dir }}/site/node_modules/.package-lock.json"
+  environment:
+    PATH: "{{ ansible_env.PATH }}:/usr/bin:/usr/local/bin"
+
+- name: Build static site
+  shell: npm run build
+  args:
+    chdir: "{{ solix_nsite_src_dir }}/site"
+    creates: "{{ solix_nsite_src_dir }}/site/dist/index.html"
+  environment:
+    PATH: "{{ ansible_env.PATH }}:/usr/bin:/usr/local/bin"
+
+- name: Ensure static files directory exists
+  file:
+    path: "{{ solix_nsite_static_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Deploy static files
+  shell: |
+    rm -rf {{ solix_nsite_static_dir }}/*
+    cp -r {{ solix_nsite_src_dir }}/site/dist/* {{ solix_nsite_static_dir }}/
+    find {{ solix_nsite_static_dir }} -type d -exec chmod 0755 {} \;
+    find {{ solix_nsite_static_dir }} -type f -exec chmod 0644 {} \;
+
+- name: Deploy nsite config
+  template:
+    src: nsite.config.json.j2
+    dest: "{{ solix_nsite_src_dir }}/site/.nsite/config.json"
+    mode: '0644'
+
+- name: Check for existing solix keypair
+  slurp:
+    src: /opt/tollgate/.env
+  register: env_file
+  failed_when: false
+
+- name: Check if SOLIX_NSEC already in .env
+  set_fact:
+    solix_nsec_exists: "{{ env_file.content is defined and 'SOLIX_NSEC' in (env_file.content | b64decode) }}"
+
+- name: Generate nsite keypair
+  shell: |
+    set -o pipefail
+    python3 << 'PYEOF'
+    import secrets, json
+    from bech32 import bech32_encode, convertbits
+    from coincurve import PrivateKey
+    sk = secrets.token_bytes(32)
+    nsec = bech32_encode('nsec', convertbits(sk, 8, 5))
+    pk_bytes = PrivateKey(sk).public_key.format(compressed=False)[1:]
+    npub = bech32_encode('npub', convertbits(pk_bytes, 8, 5))
+    print(json.dumps({'nsec': nsec, 'npub': npub}))
+    PYEOF
+  register: solix_keypair
+  when: not solix_nsec_exists
+
+- name: Store solix keypair in .env
+  shell: |
+    echo "SOLIX_NSEC=$(echo '{{ solix_keypair.stdout }}' | python3 -c 'import sys,json; print(json.load(sys.stdin)[\"nsec\"])')" >> /opt/tollgate/.env
+    echo "SOLIX_NPUB=$(echo '{{ solix_keypair.stdout }}' | python3 -c 'import sys,json; print(json.load(sys.stdin)[\"npub\"])')" >> /opt/tollgate/.env
+  when: not solix_nsec_exists
+
+- name: Read solix keypair from .env
+  shell: "grep SOLIX_NPUB /opt/tollgate/.env | cut -d= -f2"
+  register: solix_npub
+  changed_when: false
+
+- name: Check nsyte is available
+  command: nsyte --version
+  register: nsyte_check
+  changed_when: false
+  failed_when: false
+
+- name: Deploy to nsite
+  shell: |
+    bash -c 'set -a && . /opt/tollgate/.env && set +a && cd {{ solix_nsite_src_dir }}/site && nsyte deploy dist --sec "$SOLIX_NSEC" --publish-server-list --publish-relay-list --publish-profile --skip-secrets-scan --non-interactive --force --verbose'
+  when: nsyte_check.rc == 0
+  ignore_errors: yes
+  register: solix_nsite_deploy
+
+- name: Display deployment info
+  debug:
+    msg: |
+      Solix nsite deployed!
+      Static: https://{{ solix_nsite_domain }}
+      {% if solix_nsite_deploy is succeeded %}
+      Nsite: accessible via nsite gateways for npub {{ solix_npub.stdout }}
+      {% else %}
+      Nsite: skipped or failed (nsyte rc={{ nsyte_check.rc }})
+      {% endif %}
+      Repo: {{ solix_nsite_repo }}

@@ -52,6 +52,7 @@ firewall_allowed_ports:
   - "7777"
   - "65001"
   - "65101"
+  - "22000"
 
 routstr_port: 8000
 routstr_domain: "routstr.{{ base_domain }}"
@@ -72,3 +73,6 @@ cloudflare_subdomains:
   - vote
   - ngit
   - services
+  - mints
+  - workshop
+  - solix
