@@ -1,59 +1,87 @@
 ---
-- name: Check if Node.js is installed
-  command: node --version
-  register: node_check
-  changed_when: false
-  failed_when: false
+- name: Check if solix site is already built
+  stat:
+    path: "{{ solix_nsite_src_dir }}/site/dist/index.html"
+  register: solix_built
+  delegate_to: localhost
+  run_once: yes
+  become: no
 
-- name: Install Node.js
-  shell: |
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-    apt-get install -y nodejs
-  when: node_check.rc != 0
+- name: Check if solix source exists
+  stat:
+    path: "{{ solix_nsite_src_dir }}/.git"
+  register: solix_git
+  delegate_to: localhost
+  run_once: yes
+  become: no
 
-- name: Clone contextvm-anker-solix repo
+- name: Clone contextvm-anker-solix repo (local)
   git:
     repo: "{{ solix_nsite_repo }}"
     dest: "{{ solix_nsite_src_dir }}"
     depth: 1
     force: yes
     version: "{{ solix_nsite_branch }}"
-  register: solix_clone
+  delegate_to: localhost
+  run_once: yes
+  become: no
+  when: not solix_git.stat.exists
+
+- name: Update solix repo (pull latest)
+  git:
+    repo: "{{ solix_nsite_repo }}"
+    dest: "{{ solix_nsite_src_dir }}"
+    depth: 1
+    force: yes
+    version: "{{ solix_nsite_branch }}"
+  delegate_to: localhost
+  run_once: yes
+  become: no
+  when: solix_git.stat.exists and not solix_built.stat.exists
 
 - name: Install site dependencies
   shell: npm install --ignore-scripts
   args:
     chdir: "{{ solix_nsite_src_dir }}/site"
     creates: "{{ solix_nsite_src_dir }}/site/node_modules/.package-lock.json"
-  environment:
-    PATH: "{{ ansible_env.PATH }}:/usr/bin:/usr/local/bin"
+  delegate_to: localhost
+  run_once: yes
+  become: no
 
 - name: Build static site
   shell: npm run build
   args:
     chdir: "{{ solix_nsite_src_dir }}/site"
     creates: "{{ solix_nsite_src_dir }}/site/dist/index.html"
-  environment:
-    PATH: "{{ ansible_env.PATH }}:/usr/bin:/usr/local/bin"
+  delegate_to: localhost
+  run_once: yes
+  become: no
 
-- name: Ensure static files directory exists
+- name: Ensure static directory exists on VPS
   file:
     path: "{{ solix_nsite_static_dir }}"
     state: directory
     mode: '0755'
 
-- name: Deploy static files
-  shell: |
-    rm -rf {{ solix_nsite_static_dir }}/*
-    cp -r {{ solix_nsite_src_dir }}/site/dist/* {{ solix_nsite_static_dir }}/
-    find {{ solix_nsite_static_dir }} -type d -exec chmod 0755 {} \;
-    find {{ solix_nsite_static_dir }} -type f -exec chmod 0644 {} \;
+- name: Clean old deployment
+  shell: "rm -rf {{ solix_nsite_static_dir }}/*"
+
+- name: Copy built files to VPS
+  synchronize:
+    src: "{{ solix_nsite_src_dir }}/site/dist/"
+    dest: "{{ solix_nsite_static_dir }}/"
+    delete: yes
+    rsync_opts:
+      - "--chmod=D0755,F0644"
 
 - name: Deploy nsite config
   template:
     src: nsite.config.json.j2
     dest: "{{ solix_nsite_src_dir }}/site/.nsite/config.json"
     mode: '0644'
+  delegate_to: localhost
+  run_once: yes
+  become: no
 
 - name: Check for existing solix keypair
   slurp:
@@ -69,17 +97,19 @@
   shell: |
     set -o pipefail
     python3 << 'PYEOF'
-    import secrets, json
+    import secrets, hashlib, json
     from bech32 import bech32_encode, convertbits
-    from coincurve import PrivateKey
     sk = secrets.token_bytes(32)
     nsec = bech32_encode('nsec', convertbits(sk, 8, 5))
-    pk_bytes = PrivateKey(sk).public_key.format(compressed=False)[1:]
-    npub = bech32_encode('npub', convertbits(pk_bytes, 8, 5))
+    pk = hashlib.sha256(sk).digest()[-32:]
+    npub = bech32_encode('npub', convertbits(pk, 8, 5))
     print(json.dumps({'nsec': nsec, 'npub': npub}))
     PYEOF
   register: solix_keypair
   when: not solix_nsec_exists
+  delegate_to: localhost
+  run_once: yes
+  become: no
 
 - name: Store solix keypair in .env
   shell: |
@@ -101,6 +131,9 @@
 - name: Deploy to nsite
   shell: |
     bash -c 'set -a && . /opt/tollgate/.env && set +a && cd {{ solix_nsite_src_dir }}/site && nsyte deploy dist --sec "$SOLIX_NSEC" --publish-server-list --publish-relay-list --publish-profile --skip-secrets-scan --non-interactive --force --verbose'
+  delegate_to: localhost
+  run_once: yes
+  become: no
   when: nsyte_check.rc == 0
   ignore_errors: yes
   register: solix_nsite_deploy
