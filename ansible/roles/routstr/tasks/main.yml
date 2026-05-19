@@ -51,7 +51,8 @@
     routstr_node_name: "{{ lookup('env', 'ROUTSTR_NODE_NAME') | default('Tollgate AI Node', true) }}"
     routstr_node_description: "{{ lookup('env', 'ROUTSTR_NODE_DESCRIPTION') | default('AI inference via Cashu micropayments', true) }}"
     routstr_ln_address: "{{ lookup('env', 'ROUTSTR_LN_ADDRESS') | default('', true) }}"
-    routstr_relays: "wss://relay.{{ base_domain }},wss://relay.damus.io,wss://relay.nostr.band"
+    routstr_receive_ln_address: "{{ lookup('env', 'ROUTSTR_RECEIVE_LN_ADDRESS') | default('', true) }}"
+    routstr_relays: "ws://localhost:7777,wss://relay.damus.io,wss://nos.lol,wss://relay.primal.net"
 
 - name: Create Routstr directories
   file:
@@ -94,12 +95,41 @@
 
 - name: Wait for Routstr to start
   uri:
-    url: "http://localhost:{{ routstr_rest_port }}/v1/info"
+    url: "http://localhost:{{ routstr_rest_port }}/v1/models"
     return_content: yes
   register: routstr_health
   until: routstr_health.status == 200
   retries: 30
   delay: 3
+
+- name: Login to Routstr admin API
+  uri:
+    url: "http://localhost:{{ routstr_rest_port }}/admin/api/login"
+    method: POST
+    body:
+      password: "{{ routstr_admin_password }}"
+    body_format: json
+    return_content: yes
+  register: routstr_login
+
+- name: Configure Routstr settings via admin API
+  uri:
+    url: "http://localhost:{{ routstr_rest_port }}/admin/api/settings"
+    method: PATCH
+    headers:
+      Authorization: "Bearer {{ routstr_login.json.token }}"
+    body:
+      receive_ln_address: "{{ routstr_receive_ln_address }}"
+      cashu_mints:
+        - "{{ routstr_mint_url }}"
+      upstream_provider_fee: "{{ routstr_upstream_fee | default(1.10) }}"
+      exchange_fee: "{{ routstr_exchange_fee | default(1.005) }}"
+      min_payout_sat: "{{ routstr_min_payout_sat | default(210) }}"
+      payout_interval_seconds: "{{ routstr_payout_interval | default(900) }}"
+      enable_analytics_sharing: true
+    body_format: json
+    return_content: yes
+  register: routstr_settings_result
 
 - name: Verify Routstr is accessible via Caddy
   uri:
@@ -121,10 +151,10 @@
     msg: |
       Routstr node deployed successfully!
       URL: https://{{ routstr_domain }}
-      Admin: https://{{ routstr_domain }}/admin/
+      Admin: https://{{ routstr_domain }}/ (password-protected dashboard)
       Dedicated Mint: {{ routstr_mint_url }}
-      Mint REST Port: {{ routstr_mint_rest_port }}
-      Mint gRPC Port: {{ routstr_mint_grpc_port }}
+      Accepted Mints: {{ routstr_mint_url }}, https://mint.minibits.cash/Bitcoin
+      Lightning Payout: {{ routstr_receive_ln_address }}
       Upstream: {{ routstr_upstream_base_url }}
       Onion: {{ tor_onion.stdout }}
       Nsec: saved to {{ tollgate_base_dir }}/routstr/routstr.conf

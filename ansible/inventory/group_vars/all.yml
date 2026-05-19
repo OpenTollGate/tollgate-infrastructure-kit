@@ -58,6 +58,8 @@ routstr_domain: "routstr.{{ base_domain }}"
 routstr_mint_rest_port: 8089
 routstr_mint_grpc_port: 50055
 
+ngit_relay_port: 7778
+
 cloudflare_subdomains:
   - relay
   - chat
@@ -68,3 +70,5 @@ cloudflare_subdomains:
   - git
   - routstr
   - vote
+  - ngit
+  - services

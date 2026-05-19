@@ -21,6 +21,18 @@
     dest: "{{ tollgate_base_dir }}/caddy/caddy.env"
     mode: '0600'
 
+- name: Create services status page directory
+  file:
+    path: "{{ tollgate_static_dir }}/services"
+    state: directory
+    mode: '0755'
+
+- name: Deploy services status page
+  copy:
+    src: "{{ playbook_dir }}/../../static/services/index.html"
+    dest: "{{ tollgate_static_dir }}/services/index.html"
+    mode: '0644'
+
 - name: Deploy Caddyfile
   template:
     src: Caddyfile.http.j2

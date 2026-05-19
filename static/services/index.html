@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tollgate Services</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--orange:#f7931a;--purple:#7c3aed;--bg:#0a0a0f;--card:#12121a;--border:#1e1e2e;--text:#e2e2e8;--dim:#6b6b7b;--up:#22c55e;--down:#ef4444;--pending:#eab308}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh}
+.header{background:linear-gradient(135deg,rgba(247,147,26,0.08),rgba(124,58,237,0.08));border-bottom:1px solid var(--border);padding:2rem 1rem;text-align:center}
+.header h1{font-size:1.5rem;font-weight:700;background:linear-gradient(135deg,var(--orange),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.header .subtitle{color:var(--dim);font-size:0.85rem;margin-top:0.25rem}
+.summary{display:flex;justify-content:center;gap:2rem;padding:1rem;flex-wrap:wrap}
+.summary .stat{text-align:center}
+.summary .stat .num{font-size:1.8rem;font-weight:700}
+.summary .stat .label{font-size:0.75rem;color:var(--dim);text-transform:uppercase;letter-spacing:0.05em}
+.container{max-width:900px;margin:0 auto;padding:0 1rem 3rem}
+.group-title{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--dim);margin:1.5rem 0 0.5rem;padding-left:0.25rem;border-left:2px solid var(--purple)}
+.service{display:flex;align-items:center;gap:0.75rem;padding:0.7rem 0.75rem;border:1px solid var(--border);border-radius:8px;margin-bottom:0.4rem;background:var(--card);transition:border-color 0.2s}
+.service:hover{border-color:var(--purple)}
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;transition:background 0.3s}
+.dot.up{background:var(--up);box-shadow:0 0 6px var(--up)}
+.dot.down{background:var(--down);box-shadow:0 0 6px var(--down);animation:pulse 2s infinite}
+.dot.pending{background:var(--pending);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.info{flex:1;min-width:0}
+.info .name{font-weight:600;font-size:0.9rem}
+.info .url{font-size:0.75rem;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;text-decoration:none}
+.info .url:hover{color:var(--purple)}
+.meta{display:flex;align-items:center;gap:0.75rem;flex-shrink:0}
+.ms{font-size:0.7rem;color:var(--dim);min-width:40px;text-align:right}
+.recheck{background:none;border:1px solid var(--border);color:var(--dim);border-radius:4px;padding:0.2rem 0.5rem;font-size:0.7rem;cursor:pointer;transition:all 0.2s}
+.recheck:hover{border-color:var(--orange);color:var(--orange)}
+.rechecking{animation:spin 1s linear infinite}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+footer{text-align:center;padding:1rem;color:var(--dim);font-size:0.7rem;border-top:1px solid var(--border)}
+footer .next-check{color:var(--orange)}
+@media(max-width:600px){.meta .ms{display:none}.service{padding:0.6rem}}
+</style>
+</head>
+<body>
+<div class="header">
+<h1>Tollgate Services</h1>
+<div class="subtitle">Real-time status of all infrastructure services on orangesync.tech</div>
+</div>
+<div class="summary">
+<div class="stat"><div class="num" id="s-up" style="color:var(--up)">-</div><div class="label">Operational</div></div>
+<div class="stat"><div class="num" id="s-down" style="color:var(--down)">-</div><div class="label">Down</div></div>
+<div class="stat"><div class="num" id="s-total">-</div><div class="label">Total</div></div>
+</div>
+<div class="container" id="services"></div>
+<footer>Status checks run from your browser. Services showing down may be blocked by CORS policy (service is up but browser cannot probe it). <span class="next-check" id="next-check"></span></footer>
+<script>
+const SERVICES=[
+{group:"Core",name:"Caddy Gateway",url:"https://orangesync.tech"},
+{group:"Core",name:"strfry (Nostr Relay)",url:"https://relay.orangesync.tech"},
+{group:"Core",name:"Obelisk (Group Chat)",url:"https://chat.orangesync.tech"},
+{group:"Core",name:"Blossom (Blob Storage)",url:"https://blossom.orangesync.tech"},
+{group:"Core",name:"Nsite Gateway",url:"https://nsite.orangesync.tech"},
+{group:"Core",name:"GRASP (Git Server)",url:"https://git.orangesync.tech"},
+{group:"Mints",name:"test-mb Mint",url:"https://test-mb.mints.orangesync.tech/v1/info"},
+{group:"Mints",name:"test-kb Mint",url:"https://test-kb.mints.orangesync.tech/v1/info"},
+{group:"Mints",name:"test-gb Mint",url:"https://test-gb.mints.orangesync.tech/v1/info"},
+{group:"Mints",name:"test-min Mint",url:"https://test-min.mints.orangesync.tech/v1/info"},
+{group:"Mints",name:"Routstr Mint",url:"https://routstr-mint.mints.orangesync.tech/v1/info"},
+{group:"Frontend",name:"cashu-brrr (Money Printer)",url:"https://print.mints.orangesync.tech"},
+{group:"Frontend",name:"Mint Operator Proxy",url:"https://print.mints.orangesync.tech/api/health"},
+{group:"Frontend",name:"Releases",url:"https://releases.orangesync.tech"},
+{group:"AI",name:"Routstr (AI Inference)",url:"https://routstr.orangesync.tech/v1/models"},
+{group:"Other",name:"Auditable Voting",url:"https://vote.orangesync.tech"},
+{group:"Other",name:"ngit Relay (Git Events)",url:"https://ngit.orangesync.tech"}
+];
+
+const state=SERVICES.map(()=>({status:"pending",ms:null,retryTimer:null}));
+const DOWN_RECHECK=60000;
+
+function render(){
+const container=document.getElementById("services");
+let html="";
+let lastGroup="";
+let up=0,down=0;
+
+for(let i=0;i<SERVICES.length;i++){
+const s=SERVICES[i];
+const st=state[i];
+if(s.group!==lastGroup){html+=`<div class="group-title">${s.group}</div>`;lastGroup=s.group}
+if(st.status==="up")up++;else if(st.status==="down")down++;
+html+=`<div class="service" id="svc-${i}">
+<div class="dot ${st.status}"></div>
+<div class="info">
+<div class="name">${s.name}</div>
+<a class="url" href="${s.url}" target="_blank" rel="noopener">${s.url}</a>
+</div>
+<div class="meta">
+${st.ms!==null?`<span class="ms">${st.ms}ms</span>`:'<span class="ms"></span>'}
+<button class="recheck" onclick="checkOne(${i})" title="Recheck">&#x21bb;</button>
+</div>
+</div>`;
+}
+
+container.innerHTML=html;
+document.getElementById("s-up").textContent=up;
+document.getElementById("s-down").textContent=down;
+document.getElementById("s-total").textContent=SERVICES.length;
+}
+
+async function checkService(i){
+const el=document.getElementById(`svc-${i}`);
+if(!el)return;
+const dot=el.querySelector(".dot");
+dot.className="dot pending";
+const recheckBtn=el.querySelector(".recheck");
+recheckBtn.classList.add("rechecking");
+
+const start=performance.now();
+try{
+const controller=new AbortController();
+const tid=setTimeout(()=>controller.abort(),10000);
+const resp=await fetch(SERVICES[i].url,{method:"GET",mode:"no-cors",signal:controller.signal});
+clearTimeout(tid);
+const ms=Math.round(performance.now()-start);
+state[i].ms=ms;
+state[i].status="up";
+dot.className="dot up";
+recheckBtn.classList.remove("rechecking");
+if(state[i].retryTimer){clearInterval(state[i].retryTimer);state[i].retryTimer=null}
+updateMeta(el,i);
+}catch(e){
+const ms=Math.round(performance.now()-start);
+state[i].ms=ms;
+state[i].status="down";
+dot.className="dot down";
+recheckBtn.classList.remove("rechecking");
+updateMeta(el,i);
+if(!state[i].retryTimer){
+state[i].retryTimer=setInterval(()=>checkService(i),DOWN_RECHECK);
+}
+}
+updateSummary();
+}
+
+function updateMeta(el,i){
+const msSpan=el.querySelector(".ms");
+msSpan.textContent=state[i].ms!==null?`${state[i].ms}ms`:"";
+}
+
+function updateSummary(){
+let up=0,down=0;
+for(const s of state){if(s.status==="up")up++;else if(s.status==="down")down++}
+document.getElementById("s-up").textContent=up;
+document.getElementById("s-down").textContent=down;
+document.getElementById("s-total").textContent=SERVICES.length;
+}
+
+function checkOne(i){checkService(i)}
+
+function checkAll(){
+for(let i=0;i<SERVICES.length;i++)checkService(i);
+}
+
+render();
+checkAll();
+</script>
+</body>
+</html>

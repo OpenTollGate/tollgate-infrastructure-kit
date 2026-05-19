@@ -59,6 +59,23 @@ routstr.{{ base_domain }} {
     reverse_proxy localhost:{{ routstr_port | default(8000) }}
 }
 
+ngit.{{ base_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    reverse_proxy localhost:{{ ngit_relay_port | default(7778) }}
+}
+
+services.{{ base_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    root * {{ tollgate_static_dir }}/services
+    file_server
+}
+
 vote.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
@@ -69,40 +86,104 @@ vote.{{ base_domain }} {
     try_files {path} /index.html
 }
 
+relay.{{ base_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    reverse_proxy localhost:{{ strfry_port }}
+}
+
+chat.{{ base_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    reverse_proxy localhost:{{ obelisk_port }}
+}
+
+blossom.{{ base_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    reverse_proxy localhost:{{ blossom_port }}
+}
+
+nsite.{{ base_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    reverse_proxy localhost:{{ nsite_gateway_port }}
+}
+
+releases.{{ base_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    root * {{ tollgate_static_dir }}/releases
+    file_server
+    try_files {path} /index.html
+}
+
+ci.{{ base_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    root * {{ tollgate_static_dir }}/hive-ci
+    file_server
+    try_files {path} /index.html
+}
+
+git.{{ base_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    reverse_proxy localhost:{{ grasp_port }}
+}
+
 {{ base_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
     log {
         output stdout
     }
 
-    handle_path /relay/* {
+    handle /relay/* {
         reverse_proxy localhost:{{ strfry_port }}
     }
 
-    handle_path /chat/* {
+    handle /chat/* {
         reverse_proxy localhost:{{ obelisk_port }}
     }
 
-    handle_path /blossom/* {
+    handle /blossom/* {
         reverse_proxy localhost:{{ blossom_port }}
     }
 
-    handle_path /nsite/* {
+    handle /nsite/* {
         reverse_proxy localhost:{{ nsite_gateway_port }}
     }
 
-    handle_path /releases/* {
+    handle /releases/* {
         root * {{ tollgate_static_dir }}/releases
         file_server
         try_files {path} /index.html
     }
 
-    handle_path /ci/* {
+    handle /ci/* {
         root * {{ tollgate_static_dir }}/hive-ci
         file_server
         try_files {path} /index.html
     }
 
-    handle_path /git/* {
+    handle /git/* {
         reverse_proxy localhost:{{ grasp_port }}
     }
 

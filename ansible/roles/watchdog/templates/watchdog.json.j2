@@ -1,0 +1,99 @@
+{
+  "check_interval": {{ watchdog_check_interval }},
+  "ssh_timeout": {{ watchdog_ssh_timeout }},
+  "http_timeout": {{ watchdog_http_timeout }},
+  "cooldown": {{ watchdog_cooldown }},
+  "ssh": {
+    "host_env": "VPS_IP",
+    "user_env": "VPS_USER",
+    "key_env": "SSH_PRIVATE_KEY_FILE",
+    "port": 22,
+    "redeploy": ["02-docker.yml"]
+  },
+  "services": [
+    {
+      "name": "caddy",
+      "url": "https://{{ base_domain }}",
+      "playbook": "04-caddy.yml"
+    },
+    {
+      "name": "strfry",
+      "url": "https://relay.{{ base_domain }}",
+      "playbook": "05-strfry.yml"
+    },
+    {
+      "name": "obelisk",
+      "url": "https://chat.{{ base_domain }}",
+      "playbook": "06-obelisk-relay.yml"
+    },
+    {
+      "name": "blossom",
+      "url": "https://blossom.{{ base_domain }}",
+      "playbook": "07-blossom.yml"
+    },
+    {
+      "name": "nsite-gateway",
+      "url": "https://nsite.{{ base_domain }}",
+      "playbook": "08-nsite-gateway.yml"
+    },
+    {
+      "name": "releases",
+      "url": "https://releases.{{ base_domain }}",
+      "playbook": "09-release-explorer.yml"
+    },
+    {
+      "name": "grasp",
+      "url": "https://git.{{ base_domain }}",
+      "playbook": "15-grasp.yml"
+    },
+    {
+      "name": "test-mb-mint",
+      "url": "https://test-mb.mints.{{ base_domain }}/v1/info",
+      "playbook": "deploy-test-mints.yml"
+    },
+    {
+      "name": "test-kb-mint",
+      "url": "https://test-kb.mints.{{ base_domain }}/v1/info",
+      "playbook": "deploy-test-mints.yml"
+    },
+    {
+      "name": "test-gb-mint",
+      "url": "https://test-gb.mints.{{ base_domain }}/v1/info",
+      "playbook": "deploy-test-mints.yml"
+    },
+    {
+      "name": "test-min-mint",
+      "url": "https://test-min.mints.{{ base_domain }}/v1/info",
+      "playbook": "deploy-test-mints.yml"
+    },
+    {
+      "name": "cashu-brrr",
+      "url": "https://print.mints.{{ base_domain }}",
+      "playbook": "16-cashu-brrr.yml"
+    },
+    {
+      "name": "mint-operator-proxy",
+      "url": "https://print.mints.{{ base_domain }}/api/health",
+      "playbook": "17-mint-operator-proxy.yml"
+    },
+    {
+      "name": "auditable-voting",
+      "url": "https://vote.{{ base_domain }}",
+      "playbook": "17-auditable-voting.yml"
+    },
+    {
+      "name": "routstr",
+      "url": "https://routstr.{{ base_domain }}/v1/models",
+      "playbook": "18-routstr.yml"
+    },
+    {
+      "name": "ngit-relay",
+      "url": "https://ngit.{{ base_domain }}",
+      "playbook": "19-ngit-relay.yml"
+    }
+  ],
+  "groups": {
+    "mints": ["test-mb-mint", "test-kb-mint", "test-gb-mint", "test-min-mint"],
+    "core": ["caddy", "strfry", "blossom"]
+  }
+}

@@ -49,6 +49,23 @@
   register: cf_create_result
   changed_when: cf_create_result.json.success is defined and cf_create_result.json.success
 
+- name: Create A record for bare domain
+  uri:
+    url: "https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone_id_resolved }}/dns_records"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ cloudflare_api_token }}"
+      Content-Type: "application/json"
+    body:
+      type: A
+      name: "{{ base_domain }}"
+      content: "{{ vps_ip }}"
+      ttl: 300
+      proxied: false
+    body_format: json
+    status_code: [200, 400]
+  register: cf_bare_result
+
 - name: Create wildcard A record for mints subdomain
   uri:
     url: "https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone_id_resolved }}/dns_records"

@@ -1,0 +1,7 @@
+---
+- name: Deploy auditable voting
+  hosts: tollgate-vps
+  become: yes
+  gather_facts: yes
+  roles:
+    - auditable_voting

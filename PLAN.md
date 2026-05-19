@@ -11,7 +11,7 @@ A single Ansible-based repository that deploys all Tollgate-related infrastructu
 - **Domain**: User brings their own (`BASE_DOMAIN` variable)
 - **Secrets**: `.env` file (not committed to git)
 
-## Services (18 total)
+## Services (20 total)
 
 | # | Service | Subdomain | Internal Port | Install Method |
 |---|---------|-----------|---------------|----------------|
@@ -22,7 +22,7 @@ A single Ansible-based repository that deploys all Tollgate-related infrastructu
 | 5 | nsite-gateway (Nostr site gateway) | `nsite.` | 3002 | Docker (build from hzrd149/nsite-gateway) |
 | 6 | tollgate-release-explorer | `releases.` | — | Static build, Caddy file_server |
 | 7 | hive-ci-site | `ci.` | — | Static build, Caddy file_server |
-| 8 | Cashu mint infrastructure | `*.mints.` | 8085-8088, 50051-50054 | 4 CDK mintd containers (sat unit, mapped to MB/KB/GB/min in UI) |
+| 8 | Cashu mint infrastructure | `*.mints.` | 8085-8089, 50051-50055 | 5 CDK mintd containers (sat unit, mapped to MB/KB/GB/min in UI) |
 | 9 | cashu-brrr (money printer) | `print.mints.` | — | Static build, Caddy file_server |
 | 10 | Mint operator proxy | `print.mints./api/` | 3000 | Node.js systemd (tsx) |
 | 11 | MPTCP server | none | 65101/65001 | Systemd |
@@ -33,6 +33,8 @@ A single Ansible-based repository that deploys all Tollgate-related infrastructu
 | 16 | Routstr Tor hidden service | `.onion` | 80 | Docker (tor-hidden-service) |
 | 17 | Auditable Voting (static) | `vote.` | — | Static build (React+Vite+WASM), Caddy file_server |
 | 18 | Auditable Voting (nsite) | `nsite./<npub>/` | — | Nostr static site via blossom + nsyte |
+| 19 | ngit Relay (git-optimized Nostr) | `ngit.` | 7778 | Docker (strfry, 10MB event limit) |
+| 20 | VPS Watchdog | N/A (local) | N/A | Systemd user service (Python) |
 
 ## Architecture
 
@@ -60,18 +62,25 @@ Internet → Cloudflare DNS (auto A records via API)
       ├── vote.BASE_DOMAIN        → Static React+Vite+WASM build (Caddy file_server)
       └── nsite via blossom        → Same build published to Nostr (our relay + blossom + public)
 
+    ngit Relay:
+      └── ngit.BASE_DOMAIN         → strfry (Docker :7778, 10MB event limit, open access)
+            Optimized for git (NIP-34) events — kind 30617/30618
+            No rate limits, no write restrictions
+
     Routstr AI Inference Node:
       ├── Routstr Core (Docker :8000)
       │     FastAPI reverse proxy for OpenAI-compatible APIs
-      │     Accepts Cashu eCash payments via routstr-mint
+      │     Accepts Cashu eCash payments from routstr-mint + minibits
       │     Proxies to Z.ai Coding Plan (GLM-5.1) upstream
-      │     Admin dashboard at /admin/
+      │     Admin dashboard at root /
+      │     Lightning payouts to TollGate@coinos.io
       │     Nostr discovery (kind 38421) via local relay
+      │     Fully configurable via Ansible (env vars + admin API)
       ├── Tor hidden service (Docker host network)
       │     Anonymous .onion access to Routstr API
       └── Dedicated CDK mint (routstr-mint, :8089, gRPC :50055)
             Node operator issues AI credits (sat/msat units)
-            Connected to mint orchestrator for approval flow
+            Fakewallet backend (testing); swap to real LN for production payouts
 
     Mint orchestrator:
       ├── tollgate-mint-orchestrator (Python daemon :8090)
@@ -147,7 +156,7 @@ Proto: `crates/cdk-mint-rpc/src/proto/cdk-mint-rpc.proto` from `cashubtc/cdk`
 
 ## Cloudflare DNS Automation
 
-The `cloudflare_dns` Ansible role creates A records for: `relay`, `chat`, `blossom`, `nsite`, `releases`, `ci`, `git`, `routstr`, `vote`, `*.mints`
+The `cloudflare_dns` Ansible role creates A records for: `relay`, `chat`, `blossom`, `nsite`, `releases`, `ci`, `git`, `routstr`, `vote`, `ngit`, bare domain, `*.mints`
 
 ## Deployment Flow
 
@@ -170,6 +179,9 @@ make deploy  (or ./scripts/deploy.sh)
   15. GRASP server (ngit-grasp)
   16. Routstr AI inference node + dedicated mint + Tor
   17. Auditable Voting (static + nsite)
+  18. cashu-brrr frontend + operator proxy
+  19. ngit Relay (git-optimized Nostr relay)
+  20. VPS Watchdog (local health monitor + auto-redeploy)
   → Integration tests
   → Playwright E2E tests
 ```

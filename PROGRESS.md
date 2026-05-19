@@ -56,7 +56,50 @@
 - [x] **REST API proxy** — Node.js/Express in cashu-brrr `server/`, 45 vitest tests passing
 - [x] **HANDOVER.md** — full spec for admin mode + Phase 5 display unit mapping instructions
 
+### VPS Watchdog + Caddy Subdomain Fix
+- [x] **Watchdog script** — `scripts/watchdog.py` with health checks + auto-redeploy
+- [x] **Watchdog config** — `scripts/watchdog.json` with 16 service definitions
+- [x] **Systemd user service** — `tollgate-watchdog.service` running and enabled
+- [x] **Watchdog Ansible role** — `ansible/roles/watchdog/` with templated config + systemd unit
+- [x] **Watchdog playbook** — `ansible/playbooks/20-watchdog.yml` (localhost, connection: local)
+- [x] **Caddyfile fixed** — individual subdomain blocks with DNS-01 TLS for all services
+- [x] **Cloudflare DNS** — bare domain + vote + ngit A records added, all subdomains verified
+- [x] **16/16 services healthy** — watchdog dry-run confirms all green
+
+### Routstr Configuration
+- [x] **Routstr deployed** — `https://routstr.orangesync.tech` (ghcr.io/routstr/proxy on :8000)
+- [x] **Routstr mint deployed** — `mint-routstr-mint` on :8089, gRPC :50055, fakewallet sat/msat
+- [x] **Tor hidden service** — anonymous .onion access
+- [x] **Caddy route** — `routstr.orangesync.tech` → localhost:8000 with DNS-01 TLS
+- [x] **Cloudflare DNS** — A record for `routstr` subdomain
+- [x] **Nostr keypair** — generated and stored in `.env`
+- [x] **Lightning address configured** — `TollGate@coinos.io` via admin API
+- [x] **Dual mint support** — routstr-mint + `mint.minibits.cash/Bitcoin`
+- [x] **Pricing configured** — 10% upstream fee, 0.5% exchange fee via admin API
+- [x] **Admin API Ansible integration** — Routstr role configures all settings via `PATCH /admin/api/settings`
+- [x] **ENV vars updated** — `ROUTSTR_RECEIVE_LN_ADDRESS` added to `.env` and `.env.example`
+
+### ngit Relay (`ngit.orangesync.tech`)
+- [x] **Ansible role** — `ansible/roles/ngit_relay/` (defaults, tasks, templates)
+- [x] **Strfry container** — port 7778, 10MB event limit, 10MB WS frames, 5000 connections
+- [x] **Playbook** — `ansible/playbooks/19-ngit-relay.yml`
+- [x] **Cloudflare DNS** — A record for `ngit` subdomain
+- [x] **Caddy route** — `ngit.orangesync.tech` → localhost:7778 with DNS-01 TLS
+- [x] **Watchdog health check** — ngit-relay added to watchdog config
+- [x] **Integration test** — `tests/integration/test_ngit_relay.sh`
+- [x] **Deployed and verified** — `https://ngit.orangesync.tech` responds with strfry info page
+- [x] **Added to setup-all.yml**
+
 ## Next Up
+
+### Services Status Page (`services.orangesync.tech`)
+- [x] **Static HTML/CSS/JS** — `static/services/index.html`, dark theme with bitcoin orange + nostr purple
+- [x] **17 services monitored** — Core, Mints, Frontend, AI, Other groups
+- [x] **Smart recheck** — 60s auto-refresh for down services, no polling for up services
+- [x] **Caddy route** — `services.{{ base_domain }}` with DNS-01 TLS
+- [x] **Cloudflare DNS** — A record for `services` subdomain
+- [x] **Ansible deploy** — Caddy role copies static file to `/srv/tollgate/services/`
+- [x] **Live** — `https://services.orangesync.tech`
 
 ### cashu-brrr Phase 5: Display Unit Mapping (in cashu-brrr repo)
 - [ ] Add `MINT_DISPLAY_UNITS` map + `getDisplayUnit()` to `src/lib/utils.ts`
@@ -79,30 +122,4 @@
 - [ ] True custom unit support (MB, KB, GB, min in keyset) — requires gRPC payment processor or CDK upstream fix. See HANDOVER.md Appendix A.
 - [ ] Build/deploy Hive CI content to `ci.orangesync.tech`
 - [ ] Install `websocat` locally for full Playwright WebSocket tests
-
-## Auditable Voting Deployment
-
-- [ ] **Ansible role** — `ansible/roles/auditable_voting/` (defaults, tasks, templates)
-- [ ] **Playbook** — `ansible/playbooks/17-auditable-voting.yml`
-- [ ] **Clone and build** — `tidley/auditable-voting` static site (React + Vite + WASM)
-- [ ] **Static deployment** — `/srv/tollgate/auditable-voting/` served by Caddy at `vote.orangesync.tech`
-- [ ] **Caddy route** — `vote.BASE_DOMAIN` with TLS via Cloudflare DNS-01
-- [ ] **Cloudflare DNS** — A record for `vote` subdomain (DNS-only)
-- [ ] **Nsite config** — `.nsite/config.json` with our relay + blossom + public relays/servers
-- [ ] **Nsite keypair** — generate dedicated nsec/npub, store in `.env`
-- [ ] **Nsite deployment** — `nsyte deploy` using our blossom + relay
-- [ ] **Integration tests** — `tests/integration/test_auditable_voting.sh` (6 tests)
-- [ ] Smoke test: `https://vote.orangesync.tech` loads, nsite accessible via gateway
-
-## Routstr Node Deployment (future)
-- [ ] **Routstr Ansible role** — `ansible/roles/routstr/` (defaults, tasks, templates, handlers)
-- [ ] **Routstr playbook** — `ansible/playbooks/18-routstr.yml`
-- [ ] **Dedicated routstr-mint** — CDK mintd container on :8089, gRPC :50055, units sat/msat
-- [ ] **Routstr Core container** — ghcr.io/routstr/proxy on :8000, upstream Z.ai GLM-5.1
-- [ ] **Tor hidden service** — anonymous .onion access
-- [ ] **Caddy route** — `routstr.BASE_DOMAIN` → localhost:8000 with TLS
-- [ ] **Cloudflare DNS** — A record for `routstr` subdomain
-- [ ] **Nostr keypair** — auto-generated, persisted to `/opt/tollgate/routstr/routstr.conf`
-- [ ] **Secrets in .env** — ROUTSTR_ADMIN_PASSWORD, ROUTSTR_UPSTREAM_API_KEY, etc.
-- [ ] **Integration tests** — `tests/integration/test_routstr.sh`
-- [ ] Smoke test: Routstr API responding, admin dashboard accessible, mint connected
+- [ ] Auditable voting — static build + nsite deploy (WASM build partially done on VPS)
