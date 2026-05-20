@@ -40,7 +40,7 @@ Nutshell 0.18.x uses the old 16-char keyset ID format that `gonuts-tollgate` exp
 | Subdomain | `testnut-compat.mints.orangesync.tech` |
 | Software | Nutshell 0.18.x (Python, not CDK) |
 | Unit | `sat` |
-| Fees | Disabled (0_ppk, like nofee.testnut.cashu.space) |
+| Fees | **0_ppk (critical)** — must match nofee.testnut.cashu.space behavior |
 | Auto-pay | fakewallet or equivalent — quotes should auto-resolve |
 | Docker image | `cashubtc/nutshell` or similar |
 
