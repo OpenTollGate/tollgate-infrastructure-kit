@@ -15,7 +15,7 @@
     groups: docker
     append: yes
 
-- name: Ensure syncthing config directory exists
+- name: Ensure syncthing state directories exist
   file:
     path: "{{ item }}"
     state: directory
@@ -32,7 +32,6 @@
     creates: "{{ syncthing_config_dir }}/config.xml"
   environment:
     HOME: "{{ syncthing_home }}"
-  ignore_errors: yes
 
 - name: Fix ownership of syncthing config
   file:
@@ -46,39 +45,28 @@
     name: python3-lxml
     state: present
 
-- name: Bind GUI to localhost only
+- name: Configure syncthing via XML
   xml:
     path: "{{ syncthing_config_dir }}/config.xml"
-    xpath: /configuration/gui/address
-    value: "127.0.0.1:8384"
-  register: syncthing_gui_bind
-  notify: Restart syncthing
-
-- name: Disable global discovery (VPS uses direct connection)
-  xml:
-    path: "{{ syncthing_config_dir }}/config.xml"
-    xpath: /configuration/options/globalAnnounceEnabled
-    value: "false"
-  register: syncthing_global_discovery
-  notify: Restart syncthing
-
-- name: Enable local discovery
-  xml:
-    path: "{{ syncthing_config_dir }}/config.xml"
-    xpath: /configuration/options/localAnnounceEnabled
-    value: "true"
-  register: syncthing_local_discovery
-  notify: Restart syncthing
+    xpath: "{{ item.xpath }}"
+    value: "{{ item.value }}"
+  loop:
+    - xpath: /configuration/gui/address
+      value: "127.0.0.1:{{ syncthing_gui_port }}"
+    - xpath: /configuration/options/globalAnnounceEnabled
+      value: "false"
+    - xpath: /configuration/options/localAnnounceEnabled
+      value: "true"
+  loop_control:
+    label: "{{ item.xpath }}"
 
 - name: Remove default folder
   xml:
     path: "{{ syncthing_config_dir }}/config.xml"
     xpath: /configuration/folder[@id='default']
     state: absent
-  register: syncthing_remove_default
-  notify: Restart syncthing
 
-- name: Deploy syncthing systemd service
+- name: Deploy syncthing systemd service template
   copy:
     dest: /etc/systemd/system/syncthing@.service
     content: |
@@ -105,41 +93,35 @@
     enabled: yes
     daemon_reload: yes
 
-- name: Restart syncthing if config changed
-  systemd:
-    name: "syncthing@{{ syncthing_user }}"
-    state: restarted
-  when: >
-    (syncthing_gui_bind is defined and syncthing_gui_bind.changed) or
-    (syncthing_global_discovery is defined and syncthing_global_discovery.changed) or
-    (syncthing_local_discovery is defined and syncthing_local_discovery.changed) or
-    (syncthing_remove_default is defined and syncthing_remove_default.changed)
-
-- name: Wait for syncthing to be ready
+- name: Wait for syncthing API
   wait_for:
-    port: 8384
+    port: "{{ syncthing_gui_port }}"
     host: 127.0.0.1
     delay: 3
     timeout: 30
 
-- name: Get syncthing device ID
-  become_user: "{{ syncthing_user }}"
-  command: syncthing --device-id
-  register: syncthing_device_id
+- name: Get VPS syncthing device ID
+  shell: "syncthing --device-id --home={{ syncthing_home }}"
+  register: vps_device_id_raw
   changed_when: false
 
-- name: Store device ID as fact
+- name: Set VPS device ID fact
   set_fact:
-    vps_syncthing_id: "{{ syncthing_device_id.stdout | trim }}"
+    vps_syncthing_id: "{{ vps_device_id_raw.stdout | trim }}"
 
-- name: Display device ID
-  debug:
-    msg: "VPS Syncthing Device ID: {{ vps_syncthing_id }}"
+- name: Get VPS syncthing API key
+  command: "grep -oP '(?<=<apikey>)[^<]+' {{ syncthing_config_dir }}/config.xml"
+  register: vps_api_key_raw
+  changed_when: false
+
+- name: Set VPS API key fact
+  set_fact:
+    vps_syncthing_api_key: "{{ vps_api_key_raw.stdout | trim }}"
 
 - name: Open Syncthing port in firewall
   ufw:
     rule: allow
-    port: '22000'
+    port: "{{ syncthing_listen_port | string }}"
     proto: tcp
     comment: 'Syncthing sync'
   when: manage_firewall | default(false)

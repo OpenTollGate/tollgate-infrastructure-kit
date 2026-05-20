@@ -6,22 +6,27 @@
   tasks:
     - include_role:
         name: syncthing
-        tasks_from: vps.yml
+        tasks_from: vps
 
 - name: Setup Syncthing on localhost
   hosts: localhost
   connection: local
+  become: no
   gather_facts: yes
   tasks:
     - include_role:
         name: syncthing
-        tasks_from: localhost.yml
+        tasks_from: localhost
 
 - name: Configure Syncthing peering
   hosts: localhost
   connection: local
+  become: no
   gather_facts: yes
+  vars:
+    vps_syncthing_id: "{{ hostvars[groups['tollgate-vps'][0]].vps_syncthing_id }}"
+    vps_syncthing_api_key: "{{ hostvars[groups['tollgate-vps'][0]].vps_syncthing_api_key }}"
   tasks:
     - include_role:
         name: syncthing
-        tasks_from: peering.yml
+        tasks_from: peering

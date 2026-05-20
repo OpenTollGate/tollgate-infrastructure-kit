@@ -2,6 +2,11 @@
 syncthing_user: syncthing
 syncthing_home: "/var/lib/{{ syncthing_user }}"
 syncthing_config_dir: "{{ syncthing_home }}/.config/syncthing"
+syncthing_listen_port: 22000
+syncthing_gui_port: 8384
+syncthing_local_listen_port: 22001
+syncthing_local_gui_port: 8385
+syncthing_local_config_dir: "{{ lookup('env', 'HOME') }}/.local/state/syncthing"
 syncthing_backup_dirs:
   - id: orangesync-strfry
     label: Strfry Relay Exports
@@ -22,3 +27,4 @@ syncthing_backup_dirs:
     label: Caddy Certs
     vps_path: "{{ backup_staging_dir }}/caddy"
 syncthing_local_backup_root: "{{ lookup('env', 'HOME') }}/backups/orangesync"
+backup_staging_dir: "{{ tollgate_base_dir | default('/opt/tollgate') }}/backups"
