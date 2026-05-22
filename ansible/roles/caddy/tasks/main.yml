@@ -19,7 +19,7 @@
   copy:
     content: "CF_API_TOKEN={{ cloudflare_api_token }}\n"
     dest: "{{ tollgate_base_dir }}/caddy/caddy.env"
-    mode: '0600'
+    mode: '0644'
 
 - name: Create services status page directory
   file:
@@ -62,6 +62,12 @@
           cap_add:
             - NET_BIND_SERVICE
     mode: '0644'
+
+- name: Kill orphan caddy processes holding port 2019
+  shell: |
+    fuser -k 2019/tcp 2>/dev/null || true
+    sleep 1
+  changed_when: false
 
 - name: Build and start Caddy
   community.docker.docker_compose_v2:

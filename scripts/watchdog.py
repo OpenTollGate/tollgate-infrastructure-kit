@@ -48,8 +48,11 @@ def load_env():
 def load_state():
     STATE_DIR.mkdir(parents=True, exist_ok=True)
     if STATE_FILE.exists():
-        with open(STATE_FILE) as f:
-            return json.load(f)
+        try:
+            with open(STATE_FILE) as f:
+                return json.load(f)
+        except (json.JSONDecodeError, ValueError):
+            log.warning("Corrupted state file — resetting")
     return {"last_redeploy": {}}
 
 
