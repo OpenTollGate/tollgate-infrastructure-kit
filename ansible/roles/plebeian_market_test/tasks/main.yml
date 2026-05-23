@@ -2,6 +2,7 @@
 - name: Check if this is a teardown run
   set_fact:
     plebeian_teardown: "{{ ansible_run_tags | select('match', '^teardown$') | list | length > 0 }}"
+  tags: [always]
 
 - name: === DEPLOY BLOCK ===
   block:
@@ -21,7 +22,7 @@
       community.docker.docker_compose_v2:
         project_src: "{{ plebeian_market_test_dir }}"
         state: present
-        build: false
+        build: never
 
     - name: Wait for test relay to start
       wait_for:
@@ -37,8 +38,8 @@
         status_code: [200, 301, 302]
       register: market_health
       until: market_health.status in [200, 301, 302]
-      retries: 30
-      delay: 5
+      retries: 60
+      delay: 10
 
     - name: Create DNS A record for test-market subdomain
       uri:
@@ -92,26 +93,49 @@
             cloudflare_zone_id_resolved: "{{ cloudflare_zone_id if cloudflare_zone_id != '' else (cf_zone.json.result[0].id) }}"
           when: cloudflare_zone_id_resolved is not defined
 
-    - name: Deploy Caddy route snippet for plebeian market test
-      template:
-        src: plebeian-market-test.conf.j2
-        dest: "{{ plebeian_market_test_caddy_snippet }}"
-        mode: '0644'
+    - name: Deploy Caddy route for plebeian market test
+      block:
+        - name: Generate Caddy route snippet
+          set_fact:
+            caddy_route_snippet: |
+              test-market.{{ base_domain }} {
+                  tls {
+                      dns cloudflare {env.CF_API_TOKEN}
+                  }
+                  reverse_proxy localhost:{{ plebeian_market_test_port }}
+              }
 
-    - name: Check if import already exists in Caddyfile
-      shell: "grep -c 'import plebeian-market-test.conf' {{ tollgate_base_dir }}/caddy/Caddyfile || true"
-      register: import_check
-      changed_when: false
+              test-relay.{{ base_domain }} {
+                  tls {
+                      dns cloudflare {env.CF_API_TOKEN}
+                  }
 
-    - name: Add import to Caddyfile
-      shell: "echo '' >> {{ tollgate_base_dir }}/caddy/Caddyfile && echo 'import {{ plebeian_market_test_caddy_snippet }}' >> {{ tollgate_base_dir }}/caddy/Caddyfile"
-      when: import_check.stdout == '0'
+                  @websocket header Connection *Upgrade*
+                  @websocket header Upgrade websocket
 
-    - name: Reload Caddy
-      shell: docker exec tollgate-caddy caddy reload --config /etc/caddy/Caddyfile 2>&1
-      register: caddy_reload
-      changed_when: true
-      when: import_check.stdout == '0' or import_check.stdout == ''
+                  handle @websocket {
+                      reverse_proxy localhost:{{ plebeian_market_test_relay_port }}
+                  }
+
+                  handle {
+                      reverse_proxy localhost:{{ plebeian_market_test_relay_port }}
+                  }
+              }
+
+        - name: Check if test-market route already exists in Caddyfile
+          shell: "grep -c 'test-market.{{ base_domain }}' {{ tollgate_base_dir }}/caddy/Caddyfile || true"
+          register: caddy_route_check
+          changed_when: false
+
+        - name: Append route to Caddyfile
+          shell: "echo '{{ caddy_route_snippet }}' >> {{ tollgate_base_dir }}/caddy/Caddyfile"
+          when: caddy_route_check.stdout == '0'
+
+        - name: Reload Caddy
+          shell: docker exec tollgate-caddy caddy reload --config /etc/caddy/Caddyfile 2>&1
+          register: caddy_reload
+          changed_when: true
+          when: caddy_route_check.stdout == '0'
 
     - name: Wait for DNS propagation
       pause:
@@ -137,6 +161,7 @@
           Local Relay: ws://localhost:{{ plebeian_market_test_relay_port }}
           Teardown: ansible-playbook ... --tags teardown
   when: not plebeian_teardown
+  tags: [always]
 
 - name: === TEARDOWN BLOCK ===
   block:
@@ -144,20 +169,15 @@
       community.docker.docker_compose_v2:
         project_src: "{{ plebeian_market_test_dir }}"
         state: absent
+
+    - name: Remove test-market Caddy route from Caddyfile
+      shell: |
+        sed -i '/^test-market\.{{ base_domain }}$/,/^}$/d' {{ tollgate_base_dir }}/caddy/Caddyfile
+        sed -i '/^test-relay\.{{ base_domain }}$/,/^}$/d' {{ tollgate_base_dir }}/caddy/Caddyfile
       ignore_errors: yes
 
-    - name: Remove Caddy route snippet
-      file:
-        path: "{{ plebeian_market_test_caddy_snippet }}"
-        state: absent
-      ignore_errors: yes
-
-    - name: Remove import line from Caddyfile
-      shell: "sed -i '/import.*plebeian-market-test.conf/d' {{ tollgate_base_dir }}/caddy/Caddyfile"
-      ignore_errors: yes
-
-    - name: Reload Caddy
-      shell: docker exec tollgate-caddy caddy reload --config /etc/caddy/Caddyfile 2>&1
+    - name: Restart Caddy to pick up Caddyfile changes
+      shell: docker restart tollgate-caddy 2>&1
       ignore_errors: yes
 
     - name: Remove DNS A record for test-market
@@ -221,3 +241,4 @@
       debug:
         msg: "Plebeian Market test instance removed. Containers stopped, DNS records deleted, Caddy route removed."
   when: plebeian_teardown
+  tags: [always]

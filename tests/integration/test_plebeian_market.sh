@@ -89,8 +89,8 @@ else
     ((FAIL++))
 fi
 
-echo -n "  [caddy snippet] exists ... "
-if ssh "$VPS" "test -f /opt/tollgate/caddy/plebeian-market-test.conf"; then
+echo -n "  [caddy route] configured ... "
+if ssh "$VPS" "grep -q 'test-market.$BASE_DOMAIN' /opt/tollgate/caddy/Caddyfile"; then
     echo "OK"
     ((PASS++))
 else

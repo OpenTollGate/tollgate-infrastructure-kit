@@ -20,6 +20,7 @@ set +a
 
 VPS="${VPS_USER:-debian}@${VPS_IP}"
 ACTION="${1:-deploy}"
+export ANSIBLE_CONFIG="$PROJECT_DIR/ansible/ansible.cfg"
 
 usage() {
     echo "Usage: $0 [deploy|test|teardown|full]"
