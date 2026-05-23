@@ -1,0 +1,32 @@
+services:
+  relay:
+    image: quay.io/nostrapps/nak:latest
+    container_name: {{ plebeian_market_test_relay_container_name }}
+    restart: unless-stopped
+    command: serve --hostname 0.0.0.0 --port {{ plebeian_market_test_relay_port }}
+    ports:
+      - "127.0.0.1:{{ plebeian_market_test_relay_port }}:{{ plebeian_market_test_relay_port }}"
+
+  market:
+    image: oven/bun:latest
+    container_name: {{ plebeian_market_test_container_name }}
+    restart: unless-stopped
+    working_dir: /app
+    command: >
+      bash -c "
+        apt-get update && apt-get install -y git &&
+        git clone --branch {{ plebeian_market_repo_branch }} --depth 1 {{ plebeian_market_repo_url }} /tmp/market &&
+        cp -r /tmp/market/. /app/ &&
+        bun install &&
+        NODE_ENV=test bun dev --port {{ plebeian_market_test_port }} --host 0.0.0.0
+      "
+    ports:
+      - "127.0.0.1:{{ plebeian_market_test_port }}:{{ plebeian_market_test_port }}"
+    environment:
+      - NODE_ENV=test
+      - PORT={{ plebeian_market_test_port }}
+      - APP_RELAY_URL=ws://relay:{{ plebeian_market_test_relay_port }}
+      - LOCAL_RELAY_ONLY=true
+      - NIP46_RELAY_URL=ws://relay:{{ plebeian_market_test_relay_port }}
+    depends_on:
+      - relay
