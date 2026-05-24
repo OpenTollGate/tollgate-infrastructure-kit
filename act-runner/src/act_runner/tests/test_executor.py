@@ -1,10 +1,11 @@
 import os
 import tempfile
+from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from act_runner.executor import has_workflows, execute_build
+from act_runner.executor import has_workflows, execute_build, execute_custom_command
 from act_runner.config import RepoConfig
 
 
@@ -64,3 +65,25 @@ async def test_execute_build_no_workflows():
                 )
 
                 assert result["status"] in ("no_workflows", "clone_failed", "success", "failure")
+
+
+@pytest.mark.asyncio
+async def test_execute_custom_command():
+    repo = RepoConfig(
+        url="https://git.example.com/repo.git",
+        branch="main",
+        pipeline="custom",
+        custom_command="echo branch={branch} sha={sha}",
+    )
+    with tempfile.TemporaryDirectory() as log_dir:
+        result = await execute_custom_command(
+            repo=repo,
+            commit_sha="abc123def456",
+            branch_name="pr/886-test",
+            log_dir=log_dir,
+        )
+        assert result["status"] == "success"
+        assert result["exit_code"] == 0
+        assert "branch=pr/886-test" in result["log"]
+        assert "sha=abc123def456" in result["log"]
+        assert Path(result["log_path"]).exists()

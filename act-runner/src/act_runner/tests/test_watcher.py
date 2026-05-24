@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from act_runner.watcher import watch_repos, get_remote_head
+from act_runner.watcher import watch_repos, get_remote_head, get_pr_branches
 from act_runner.config import RepoConfig
 
 
@@ -151,3 +151,55 @@ async def test_watch_repos_handles_none_head():
         await watch_repos([repo], on_change, lambda u, b: None, 0, stop_event)
 
     assert len(changes) == 0
+
+
+@pytest.mark.asyncio
+async def test_get_pr_branches():
+    mock_process = AsyncMock()
+    mock_process.communicate.return_value = (
+        b"sha1\trefs/heads/pr/886-foo\nsha2\trefs/heads/pr/926-bar\n",
+        b"",
+    )
+    mock_process.returncode = 0
+
+    with patch("act_runner.watcher.asyncio.create_subprocess_exec", return_value=mock_process):
+        branches = await get_pr_branches("https://git.example.com/repo.git")
+        assert len(branches) == 2
+        assert branches[0] == ("pr/886-foo", "sha1")
+        assert branches[1] == ("pr/926-bar", "sha2")
+
+
+@pytest.mark.asyncio
+async def test_get_pr_branches_empty():
+    mock_process = AsyncMock()
+    mock_process.communicate.return_value = (b"", b"")
+    mock_process.returncode = 0
+
+    with patch("act_runner.watcher.asyncio.create_subprocess_exec", return_value=mock_process):
+        branches = await get_pr_branches("https://git.example.com/repo.git")
+        assert branches == []
+
+
+@pytest.mark.asyncio
+async def test_watch_repos_pr_branch_trigger():
+    repo = RepoConfig(
+        url="https://git.example.com/repo.git",
+        branch="master",
+        trigger="pr_branch",
+    )
+    changes = []
+
+    async def on_change(r, sha, branch_name=""):
+        changes.append((r.url, sha, branch_name))
+        stop_event.set()
+
+    stop_event = asyncio.Event()
+
+    async def mock_get_pr_branches(url):
+        return [("pr/886-foo", "newsha123")]
+
+    with patch("act_runner.watcher.get_pr_branches", side_effect=mock_get_pr_branches):
+        await watch_repos([repo], on_change, lambda u, b: None, 30, stop_event)
+
+    assert len(changes) == 1
+    assert changes[0] == ("https://git.example.com/repo.git", "newsha123", "pr/886-foo")

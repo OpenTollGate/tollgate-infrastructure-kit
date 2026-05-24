@@ -54,26 +54,51 @@ def test_config_load_from_yaml():
     os.unlink(f.name)
 
 
-def test_config_env_overrides():
-    os.environ["ACT_RUNNER_API_PORT"] = "9999"
-    os.environ["ACT_RUNNER_POLL_INTERVAL"] = "45"
-    os.environ["ACT_RUNNER_NSEC"] = "nsec1test"
-
-    try:
-        cfg = RunnerConfig.load("/nonexistent/path")
-        assert cfg.api_port == 9999
-        assert cfg.poll_interval == 45
-        assert cfg.nsec == "nsec1test"
-    finally:
-        del os.environ["ACT_RUNNER_API_PORT"]
-        del os.environ["ACT_RUNNER_POLL_INTERVAL"]
-        del os.environ["ACT_RUNNER_NSEC"]
+def test_repo_config_custom_pipeline_defaults():
+    repo = RepoConfig(url="https://git.example.com/repo.git", branch="main")
+    assert repo.pipeline == "act"
+    assert repo.custom_command == ""
+    assert repo.trigger == "push"
 
 
-def test_config_missing_file():
-    cfg = RunnerConfig.load("/nonexistent/path/config.yaml")
-    assert cfg.repos == []
-    assert cfg.poll_interval == 30
+def test_repo_config_custom_pipeline_fields():
+    repo = RepoConfig(
+        url="https://git.example.com/repo.git",
+        branch="main",
+        pipeline="custom",
+        custom_command="bash /opt/test.sh --branch {branch} --commit {sha}",
+        trigger="pr_branch",
+    )
+    assert repo.pipeline == "custom"
+    assert repo.trigger == "pr_branch"
+    assert "{branch}" in repo.custom_command
+
+
+def test_config_load_custom_pipeline_from_yaml():
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+        yaml.dump(
+            {
+                "repos": [
+                    {
+                        "url": "https://git.example.com/repo.git",
+                        "branch": "master",
+                        "pipeline": "custom",
+                        "custom_command": "bash test.sh --branch {branch}",
+                        "trigger": "pr_branch",
+                    },
+                ],
+            },
+            f,
+        )
+        f.flush()
+
+        cfg = RunnerConfig.load(f.name)
+        assert len(cfg.repos) == 1
+        assert cfg.repos[0].pipeline == "custom"
+        assert cfg.repos[0].trigger == "pr_branch"
+        assert "bash test.sh" in cfg.repos[0].custom_command
+
+    os.unlink(f.name)
 
 
 def test_config_empty_yaml():

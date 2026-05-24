@@ -36,6 +36,31 @@ async def get_remote_head(repo: RepoConfig) -> str | None:
         return None
 
 
+async def get_pr_branches(repo_url: str) -> list[tuple[str, str]]:
+    try:
+        process = await asyncio.create_subprocess_exec(
+            "git", "ls-remote", "--refs", repo_url, "refs/heads/pr/*",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=30)
+        if process.returncode != 0:
+            return []
+        lines = stdout.decode().strip().split("\n")
+        results = []
+        for line in lines:
+            if not line.strip():
+                continue
+            parts = line.split("\t")
+            if len(parts) == 2:
+                sha = parts[0].strip()
+                ref = parts[1].strip().replace("refs/heads/", "")
+                results.append((ref, sha))
+        return results
+    except (asyncio.TimeoutError, Exception):
+        return []
+
+
 async def watch_repos(
     repos: list[RepoConfig],
     on_change,
@@ -50,15 +75,28 @@ async def watch_repos(
         for repo in repos:
             if stop_event.is_set():
                 break
-            remote_head = await get_remote_head(repo)
-            if remote_head is None:
-                continue
-            last_commit = get_last_commit_fn(repo.url, repo.branch)
-            if last_commit is None or last_commit != remote_head:
-                logger.info(
-                    f"New commit on {repo.url} ({repo.branch}): {remote_head[:12]}"
-                )
-                await on_change(repo, remote_head)
+
+            if repo.trigger == "pr_branch":
+                branches = await get_pr_branches(repo.url)
+                for branch_name, remote_head in branches:
+                    if stop_event.is_set():
+                        break
+                    last_commit = get_last_commit_fn(repo.url, branch_name)
+                    if last_commit is None or last_commit != remote_head:
+                        logger.info(
+                            f"New commit on {repo.url} ({branch_name}): {remote_head[:12]}"
+                        )
+                        await on_change(repo, remote_head, branch_name=branch_name)
+            else:
+                remote_head = await get_remote_head(repo)
+                if remote_head is None:
+                    continue
+                last_commit = get_last_commit_fn(repo.url, repo.branch)
+                if last_commit is None or last_commit != remote_head:
+                    logger.info(
+                        f"New commit on {repo.url} ({repo.branch}): {remote_head[:12]}"
+                    )
+                    await on_change(repo, remote_head)
 
         if stop_event.is_set():
             break

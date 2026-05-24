@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from act_runner.api import RunnerAPI
 from act_runner.config import RunnerConfig
 from act_runner.db import BuildDB, Build
-from act_runner.executor import execute_build
+from act_runner.executor import execute_build, execute_custom_command
 from act_runner.nostr_publisher import build_nostr_event, publish_event
 from act_runner.watcher import watch_repos
 
@@ -19,30 +19,31 @@ _config: RunnerConfig | None = None
 _stop_event: asyncio.Event | None = None
 
 
-async def _on_repo_change(repo, commit_sha: str):
+async def _on_repo_change(repo, commit_sha: str, branch_name: str = ""):
     if _build_queue is None:
         return
-    logger.info(f"Queueing build for {repo.url} ({repo.branch}) @ {commit_sha[:12]}")
-    await _build_queue.put((repo, commit_sha))
+    effective_branch = branch_name or repo.branch
+    logger.info(f"Queueing build for {repo.url} ({effective_branch}) @ {commit_sha[:12]}")
+    await _build_queue.put((repo, commit_sha, effective_branch))
 
 
 async def _build_worker():
     while True:
-        repo, commit_sha = await _build_queue.get()
+        repo, commit_sha, branch_name = await _build_queue.get()
         try:
-            await _run_build(repo, commit_sha)
+            await _run_build(repo, commit_sha, branch_name)
         except Exception as e:
             logger.error(f"Build failed with exception: {e}", exc_info=True)
         finally:
             _build_queue.task_done()
 
 
-async def _run_build(repo, commit_sha: str):
+async def _run_build(repo, commit_sha: str, branch_name: str):
     now = datetime.now(timezone.utc).isoformat()
     build = Build(
         repo_url=repo.url,
         repo_name=repo.sanitized_name,
-        branch=repo.branch,
+        branch=branch_name,
         commit_sha=commit_sha,
         status="running",
         started_at=now,
@@ -51,13 +52,21 @@ async def _run_build(repo, commit_sha: str):
     logger.info(f"Starting build #{build_id}: {repo.url} @ {commit_sha[:12]}")
 
     try:
-        result = await execute_build(
-            repo=repo,
-            commit_sha=commit_sha,
-            work_base=_config.work_dir,
-            log_dir=_config.log_dir,
-            act_binary=_config.act_binary,
-        )
+        if repo.pipeline == "custom":
+            result = await execute_custom_command(
+                repo=repo,
+                commit_sha=commit_sha,
+                branch_name=branch_name,
+                log_dir=_config.log_dir,
+            )
+        else:
+            result = await execute_build(
+                repo=repo,
+                commit_sha=commit_sha,
+                work_base=_config.work_dir,
+                log_dir=_config.log_dir,
+                act_binary=_config.act_binary,
+            )
     except Exception as e:
         _db.update_build(
             build_id,
@@ -87,7 +96,7 @@ async def _run_build(repo, commit_sha: str):
         event = build_nostr_event(
             repo_url=repo.url,
             commit_sha=commit_sha,
-            branch=repo.branch,
+            branch=branch_name,
             status=result["status"],
             duration_ms=result.get("duration_ms", 0),
             log_url=log_url,

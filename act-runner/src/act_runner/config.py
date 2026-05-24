@@ -13,6 +13,9 @@ logger = logging.getLogger(__name__)
 class RepoConfig:
     url: str
     branch: str = "main"
+    pipeline: str = "act"
+    custom_command: str = ""
+    trigger: str = "push"
 
     @property
     def sanitized_name(self) -> str:
@@ -59,7 +62,17 @@ class RunnerConfig:
             data = yaml.safe_load(f) or {}
 
         if "repos" in data and data["repos"] is not None:
-            cfg.repos = [RepoConfig(**r) for r in data["repos"]]
+            repos = []
+            for r in data["repos"]:
+                repo = RepoConfig(
+                    url=r["url"],
+                    branch=r.get("branch", "main"),
+                    pipeline=r.get("pipeline", "act"),
+                    custom_command=r.get("custom_command", ""),
+                    trigger=r.get("trigger", "push"),
+                )
+                repos.append(repo)
+            cfg.repos = repos
         if "poll_interval" in data:
             cfg.poll_interval = int(data["poll_interval"])
         if "api_port" in data:

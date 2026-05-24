@@ -111,3 +111,42 @@ async def execute_build(
         "duration_ms": duration_ms,
         "log_path": log_path,
     }
+
+
+async def execute_custom_command(
+    repo: RepoConfig,
+    commit_sha: str,
+    branch_name: str,
+    log_dir: str,
+) -> dict:
+    os.makedirs(log_dir, exist_ok=True)
+
+    command = repo.custom_command
+    command = command.replace("{branch}", branch_name)
+    command = command.replace("{sha}", commit_sha)
+
+    build_start = time.monotonic()
+    process = await asyncio.create_subprocess_exec(
+        "bash", "-c", command,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.STDOUT,
+        env={**os.environ, "ACT_RUNNER_BRANCH": branch_name, "ACT_RUNNER_COMMIT": commit_sha},
+    )
+    stdout, _ = await process.communicate()
+    output = stdout.decode(errors="replace")
+    duration_ms = int((time.monotonic() - build_start) * 1000)
+
+    safe_branch = branch_name.replace("/", "_")
+    log_path = os.path.join(log_dir, f"{repo.sanitized_name}_{safe_branch}_{commit_sha[:12]}.log")
+    with open(log_path, "w") as f:
+        f.write(output)
+
+    status = "success" if process.returncode == 0 else "failure"
+
+    return {
+        "status": status,
+        "exit_code": process.returncode or 0,
+        "log": output,
+        "duration_ms": duration_ms,
+        "log_path": log_path,
+    }

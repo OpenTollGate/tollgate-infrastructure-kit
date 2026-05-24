@@ -2,6 +2,15 @@ repos:
 {% for repo in act_runner_repos %}
   - url: "{{ repo.url }}"
     branch: "{{ repo.branch | default('main') }}"
+{% if repo.pipeline is defined and repo.pipeline != 'act' %}
+    pipeline: "{{ repo.pipeline }}"
+{% endif %}
+{% if repo.custom_command is defined and repo.custom_command %}
+    custom_command: "{{ repo.custom_command }}"
+{% endif %}
+{% if repo.trigger is defined and repo.trigger != 'push' %}
+    trigger: "{{ repo.trigger }}"
+{% endif %}
 {% else %}  []
 {% endfor %}
 

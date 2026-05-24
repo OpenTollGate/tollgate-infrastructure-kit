@@ -111,6 +111,18 @@
 - [x] **tollgate-act-runner** systemd service running
 - [x] **Add repos to allowlist** — all 31 repos from `npub12m5ex...` added to `act_runner_repos` in `group_vars/all.yml`. Polling via `localhost:7334` (GRASP HTTP), branch `master`.
 
+### ACT Runner Custom Pipeline Support
+- [x] **config.py** — added `pipeline`, `custom_command`, `trigger` fields to `RepoConfig` + YAML parsing
+- [x] **watcher.py** — added `get_pr_branches()` + `trigger: pr_branch` support in `watch_repos()`
+- [x] **executor.py** — added `execute_custom_command()` with `{branch}`/`{sha}` substitution
+- [x] **daemon.py** — 3-tuple queue with `branch_name`, custom pipeline dispatch
+- [x] **39/39 tests passing** — 5 new tests (config, watcher, executor)
+- [x] **Config template** — `act-runner-config.yaml.j2` renders new fields
+- [x] **group_vars/all.yml** — `market` repo configured with `pipeline: custom`, `trigger: pr_branch`
+- [x] **Plan doc** — `docs/act-runner-custom-pipeline.md`
+- [ ] Deploy to VPS via `27-act-runner.yml` playbook
+- [ ] Push `pr/*` branch to market repo and verify end-to-end
+
 ### Smoke Tests (completed)
 - [x] **18/18 services up** — all return HTTP 200/404 (dashboard 404 on root, vote 404 before build)
 - [x] **Mint tokens on test-mb** — 100 sat invoice → fakewallet auto-pay → mint → send (cashu CLI)
