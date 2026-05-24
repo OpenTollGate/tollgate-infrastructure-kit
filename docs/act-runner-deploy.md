@@ -25,9 +25,10 @@
 ## Post-deployment
 
 - [x] Run integration test: `tests/integration/test_act_runner.sh` (9/9 passed)
-- [ ] Add repos to allowlist when ready
-- [ ] Verify Nostr events published after first build
+- [x] Checked GRASP for repos with `.github/workflows/` — none found yet (31 tollgate repos, 2048 total npubs)
 - [x] Update PROGRESS.md
+- [ ] Add repos to allowlist when repos with `.github/workflows/` are pushed to GRASP
+- [ ] Verify Nostr events published after first build
 
 ## Rollback
 
