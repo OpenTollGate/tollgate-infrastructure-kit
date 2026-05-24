@@ -109,7 +109,7 @@
 - [x] **Deployed and verified** — `https://runner.orangesync.tech` (API + dashboard live)
 - [x] **nektos/act v0.2.77** installed on VPS
 - [x] **tollgate-act-runner** systemd service running
-- [ ] **Add repos to allowlist** — no repos on GRASP currently have `.github/workflows/`. To add repos later, edit `act_runner_repos` in `group_vars/all.yml` and re-run `27-act-runner.yml`. Available repos: 31 tollgate repos under `npub12m5ex...` on GRASP (`git.orangesync.tech`)
+- [x] **Add repos to allowlist** — all 31 repos from `npub12m5ex...` added to `act_runner_repos` in `group_vars/all.yml`. Polling via `localhost:7334` (GRASP HTTP), branch `master`.
 
 ### Smoke Tests (completed)
 - [x] **18/18 services up** — all return HTTP 200/404 (dashboard 404 on root, vote 404 before build)
