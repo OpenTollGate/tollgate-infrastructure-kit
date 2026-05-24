@@ -1,0 +1,7 @@
+---
+- name: Deploy ACT Runner (CI/CD for GRASP repos)
+  hosts: tollgate-vps
+  become: yes
+  gather_facts: yes
+  roles:
+    - act_runner

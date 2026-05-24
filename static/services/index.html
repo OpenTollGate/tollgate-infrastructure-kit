@@ -74,7 +74,9 @@ const SERVICES=[
 {group:"Other",name:"Auditable Voting",url:"https://vote.orangesync.tech"},
 {group:"Other",name:"ngit Relay (Git Events)",url:"https://ngit.orangesync.tech"},
 {group:"Other",name:"GitWorkshop",url:"https://workshop.orangesync.tech"},
-{group:"IoT",name:"Solix C1000 BLE Bridge",url:"https://solix.orangesync.tech"}
+{group:"IoT",name:"Solix C1000 BLE Bridge",url:"https://solix.orangesync.tech"},
+{group:"CI",name:"Act Runner Daemon",url:"https://runner.orangesync.tech/api/health"},
+{group:"CI",name:"CI Dashboard",url:"https://runner.orangesync.tech"}
 ];
 
 const state=SERVICES.map(()=>({status:"pending",ms:null,retryTimer:null}));

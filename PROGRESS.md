@@ -92,6 +92,23 @@
 
 ## Next Up
 
+### ACT Runner (`runner.orangesync.tech`)
+- [x] **act-runner Python package** — 7 modules (config, daemon, watcher, executor, nostr_publisher, db, api)
+- [x] **34 unit tests passing** — config, db, watcher, executor, nostr_publisher, api
+- [x] **`ansible/roles/act_runner/`** — defaults, handlers, tasks, templates
+- [x] **`ansible/playbooks/27-act-runner.yml`** — standalone playbook
+- [x] **Static CI dashboard** — `static/runner/index.html`, dark theme, REST API consumer
+- [x] **Caddy route** — `runner.{{ base_domain }}` → API proxy + static files
+- [x] **Cloudflare DNS** — `runner` added to subdomains list
+- [x] **`setup-all.yml`** — `act_runner` role added after `grasp`
+- [x] **`.env.example`** — `ACT_RUNNER_NSEC`, `ACT_RUNNER_NPUB` added
+- [x] **Services status page** — CI group added (Act Runner + Dashboard)
+- [x] **Integration test** — `tests/integration/test_act_runner.sh`
+- [x] **Plan documented** — `docs/act-runner-plan.md`
+- [ ] **Deploy and verify** at `https://runner.orangesync.tech`
+- [ ] **Add repos to allowlist** — configure `act_runner_repos` in `group_vars/all.yml`
+- [ ] **Generate Nostr keypair** on first deploy
+
 ### Smoke Tests (completed)
 - [x] **18/18 services up** — all return HTTP 200/404 (dashboard 404 on root, vote 404 before build)
 - [x] **Mint tokens on test-mb** — 100 sat invoice → fakewallet auto-pay → mint → send (cashu CLI)

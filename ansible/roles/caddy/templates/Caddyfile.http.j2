@@ -194,6 +194,22 @@ git.{{ base_domain }} {
     try_files {path} /index.html
 }
 
+runner.{{ base_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    handle /api/* {
+        reverse_proxy localhost:{{ act_runner_port | default(8095) }}
+    }
+
+    handle {
+        root * {{ tollgate_static_dir }}/runner
+        file_server
+        try_files {path} /index.html
+    }
+}
+
 {{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
@@ -233,6 +249,10 @@ git.{{ base_domain }} {
 
     handle /git/* {
         reverse_proxy localhost:{{ grasp_port }}
+    }
+
+    handle /runner/* {
+        reverse_proxy localhost:{{ act_runner_port | default(8095) }}
     }
 
     handle / {

@@ -11,7 +11,7 @@ A single Ansible-based repository that deploys all Tollgate-related infrastructu
 - **Domain**: User brings their own (`BASE_DOMAIN` variable)
 - **Secrets**: `.env` file (not committed to git)
 
-## Services (24 total)
+## Services (25 total)
 
 | # | Service | Subdomain | Internal Port | Install Method |
 |---|---------|-----------|---------------|----------------|
@@ -39,6 +39,7 @@ A single Ansible-based repository that deploys all Tollgate-related infrastructu
 | 22 | Daily backup (systemd timer) | none | N/A | Shell script + systemd timer |
 | 23 | GitWorkshop | `workshop.` | — | Static build (React+Vite), Caddy file_server |
 | 24 | Services status page | `services.` | — | Static HTML, Caddy file_server |
+| 25 | ACT Runner (CI/CD) | `runner.` | 8095 | Python daemon + nektos/act binary |
 
 ## Architecture
 
@@ -120,7 +121,18 @@ Internet → Cloudflare DNS (auto A records via API)
       ├── mint-approve CLI (Python, for mint owners)
       └── mint-dashboard (static HTML, client-side nsec signing)
 
-    System services (not HTTP):
+     ACT Runner (CI/CD for GRASP repos):
+       ├── tollgate-act-runner (Python daemon :8095)
+       │     Polls GRASP repos via git ls-remote for new commits
+       │     Clones repo, runs nektos/act on .github/workflows/*.yml
+       │     Publishes Kind 1985 CI result events to ngit + relay
+       │     Serial build queue (one build at a time)
+       │     REST API: /api/health, /api/repos, /api/builds, /api/builds/<id>/log
+       ├── runner.{{ base_domain }} (Caddy proxy + static dashboard)
+       │     Dark-themed CI dashboard, auto-refreshes every 15s
+       └── Config: allowlisted repos in YAML, Nostr keypair for event signing
+
+     System services (not HTTP):
       ├── shadowsocks-libev (TCP :65101, MPTCP enabled)
       ├── glorytun (UDP :65001)
       └── fips daemon (TUN interface + nftables)
@@ -215,9 +227,10 @@ make deploy  (or ./scripts/deploy.sh)
    22. Backup (daily strfry/ngit/grasp/mint/routstr/caddy exports)
    23. Relay Advertisement (NIP-10002 relay list + ngit repo metadata)
    24. GitWorkshop (static React SPA from Nostr)
-   25. Testnut mints (CDK + Nutshell 0.20 + Nutshell 0.18 compat)
-   → Integration tests
-   → Playwright E2E tests
+    25. Testnut mints (CDK + Nutshell 0.20 + Nutshell 0.18 compat)
+    26. ACT Runner (CI/CD for GRASP repos)
+    → Integration tests
+    → Playwright E2E tests
 ```
 
 ## Backup Architecture

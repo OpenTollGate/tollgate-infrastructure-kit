@@ -22,6 +22,7 @@
     - fips
     - nsyte_cli
     - grasp
+    - act_runner
     - routstr
     - auditable_voting
     - solix_nsite

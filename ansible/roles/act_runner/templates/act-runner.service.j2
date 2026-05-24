@@ -1,0 +1,20 @@
+[Unit]
+Description=Tollgate ACT Runner (CI/CD for GRASP repos)
+After=network.target docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=debian
+Group=debian
+ExecStart={{ act_runner_venv }}/bin/tollgate-act-runner
+Environment=ACT_RUNNER_CONFIG={{ tollgate_base_dir }}/act-runner/config.yaml
+Environment=ACT_RUNNER_NSEC={{ act_runner_nsec }}
+Environment=ACT_RUNNER_NPUB={{ act_runner_npub }}
+Environment=BASE_DOMAIN={{ base_domain }}
+WorkingDirectory={{ tollgate_base_dir }}/act-runner
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -30,3 +30,7 @@ acme.json
 *.db
 *.sqlite
 .coverage
+*.egg-info/
+.pytest_cache/
+dist/
+build/

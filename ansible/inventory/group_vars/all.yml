@@ -61,6 +61,14 @@ routstr_mint_grpc_port: 50055
 
 ngit_relay_port: 7778
 
+act_runner_port: 8095
+act_runner_domain: "runner.{{ base_domain }}"
+act_runner_poll_interval: 30
+act_runner_relays:
+  - "wss://ngit.{{ base_domain }}"
+  - "wss://relay.{{ base_domain }}"
+act_runner_repos: []
+
 cloudflare_subdomains:
   - relay
   - chat
@@ -76,3 +84,4 @@ cloudflare_subdomains:
   - mints
   - workshop
   - solix
+  - runner
