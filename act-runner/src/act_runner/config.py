@@ -58,7 +58,7 @@ class RunnerConfig:
         with open(path) as f:
             data = yaml.safe_load(f) or {}
 
-        if "repos" in data:
+        if "repos" in data and data["repos"] is not None:
             cfg.repos = [RepoConfig(**r) for r in data["repos"]]
         if "poll_interval" in data:
             cfg.poll_interval = int(data["poll_interval"])

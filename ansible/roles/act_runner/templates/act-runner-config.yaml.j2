@@ -2,6 +2,7 @@ repos:
 {% for repo in act_runner_repos %}
   - url: "{{ repo.url }}"
     branch: "{{ repo.branch | default('main') }}"
+{% else %}  []
 {% endfor %}
 
 poll_interval: {{ act_runner_poll_interval }}

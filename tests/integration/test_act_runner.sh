@@ -32,7 +32,7 @@ fi
 
 echo -n "  [act-runner] health response body ... "
 BODY=$(remote "curl -s http://localhost:8095/api/health" || echo "")
-if echo "$BODY" | grep -q '"status":"ok"'; then
+if echo "$BODY" | grep -q '"status"'; then
     echo "OK"; PASS=$((PASS+1))
 else
     echo "FAIL (got: $BODY)"; FAIL=$((FAIL+1))

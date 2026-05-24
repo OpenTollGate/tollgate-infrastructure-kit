@@ -40,7 +40,7 @@
 
 - name: Copy act-runner package to VPS
   synchronize:
-    src: "{{ playbook_dir }}../../act-runner/"
+    src: "{{ inventory_dir | dirname | dirname }}/act-runner/"
     dest: "{{ act_runner_pkg_dir }}/"
     rsync_opts:
       - "--exclude=.pytest_cache"
@@ -67,7 +67,7 @@
 
 - name: Deploy runner dashboard static files
   copy:
-    src: "{{ playbook_dir }}../../static/runner/"
+    src: "{{ inventory_dir | dirname | dirname }}/static/runner/"
     dest: "{{ tollgate_static_dir }}/runner/"
     mode: '0644'
   become: yes

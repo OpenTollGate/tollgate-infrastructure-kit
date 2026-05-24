@@ -99,15 +99,17 @@
 - [x] **`ansible/playbooks/27-act-runner.yml`** — standalone playbook
 - [x] **Static CI dashboard** — `static/runner/index.html`, dark theme, REST API consumer
 - [x] **Caddy route** — `runner.{{ base_domain }}` → API proxy + static files
-- [x] **Cloudflare DNS** — `runner` added to subdomains list
+- [x] **Cloudflare DNS** — `runner` A record created
 - [x] **`setup-all.yml`** — `act_runner` role added after `grasp`
 - [x] **`.env.example`** — `ACT_RUNNER_NSEC`, `ACT_RUNNER_NPUB` added
 - [x] **Services status page** — CI group added (Act Runner + Dashboard)
-- [x] **Integration test** — `tests/integration/test_act_runner.sh`
-- [x] **Plan documented** — `docs/act-runner-plan.md`
-- [ ] **Deploy and verify** at `https://runner.orangesync.tech`
+- [x] **Integration test** — `tests/integration/test_act_runner.sh` (9/9 passed)
+- [x] **Plan documented** — `docs/act-runner-plan.md` + `docs/act-runner-deploy.md`
+- [x] **Nostr keypair generated** — stored in `.env` and `/opt/tollgate/.env`
+- [x] **Deployed and verified** — `https://runner.orangesync.tech` (API + dashboard live)
+- [x] **nektos/act v0.2.77** installed on VPS
+- [x] **tollgate-act-runner** systemd service running
 - [ ] **Add repos to allowlist** — configure `act_runner_repos` in `group_vars/all.yml`
-- [ ] **Generate Nostr keypair** on first deploy
 
 ### Smoke Tests (completed)
 - [x] **18/18 services up** — all return HTTP 200/404 (dashboard 404 on root, vote 404 before build)
