@@ -34,15 +34,28 @@ secrets, artifact server, or correct branch config. This plan makes it work end-
 
 - [x] Add `if: ${{ !env.ACT }}` to `trigger-build-os` job (skip during act-runner builds)
 
-### Phase 4: VPS Deployment
+### Phase 4: Trigger API
+
+- [ ] Add `POST /api/trigger` endpoint to `api.py` (no auth, substring repo match)
+- [ ] Expose `_build_queue` from `daemon.py` via module-level accessor
+- [ ] Add test for trigger endpoint in `test_api.py`
+- [ ] All tests pass
+
+### Phase 5: VPS Deployment
 
 - [ ] Verify Docker is installed and accessible on VPS
 - [ ] Pre-pull `openwrt/sdk:mediatek-filogic-25.12.0` on VPS
 - [ ] Pre-pull `ubuntu:latest` on VPS
 - [ ] Verify `act` v0.2.77 at `/usr/local/bin/act`
 - [ ] Run Ansible playbook to deploy updated act-runner
-- [ ] Push test commit to ngit mirror to trigger build
-- [ ] Verify build succeeds in act-runner dashboard at `https://runner.orangesync.tech`
+- [ ] Verify act-runner health at `https://runner.orangesync.tech/api/health`
+
+### Phase 6: Build PR #118
+
+- [ ] Push `94-mint-health-rebase-clean` branch to GRASP mirror (ngit.orangesync.tech)
+- [ ] Trigger build via `POST /api/trigger` with branch `94-mint-health-rebase-clean`
+- [ ] Monitor build in dashboard at `https://runner.orangesync.tech`
+- [ ] Verify build logs and artifact output
 
 ## Architecture
 
@@ -68,6 +81,8 @@ Push to ngit mirror (git.orangesync.tech)
 | `ansible/roles/act_runner/templates/act-runner.service.j2` | Add Environment for secrets |
 | `ansible/inventory/group_vars/all.yml` | Fix branch master→main |
 | `tollgate-module-basic-go/.github/workflows/build-package.yml` | Skip trigger-build-os in act mode |
+| `act-runner/src/act_runner/api.py` | Add POST /api/trigger endpoint |
+| `act-runner/src/act_runner/daemon.py` | Expose build queue for trigger API |
 
 ## Risks
 

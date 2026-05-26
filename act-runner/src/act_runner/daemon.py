@@ -9,7 +9,7 @@ from act_runner.config import RunnerConfig
 from act_runner.db import BuildDB, Build
 from act_runner.executor import execute_build, execute_custom_command
 from act_runner.nostr_publisher import build_nostr_event, publish_event
-from act_runner.watcher import watch_repos
+from act_runner.watcher import watch_repos, get_remote_head
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +17,15 @@ _build_queue: asyncio.Queue | None = None
 _db: BuildDB | None = None
 _config: RunnerConfig | None = None
 _stop_event: asyncio.Event | None = None
+
+
+async def queue_build(repo: RepoConfig, commit_sha: str, branch_name: str = "") -> int | None:
+    if _build_queue is None or _db is None:
+        return None
+    effective_branch = branch_name or repo.branch
+    logger.info(f"Triggered build for {repo.url} ({effective_branch}) @ {commit_sha[:12]}")
+    await _build_queue.put((repo, commit_sha, effective_branch))
+    return 0
 
 
 async def _on_repo_change(repo, commit_sha: str, branch_name: str = ""):
@@ -125,7 +134,7 @@ async def run_daemon():
     _build_queue = asyncio.Queue()
     _stop_event = asyncio.Event()
 
-    api = RunnerAPI(_config, _db)
+    api = RunnerAPI(_config, _db, trigger_fn=queue_build)
     await api.start()
 
     loop = asyncio.get_event_loop()
