@@ -84,3 +84,13 @@
 - **Purpose**: Deploy and manage nsites from the VPS
 - **Tech**: Deno 2 + TypeScript
 - **Usage**: `nsyte deploy ./dist`
+
+## GRASP Mirror Daemon
+- **No subdomain** (systemd service)
+- **Purpose**: Mirrors git data and Nostr events across all known GRASP servers for redundancy
+- **Tech**: Rust (nostr-sdk 0.39, git2, sqlx/SQLite, tokio)
+- **Source**: `nostr://npub12m5exm2uk3xa674cc5r0hlyvccs5xxn7qv83ezuteefv5972nquq4j4szl/git.orangesync.tech/grasp-mirror`
+- **Config**: `/opt/tollgate/grasp-mirror/config.toml`
+- **State**: `/opt/tollgate/grasp-mirror/repos/` (bare git mirrors), `mirror.db` (SQLite sync state)
+- **Health**: Tracked on `services.orangesync.tech` (mirroring health inferred from GRASP server reachability)
+- **Monitors**: 9 GRASP servers, watches npub12m5exm2uk3xa674cc5r0hlyvccs5xxn7qv83ezuteefv5972nquq4j4szl

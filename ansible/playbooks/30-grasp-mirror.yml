@@ -1,0 +1,7 @@
+---
+- name: Deploy grasp-mirror daemon
+  hosts: tollgate-vps
+  become: yes
+  gather_facts: yes
+  roles:
+    - grasp_mirror

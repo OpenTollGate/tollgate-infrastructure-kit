@@ -1,0 +1,15 @@
+[Unit]
+Description=GRASP Mirror Daemon
+After=network.target ngit-grasp.service
+Wants=ngit-grasp.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/grasp-mirror daemon --config {{ grasp_mirror_data_dir }}/config.toml
+EnvironmentFile={{ grasp_mirror_data_dir }}/grasp-mirror.env
+WorkingDirectory={{ grasp_mirror_data_dir }}
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
