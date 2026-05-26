@@ -10,6 +10,7 @@ known = [{% for s in grasp_mirror_servers %}
 [storage]
 mirror_dir = "{{ grasp_mirror_data_dir }}/repos"
 database = "{{ grasp_mirror_data_dir }}/mirror.db"
+health_port = {{ grasp_mirror_health_port }}
 {% if grasp_mirror_signing_key_file | length > 0 %}
 
 [signing]
