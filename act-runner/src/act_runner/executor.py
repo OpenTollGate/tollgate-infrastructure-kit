@@ -20,12 +20,17 @@ async def has_workflows(work_dir: str) -> bool:
 async def run_act(
     work_dir: str,
     act_binary: str = "/usr/local/bin/act",
+    secrets: dict[str, str] | None = None,
+    artifact_path: str = "",
 ) -> tuple[int, str, str]:
+    cmd = [act_binary, "--event", "push", "--bind"]
+    for key, value in (secrets or {}).items():
+        cmd.extend(["-s", f"{key}={value}"])
+    if artifact_path:
+        os.makedirs(artifact_path, exist_ok=True)
+        cmd.extend(["--artifact-server-path", artifact_path])
     process = await asyncio.create_subprocess_exec(
-        act_binary,
-        "--event",
-        "push",
-        "--bind",
+        *cmd,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.STDOUT,
         cwd=work_dir,
@@ -42,6 +47,8 @@ async def execute_build(
     work_base: str,
     log_dir: str,
     act_binary: str = "/usr/local/bin/act",
+    secrets: dict[str, str] | None = None,
+    artifact_dir: str = "",
 ) -> dict:
     repo_work_dir = os.path.join(work_base, repo.sanitized_name)
     os.makedirs(repo_work_dir, exist_ok=True)
@@ -95,7 +102,9 @@ async def execute_build(
         }
 
     build_start = time.monotonic()
-    exit_code, act_output, _ = await run_act(repo_work_dir, act_binary)
+    exit_code, act_output, _ = await run_act(
+        repo_work_dir, act_binary, secrets=secrets, artifact_path=artifact_dir,
+    )
     duration_ms = int((time.monotonic() - build_start) * 1000)
 
     log_path = os.path.join(log_dir, f"{repo.sanitized_name}_{commit_sha[:12]}.log")
