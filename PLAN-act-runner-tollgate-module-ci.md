@@ -36,24 +36,30 @@ secrets, artifact server, or correct branch config. This plan makes it work end-
 
 ### Phase 4: Trigger API
 
-- [ ] Add `POST /api/trigger` endpoint to `api.py` (no auth, substring repo match)
-- [ ] Expose `_build_queue` from `daemon.py` via module-level accessor
-- [ ] Add test for trigger endpoint in `test_api.py`
-- [ ] All tests pass
+- [x] Add `POST /api/trigger` endpoint to `api.py` (no auth, substring repo match)
+- [x] Expose `_build_queue` from `daemon.py` via module-level accessor
+- [x] Add test for trigger endpoint in `test_api.py`
+- [x] All 44 tests pass
 
 ### Phase 5: VPS Deployment
 
-- [ ] Verify Docker is installed and accessible on VPS
-- [ ] Pre-pull `openwrt/sdk:mediatek-filogic-25.12.0` on VPS
-- [ ] Pre-pull `ubuntu:latest` on VPS
-- [ ] Verify `act` v0.2.77 at `/usr/local/bin/act`
-- [ ] Run Ansible playbook to deploy updated act-runner
-- [ ] Verify act-runner health at `https://runner.orangesync.tech/api/health`
+- [x] Verify Docker is installed and accessible on VPS (Docker 29.4.3)
+- [x] Pre-pull `openwrt/sdk:mediatek-filogic-25.12.0` on VPS
+- [x] Pre-pull `ubuntu:latest` on VPS
+- [x] Pre-pull `catthehacker/ubuntu:act-latest` on VPS (full runner image with git)
+- [x] Upgrade `act` from v0.2.77 → v0.2.88 (node24 runtime support)
+- [x] Create `/home/debian/.config/act/actrc` with runner image + architecture config
+- [x] Run Ansible playbook to deploy updated act-runner
+- [x] Verify act-runner health at `https://runner.orangesync.tech/api/health`
 
 ### Phase 6: Build PR #118
 
-- [ ] Push `94-mint-health-rebase-clean` branch to GRASP mirror (ngit.orangesync.tech)
-- [ ] Trigger build via `POST /api/trigger` with branch `94-mint-health-rebase-clean`
+- [x] Push `94-mint-health-rebase-clean` branch to GRASP mirror (via SSH direct push)
+- [x] Fix: `--event` flag → positional `push` arg for act CLI
+- [x] Fix: `node:16-buster-slim` → `catthehacker/ubuntu:act-latest` (needs git in container)
+- [x] Fix: `actions/upload-artifact@v7/@v8` → `@v4` (mime_type incompatibility with act artifact server)
+- [x] Fix: RepoConfig import missing in daemon.py
+- [x] Trigger build via `POST /api/trigger` — build running with commit `53c767d`
 - [ ] Monitor build in dashboard at `https://runner.orangesync.tech`
 - [ ] Verify build logs and artifact output
 
@@ -88,8 +94,9 @@ Push to ngit mirror (git.orangesync.tech)
 
 | Risk | Mitigation |
 |------|-----------|
-| `actions/upload-artifact@v7`/`@v8` not supported by act v0.2.77 | Act supports v3/v4; v7/v8 may work if API-compatible |
-| OpenWrt SDK containers ~500MB each | Pre-pull on VPS before first build |
-| VPS RAM/CPU for full matrix | act runs sequentially by default |
+| `actions/upload-artifact@v7`/`@v8` not supported by act | Pinned to @v4 in workflow for act compatibility |
+| OpenWrt SDK containers ~500MB each | Pre-pulled on VPS |
+| VPS RAM/CPU for full matrix | act runs sequentially by default, 7.8GB RAM |
 | `publish-metadata` needs blossom server | Blossom is on same VPS (localhost:3001) |
 | `trigger-build-os` needs GitHub org | Skipped via `if: ${{ !env.ACT }}` |
+| `act` interactive prompt for default image | Pre-created `/home/debian/.config/act/actrc` |
