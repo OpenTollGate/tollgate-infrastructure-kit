@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import shutil
+import subprocess
 import time
 from pathlib import Path
 
@@ -55,7 +56,7 @@ async def execute_build(
     os.makedirs(log_dir, exist_ok=True)
 
     if os.path.exists(repo_work_dir):
-        shutil.rmtree(repo_work_dir)
+        subprocess.run(["sudo", "rm", "-rf", repo_work_dir], check=False)
 
     clone_start = time.monotonic()
     try:
