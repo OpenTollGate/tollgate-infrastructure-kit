@@ -305,6 +305,25 @@
 - [ ] Test admin mode end-to-end on VPS (nsec auth → issue tokens → print)
 - [ ] Verify NIP-07 auth works with browser extension
 
+### GRASP v1.0.2 Update
+- [x] Switch repo URL to `nostr://danconwaydev.com/relay.ngit.dev/ngit-grasp`
+- [x] Pin version to `v1.0.2` tag
+- [x] Ansible role supports ngit URLs + version checkout
+- [ ] Deploy to VPS via `15-grasp.yml`
+
+## Deployment Queue (ordered)
+
+1. [ ] **GRASP v1.0.2** — `ansible-playbook 15-grasp.yml` (rebuild from ngit source)
+2. [ ] **ACT Runner custom pipeline** — `ansible-playbook 27-act-runner.yml` (redeploy with pipeline support)
+3. [ ] **FIPS mesh hosting** — `ansible-playbook 13-fips.yml` (Nostr discovery + firewall drop-in)
+4. [ ] **Caddy fips0 listener** — `ansible-playbook 04-caddy.yml` (mesh HTTP on fips0 IPv6)
+5. [ ] **Auditable Voting v0.1.63** — `ansible-playbook 17-auditable-voting.yml` (rebuild from tag)
+6. [ ] **Voting Worker** — `ansible-playbook 28-voting-worker.yml` (build worker from source)
+7. [ ] **E2E Tests** — `ansible-playbook 29-auditable-voting-tests.yml` (27 Playwright tests)
+8. [ ] **Verify FIPS mesh** — curl from another FIPS node or check `fipsctl show status`
+9. [ ] **Custom pipeline E2E** — push `pr/*` branch to market repo, verify act-runner picks it up
+10. [ ] **Dinner vote walkthrough** — 5 voters, 5 private invite links (manual, interactive)
+
 ## Blocked / Upstream
 - [ ] True custom unit support (MB, KB, GB, min in keyset) — requires gRPC payment processor or CDK upstream fix
 - [ ] Routstr AI inference via cashu Python lib — keyset ID format mismatch. Pre-built Docker image, needs upstream update or custom build
