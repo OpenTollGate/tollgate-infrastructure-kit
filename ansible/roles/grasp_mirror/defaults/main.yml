@@ -22,3 +22,7 @@ grasp_mirror_servers:
 grasp_mirror_index_relays:
   - "wss://index.ngit.dev"
 grasp_mirror_signing_key_file: ""
+grasp_mirror_nip46_relays:
+  - "wss://relay.orangesync.tech"
+  - "wss://ngit.orangesync.tech"
+grasp_mirror_nip46_signing_timeout: 604800
