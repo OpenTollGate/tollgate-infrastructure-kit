@@ -1,34 +1,47 @@
-fips:
+# FIPS Node Configuration — managed by Ansible
+
+node:
   identity:
-    nsec: "{{ fips_identity_nsec | default('') }}"
-    save_path: /etc/fips/identity.json
-
-  relays:
-{% for relay in fips_relay_urls.split(',') %}
-    - {{ relay }}
-{% endfor %}
-
+    persistent: true
+{% if fips_identity_nsec is defined and fips_identity_nsec | length > 0 %}
+    nsec: "{{ fips_identity_nsec }}"
+{% endif %}
   discovery:
     nostr:
       enabled: true
       policy: configured_only
+      open_discovery_max_pending: 64
+      app: "fips-overlay-v1"
       advertise: true
       advert_relays:
 {% for relay in fips_advertise_relays %}
-        - {{ relay }}
+        - "{{ relay }}"
 {% endfor %}
       dm_relays:
 {% for relay in fips_dm_relays %}
-        - {{ relay }}
+        - "{{ relay }}"
 {% endfor %}
-      udp:
-        advertise_on_nostr: true
+      stun_servers:
+        - "stun:stun.l.google.com:19302"
+        - "stun:stun.cloudflare.com:3478"
+        - "stun:global.stun.twilio.com:3478"
 
-  tun:
-    enabled: true
-    device: fips0
-    address: "fd00::1/8"
+tun:
+  enabled: true
+  name: fips0
+  mtu: 1280
 
-  logging:
-    level: info
-    file: /var/log/fips.log
+dns:
+  enabled: true
+  port: 5354
+
+transports:
+  udp:
+    bind_addr: "0.0.0.0:2121"
+    advertise_on_nostr: true
+
+  tcp:
+    bind_addr: "0.0.0.0:8443"
+    advertise_on_nostr: true
+
+peers: []

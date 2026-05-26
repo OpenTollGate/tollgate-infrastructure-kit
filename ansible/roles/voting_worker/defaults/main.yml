@@ -2,6 +2,7 @@
 voting_worker_src_dir: "{{ tollgate_base_dir }}/src/auditable-voting/worker"
 voting_worker_binary: "{{ tollgate_base_dir }}/auditable-voting/worker/auditable-voting-worker"
 voting_worker_state_dir: "{{ tollgate_base_dir }}/auditable-voting/worker-state"
+voting_worker_coordinator_npub: "{{ lookup('env', 'VOTING_WORKER_COORDINATOR_NPUB') | default('', true) }}"
 voting_worker_relays:
   - "wss://relay.{{ base_domain }}"
   - "wss://ngit.{{ base_domain }}"

@@ -1,6 +1,6 @@
 ---
 auditable_voting_repo: "https://github.com/tidley/auditable-voting.git"
-auditable_voting_branch: "v0.1.63"
+auditable_voting_branch: "main"
 auditable_voting_domain: "vote.{{ base_domain }}"
 auditable_voting_static_dir: "{{ tollgate_static_dir }}/auditable-voting"
 auditable_voting_src_dir: "{{ tollgate_base_dir }}/src/auditable-voting"

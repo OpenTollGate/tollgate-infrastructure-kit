@@ -31,19 +31,28 @@
     apt-get install -y nodejs
   when: node_ver.rc != 0
 
-- name: Clone auditable-voting-tests
-  git:
-    repo: "{{ auditable_voting_tests_repo }}"
-    dest: "{{ auditable_voting_tests_dir }}"
-    depth: 1
-    force: yes
-    version: "{{ auditable_voting_tests_branch }}"
+- name: Ensure test directory exists
+  file:
+    path: "{{ auditable_voting_tests_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Check if tests are staged at /tmp
+  stat:
+    path: /tmp/auditable-voting-tests-staging/package.json
+  register: staging_check
+
+- name: Copy tests from staging
+  shell: |
+    rm -rf {{ auditable_voting_tests_dir }}/*
+    cp -r /tmp/auditable-voting-tests-staging/* {{ auditable_voting_tests_dir }}/
+    cp -r /tmp/auditable-voting-tests-staging/.* {{ auditable_voting_tests_dir }}/ 2>/dev/null || true
+  when: staging_check.stat.exists
 
 - name: Install npm dependencies
   command: npm ci
   args:
     chdir: "{{ auditable_voting_tests_dir }}"
-    creates: "{{ auditable_voting_tests_dir }}/node_modules/.package-lock.json"
   environment:
     PATH: "{{ ansible_env.PATH }}:/usr/bin:/usr/local/bin"
 

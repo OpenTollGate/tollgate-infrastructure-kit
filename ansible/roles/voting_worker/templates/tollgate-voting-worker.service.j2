@@ -6,11 +6,11 @@ After=network.target
 Type=simple
 WorkingDirectory={{ voting_worker_state_dir }}
 ExecStart={{ voting_worker_binary }}
-Environment=NSEC={{ worker_nsec.stdout }}
+Environment=WORKER_NSEC={{ worker_nsec.stdout }}
+Environment=WORKER_STATE_DIR={{ voting_worker_state_dir }}
+Environment=WORKER_RELAYS={{ voting_worker_relays | join(',') }}
+Environment=COORDINATOR_NPUB={{ voting_worker_coordinator_npub | default('') }}
 Environment=RUST_LOG=info
-{% for relay in voting_worker_relays %}
-Environment=RELAY_{{ loop.index0 }}={{ relay }}
-{% endfor %}
 Restart=on-failure
 RestartSec=5
 
