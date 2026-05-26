@@ -181,7 +181,13 @@ git.{{ base_domain }} {
         dns cloudflare {env.CF_API_TOKEN}
     }
 
-    reverse_proxy localhost:{{ grasp_port }}
+    handle /api/mirror-health {
+        reverse_proxy localhost:{{ grasp_mirror_health_port | default(7335) }}
+    }
+
+    handle {
+        reverse_proxy localhost:{{ grasp_port }}
+    }
 }
 
 {{ gitworkshop_subdomain | default('workshop') }}.{{ base_domain }} {

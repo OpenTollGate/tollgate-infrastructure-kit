@@ -69,7 +69,9 @@ const SERVICES=[
 {group:"Mints",name:"Routstr Mint",url:"https://routstr-mint.mints.orangesync.tech/v1/info"},
 {group:"Frontend",name:"cashu-brrr (Money Printer)",url:"https://print.mints.orangesync.tech"},
 {group:"Frontend",name:"Mint Operator Proxy",url:"https://print.mints.orangesync.tech/api/health"},
+{group:"Frontend",name:"Mint Dashboard",url:"https://dashboard.mints.orangesync.tech"},
 {group:"Frontend",name:"Releases",url:"https://releases.orangesync.tech"},
+{group:"Frontend",name:"Hive CI Site",url:"https://ci.orangesync.tech"},
 {group:"AI",name:"Routstr (AI Inference)",url:"https://routstr.orangesync.tech/v1/models"},
 {group:"Other",name:"Auditable Voting",url:"https://vote.orangesync.tech"},
 {group:"Other",name:"ngit Relay (Git Events)",url:"https://ngit.orangesync.tech"},
@@ -77,7 +79,7 @@ const SERVICES=[
 {group:"IoT",name:"Solix C1000 BLE Bridge",url:"https://solix.orangesync.tech"},
 {group:"CI",name:"Act Runner Daemon",url:"https://runner.orangesync.tech/api/health"},
 {group:"CI",name:"CI Dashboard",url:"https://runner.orangesync.tech"},
-{group:"Mirroring",name:"GRASP Mirror Daemon",url:"https://git.orangesync.tech"}
+{group:"Mirroring",name:"GRASP Mirror Daemon",url:"https://git.orangesync.tech/api/mirror-health"}
 ];
 
 const state=SERVICES.map(()=>({status:"pending",ms:null,retryTimer:null}));

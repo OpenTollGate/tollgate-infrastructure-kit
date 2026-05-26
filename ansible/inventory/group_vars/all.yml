@@ -40,6 +40,7 @@ fips_dm_relays:
 obelisk_admin_npub: "{{ lookup('env', 'OBELISK_ADMIN_NPUB') | default('', true) }}"
 
 grasp_port: 7334
+grasp_mirror_health_port: 7335
 grasp_domain: "git.{{ base_domain }}"
 grasp_repo_url: "nostr://danconwaydev.com/relay.ngit.dev/ngit-grasp"
 grasp_version: "v1.0.2"
