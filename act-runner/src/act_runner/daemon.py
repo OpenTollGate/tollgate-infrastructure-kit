@@ -5,7 +5,7 @@ import signal
 from datetime import datetime, timezone
 
 from act_runner.api import RunnerAPI
-from act_runner.config import RunnerConfig
+from act_runner.config import RunnerConfig, RepoConfig
 from act_runner.db import BuildDB, Build
 from act_runner.executor import execute_build, execute_custom_command
 from act_runner.nostr_publisher import build_nostr_event, publish_event
