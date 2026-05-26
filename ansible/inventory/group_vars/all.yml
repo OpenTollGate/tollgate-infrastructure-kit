@@ -41,7 +41,8 @@ obelisk_admin_npub: "{{ lookup('env', 'OBELISK_ADMIN_NPUB') | default('', true) 
 
 grasp_port: 7334
 grasp_domain: "git.{{ base_domain }}"
-grasp_repo_url: "https://github.com/chebizarro/ngit-grasp-fork1.git"
+grasp_repo_url: "nostr://danconwaydev.com/relay.ngit.dev/ngit-grasp"
+grasp_version: "v1.0.2"
 grasp_archive_all: true
 grasp_archive_read_only: false
 grasp_bootstrap_relay_url: "wss://relay.{{ base_domain }}"

@@ -14,20 +14,48 @@
   args:
     creates: /root/.cargo/bin/rustup
 
-- name: Clone ngit-grasp
+- name: Check current grasp source version
+  slurp:
+    src: "{{ tollgate_base_dir }}/src/ngit-grasp/.git/HEAD"
+  register: grasp_current_head
+  failed_when: false
+
+- name: Remove old source if switching repo URL
+  file:
+    path: "{{ tollgate_base_dir }}/src/ngit-grasp"
+    state: absent
+  when: grasp_current_head.failed
+
+- name: Clone ngit-grasp (ngit URL)
+  shell: |
+    git clone {{ grasp_repo_url }} {{ tollgate_base_dir }}/src/ngit-grasp
+  args:
+    creates: "{{ tollgate_base_dir }}/src/ngit-grasp/.git/HEAD"
+  when: grasp_repo_url is regex('^nostr://')
+
+- name: Clone ngit-grasp (HTTPS URL)
   git:
     repo: "{{ grasp_repo_url }}"
     dest: "{{ tollgate_base_dir }}/src/ngit-grasp"
     depth: 1
     force: yes
+  when: grasp_repo_url is regex('^https?://')
+
+- name: Checkout specific version
+  shell: |
+    cd {{ tollgate_base_dir }}/src/ngit-grasp
+    git fetch --tags
+    git checkout {{ grasp_version | default('main') }}
+  when: grasp_version is defined and grasp_version | length > 0
 
 - name: Build ngit-grasp (release)
-  command: /root/.cargo/bin/cargo build --release
-  args:
-    chdir: "{{ tollgate_base_dir }}/src/ngit-grasp"
-    creates: "{{ tollgate_base_dir }}/src/ngit-grasp/target/release/ngit-grasp"
+  shell: |
+    cd {{ tollgate_base_dir }}/src/ngit-grasp
+    /root/.cargo/bin/cargo build --release
   environment:
     PATH: "/root/.cargo/bin:{{ ansible_env.PATH }}"
+  register: grasp_build
+  changed_when: "'Compiling' in grasp_build.stderr"
 
 - name: Install ngit-grasp binary
   copy:
