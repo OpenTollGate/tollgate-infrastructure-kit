@@ -120,29 +120,29 @@
 - [x] **Config template** — `act-runner-config.yaml.j2` renders new fields
 - [x] **group_vars/all.yml** — `market` repo configured with `pipeline: custom`, `trigger: pr_branch`
 - [x] **Plan doc** — `docs/act-runner-custom-pipeline.md`
-- [ ] Deploy to VPS via `27-act-runner.yml` playbook
+- [x] **Deployed to VPS** via `27-act-runner.yml` playbook
 - [ ] Push `pr/*` branch to market repo and verify end-to-end
 
 ### FIPS Mesh Hosting
 - [x] **Plan doc** — `docs/fips-hosting-plan.md` with checklist
-- [x] **fips.yaml.j2** — Nostr discovery enabled, advertise + dm relays, persistent identity
+- [x] **fips.yaml.j2** — rewritten for v0.4.0 config format, Nostr discovery enabled, persistent identity
 - [x] **Caddyfile.http.j2** — fips0 IPv6 site block with path-based routing for all services
 - [x] **fips/tasks/main.yml** — firewall drop-in (`/etc/fips/fips.d/services.nft`) + nft apply
 - [x] **fips/handlers/main.yml** — `reload nftables` handler added
 - [x] **group_vars/all.yml** — `fips_identity_nsec`, `fips_mesh_ipv6`, `fips_mesh_http_port`, `fips_advertise_relays`, `fips_dm_relays`
-- [ ] Deploy to VPS via `13-fips.yml` + `04-caddy.yml` playbooks
-- [ ] Verify FIPS mesh access from another node
+- [x] **Deployed to VPS** via `13-fips.yml` + `04-caddy.yml`
+- [x] **Verified** — FIPS mesh responds on `[fdfd:c0e5:3717:6cb1:bb60:de97:987e:7149]:80`
 
-### Auditable Voting v0.1.63 Redeploy
+### Auditable Voting v0.1.62 Redeploy
 - [x] **Plan doc** — `docs/auditable-voting-v0.1.62-deploy.md` with checklist
 - [x] **E2E test repo** — `/home/c03rad0r/auditable-voting-tests/` (27 Playwright tests, pushed to ngit)
 - [x] **voting_worker Ansible role** — build worker from source, keypair gen, systemd service
-- [x] **auditable_voting_tests Ansible role** — clone from ngit, npm ci, Playwright install, run tests
+- [x] **auditable_voting_tests Ansible role** — staged copy from local, npm ci, Playwright install, run tests
 - [x] **Playbooks** — `28-voting-worker.yml`, `29-auditable-voting-tests.yml`
-- [x] **auditable_voting defaults** — branch updated to `v0.1.63`
-- [ ] Redeploy auditable-voting via `17-auditable-voting.yml`
-- [ ] Deploy worker via `28-voting-worker.yml`
-- [ ] Run E2E tests via `29-auditable-voting-tests.yml`
+- [x] **auditable_voting defaults** — branch set to `main` (latest is v0.1.62)
+- [x] **Redeployed** via `17-auditable-voting.yml`
+- [x] **Worker deployed** via `28-voting-worker.yml` — running, 5 relays, placeholder coordinator npub
+- [x] **E2E tests passed** — **54/54** (27 tests x desktop + mobile) via `29-auditable-voting-tests.yml`
 - [ ] Walk through dinner vote interactively (5 voters, 5 private invite links)
 
 ### Smoke Tests (completed)
@@ -309,18 +309,18 @@
 - [x] Switch repo URL to `nostr://danconwaydev.com/relay.ngit.dev/ngit-grasp`
 - [x] Pin version to `v1.0.2` tag
 - [x] Ansible role supports ngit URLs + version checkout
-- [ ] Deploy to VPS via `15-grasp.yml`
+- [x] **Deployed to VPS** — `ngit-grasp 1.0.2` running, GRASP HTTP at `localhost:7334`
 
 ## Deployment Queue (ordered)
 
-1. [ ] **GRASP v1.0.2** — `ansible-playbook 15-grasp.yml` (rebuild from ngit source)
-2. [ ] **ACT Runner custom pipeline** — `ansible-playbook 27-act-runner.yml` (redeploy with pipeline support)
-3. [ ] **FIPS mesh hosting** — `ansible-playbook 13-fips.yml` (Nostr discovery + firewall drop-in)
-4. [ ] **Caddy fips0 listener** — `ansible-playbook 04-caddy.yml` (mesh HTTP on fips0 IPv6)
-5. [ ] **Auditable Voting v0.1.63** — `ansible-playbook 17-auditable-voting.yml` (rebuild from tag)
-6. [ ] **Voting Worker** — `ansible-playbook 28-voting-worker.yml` (build worker from source)
-7. [ ] **E2E Tests** — `ansible-playbook 29-auditable-voting-tests.yml` (27 Playwright tests)
-8. [ ] **Verify FIPS mesh** — curl from another FIPS node or check `fipsctl show status`
+1. [x] **GRASP v1.0.2** — built from ngit source, running as `ngit-grasp 1.0.2`
+2. [x] **ACT Runner custom pipeline** — redeployed, 31 repos, custom pipeline for market repo
+3. [x] **FIPS mesh hosting** — Nostr discovery enabled, firewall drop-in deployed
+4. [x] **Caddy fips0 listener** — mesh HTTP on `[fdfd:c0e5:3717:6cb1:bb60:de97:987e:7149]:80`, verified responding
+5. [x] **Auditable Voting v0.1.62** — rebuilt from latest main, deployed to `vote.orangesync.tech`
+6. [x] **Voting Worker** — built from source, systemd service running, 5 relays configured
+7. [x] **E2E Tests** — **54/54 passing** (27 tests x desktop + mobile projects)
+8. [x] **Verify FIPS mesh** — `curl http://[fdfd:c0e5:3717:6cb1:bb60:de97:987e:7149]:80/` returns "Tollgate Infrastructure Kit - FIPS Mesh"
 9. [ ] **Custom pipeline E2E** — push `pr/*` branch to market repo, verify act-runner picks it up
 10. [ ] **Dinner vote walkthrough** — 5 voters, 5 private invite links (manual, interactive)
 
