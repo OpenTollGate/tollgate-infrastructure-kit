@@ -138,11 +138,13 @@
   shell: |
     set -o pipefail
     python3 << 'PYEOF'
-    import secrets, hashlib, json
+    import secrets, json
     from bech32 import bech32_encode, convertbits
+    from nacl.signing import SigningKey
     sk = secrets.token_bytes(32)
     nsec = bech32_encode('nsec', convertbits(sk, 8, 5))
-    pk = hashlib.sha256(sk).digest()[-32:]
+    signing_key = SigningKey(sk)
+    pk = bytes(signing_key.verify_key)
     npub = bech32_encode('npub', convertbits(pk, 8, 5))
     print(json.dumps({'nsec': nsec, 'npub': npub}))
     PYEOF
