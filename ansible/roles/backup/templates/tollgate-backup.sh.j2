@@ -91,3 +91,57 @@ find "$BACKUP_DIR" -name '*.jsonl' -type f -mtime +$RETENTION_DAYS -delete 2>/de
 find "$BACKUP_DIR" -name '*.tmp' -type f -mtime +1 -delete 2>/dev/null || true
 
 log "Backup complete."
+
+# --- Write backup-status.json for dashboard ---
+SYNCTHING_STATUS_FILE="{{ tollgate_static_dir | default('/srv/tollgate') }}/services/backup-status.json"
+SYNCTHING_API="http://127.0.0.1:{{ syncthing_gui_port | default(8384) }}"
+SYNCTHING_API_KEY=$(grep -oP '(?<=<apikey>)[^<]+' /var/lib/syncthing/.config/syncthing/config.xml 2>/dev/null || echo "")
+
+if [ -n "$SYNCTHING_API_KEY" ]; then
+    OVERALL_STATUS="synced"
+    FOLDERS_JSON="{"
+    FIRST=true
+
+    FOLDER_LIST=$(curl -sf "$SYNCTHING_API/rest/config/folders" \
+        -H "X-API-Key: $SYNCTHING_API_KEY" 2>/dev/null || echo "[]")
+
+    for FOLDER_CONF in $(echo "$FOLDER_LIST" | python3 -c "
+import sys,json
+try:
+    for f in json.load(sys.stdin):
+        print(f'{f[\"id\"]}|{f.get(\"label\",f[\"id\"])}')
+except: pass
+" 2>/dev/null); do
+        FID="${FOLDER_CONF%%|*}"
+        FLABEL="${FOLDER_CONF##*|}"
+
+        COMPLETION=$(curl -sf "$SYNCTHING_API/rest/db/completion?folder=$FID" \
+            -H "X-API-Key: $SYNCTHING_API_KEY" 2>/dev/null || echo '{"completion":0}')
+        PCT=$(echo "$COMPLETION" | python3 -c "import sys,json; print(json.load(sys.stdin).get('completion',0))" 2>/dev/null || echo "0")
+
+        PCT_INT=${PCT%%.*}
+        if [ "$PCT_INT" -lt 100 ] 2>/dev/null; then
+            if [ "$PCT_INT" -gt 0 ] 2>/dev/null; then
+                FSTATE="syncing"
+                OVERALL_STATUS="syncing"
+            else
+                FSTATE="problem"
+                OVERALL_STATUS="problem"
+            fi
+        else
+            FSTATE="synced"
+        fi
+
+        [ "$FIRST" = true ] && FIRST=false || FOLDERS_JSON="$FOLDERS_JSON,"
+        FOLDERS_JSON="$FOLDERS_JSON\"$FID\":{\"label\":\"$FLABEL\",\"completion\":$PCT_INT,\"state\":\"$FSTATE\"}"
+    done
+
+    FOLDERS_JSON="$FOLDERS_JSON}"
+
+    cat > "$SYNCTHING_STATUS_FILE" << STATUSEOF
+{"last_backup":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","overall_status":"$OVERALL_STATUS","folders":$FOLDERS_JSON}
+STATUSEOF
+    log "Wrote backup-status.json: $OVERALL_STATUS"
+else
+    log "SKIP: Could not read syncthing API key for status report"
+fi
