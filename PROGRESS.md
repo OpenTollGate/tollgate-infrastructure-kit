@@ -123,6 +123,28 @@
 - [ ] Deploy to VPS via `27-act-runner.yml` playbook
 - [ ] Push `pr/*` branch to market repo and verify end-to-end
 
+### FIPS Mesh Hosting
+- [x] **Plan doc** — `docs/fips-hosting-plan.md` with checklist
+- [x] **fips.yaml.j2** — Nostr discovery enabled, advertise + dm relays, persistent identity
+- [x] **Caddyfile.http.j2** — fips0 IPv6 site block with path-based routing for all services
+- [x] **fips/tasks/main.yml** — firewall drop-in (`/etc/fips/fips.d/services.nft`) + nft apply
+- [x] **fips/handlers/main.yml** — `reload nftables` handler added
+- [x] **group_vars/all.yml** — `fips_identity_nsec`, `fips_mesh_ipv6`, `fips_mesh_http_port`, `fips_advertise_relays`, `fips_dm_relays`
+- [ ] Deploy to VPS via `13-fips.yml` + `04-caddy.yml` playbooks
+- [ ] Verify FIPS mesh access from another node
+
+### Auditable Voting v0.1.63 Redeploy
+- [x] **Plan doc** — `docs/auditable-voting-v0.1.62-deploy.md` with checklist
+- [x] **E2E test repo** — `/home/c03rad0r/auditable-voting-tests/` (27 Playwright tests, pushed to ngit)
+- [x] **voting_worker Ansible role** — build worker from source, keypair gen, systemd service
+- [x] **auditable_voting_tests Ansible role** — clone from ngit, npm ci, Playwright install, run tests
+- [x] **Playbooks** — `28-voting-worker.yml`, `29-auditable-voting-tests.yml`
+- [x] **auditable_voting defaults** — branch updated to `v0.1.63`
+- [ ] Redeploy auditable-voting via `17-auditable-voting.yml`
+- [ ] Deploy worker via `28-voting-worker.yml`
+- [ ] Run E2E tests via `29-auditable-voting-tests.yml`
+- [ ] Walk through dinner vote interactively (5 voters, 5 private invite links)
+
 ### Smoke Tests (completed)
 - [x] **18/18 services up** — all return HTTP 200/404 (dashboard 404 on root, vote 404 before build)
 - [x] **Mint tokens on test-mb** — 100 sat invoice → fakewallet auto-pay → mint → send (cashu CLI)

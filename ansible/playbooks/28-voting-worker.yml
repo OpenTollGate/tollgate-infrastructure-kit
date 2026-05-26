@@ -1,0 +1,7 @@
+---
+- name: Deploy Auditable Voting Worker
+  hosts: tollgate-vps
+  become: yes
+  gather_facts: yes
+  roles:
+    - voting_worker

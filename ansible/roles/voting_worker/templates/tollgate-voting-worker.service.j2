@@ -1,0 +1,18 @@
+[Unit]
+Description=Tollgate Auditable Voting Worker
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory={{ voting_worker_state_dir }}
+ExecStart={{ voting_worker_binary }}
+Environment=NSEC={{ worker_nsec.stdout }}
+Environment=RUST_LOG=info
+{% for relay in voting_worker_relays %}
+Environment=RELAY_{{ loop.index0 }}={{ relay }}
+{% endfor %}
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

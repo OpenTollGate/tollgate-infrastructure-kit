@@ -23,6 +23,19 @@ glorytun_enabled: true
 mptcp_max_subflows: 8
 
 fips_relay_urls: "{{ lookup('env', 'FIPS_RELAY_URLS') | default('wss://relay.damus.io,wss://nos.lol', true) }}"
+fips_identity_nsec: "{{ lookup('env', 'FIPS_IDENTITY_NSEC') | default('', true) }}"
+fips_mesh_ipv6: "{{ lookup('env', 'FIPS_MESH_IPV6') | default('', true) }}"
+fips_mesh_http_port: 80
+fips_advertise_relays:
+  - "wss://relay.{{ base_domain }}"
+  - "wss://ngit.{{ base_domain }}"
+  - "wss://relay.damus.io"
+  - "wss://nos.lol"
+fips_dm_relays:
+  - "wss://relay.{{ base_domain }}"
+  - "wss://ngit.{{ base_domain }}"
+  - "wss://relay.damus.io"
+  - "wss://nos.lol"
 
 obelisk_admin_npub: "{{ lookup('env', 'OBELISK_ADMIN_NPUB') | default('', true) }}"
 

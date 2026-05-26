@@ -1,0 +1,7 @@
+---
+- name: Run Auditable Voting E2E Tests
+  hosts: tollgate-vps
+  become: yes
+  gather_facts: yes
+  roles:
+    - auditable_voting_tests

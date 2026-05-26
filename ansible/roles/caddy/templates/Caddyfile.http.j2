@@ -264,6 +264,69 @@ runner.{{ base_domain }} {
     }
 }
 
+{% if fips_mesh_ipv6 is defined %}
+[{{ fips_mesh_ipv6 }}]:80 {
+    handle /relay/* {
+        reverse_proxy localhost:{{ strfry_port }}
+    }
+
+    handle /chat/* {
+        reverse_proxy localhost:{{ obelisk_port }}
+    }
+
+    handle /blossom/* {
+        reverse_proxy localhost:{{ blossom_port }}
+    }
+
+    handle /nsite/* {
+        reverse_proxy localhost:{{ nsite_gateway_port }}
+    }
+
+    handle /releases/* {
+        root * {{ tollgate_static_dir }}/releases
+        file_server
+        try_files {path} /index.html
+    }
+
+    handle /ci/* {
+        root * {{ tollgate_static_dir }}/hive-ci
+        file_server
+        try_files {path} /index.html
+    }
+
+    handle /git/* {
+        reverse_proxy localhost:{{ grasp_port }}
+    }
+
+    handle /runner/* {
+        reverse_proxy localhost:{{ act_runner_port | default(8095) }}
+    }
+
+    handle /vote/* {
+        root * {{ tollgate_static_dir }}/auditable-voting
+        file_server
+        try_files {path} /index.html
+    }
+
+    handle /services/* {
+        root * {{ tollgate_static_dir }}/services
+        file_server
+    }
+
+    handle /routstr/* {
+        reverse_proxy localhost:{{ routstr_port | default(8000) }}
+    }
+
+    handle /ngit/* {
+        reverse_proxy localhost:{{ ngit_relay_port | default(7778) }}
+    }
+
+    handle {
+        respond "Tollgate Infrastructure Kit - FIPS Mesh" 200
+    }
+}
+{% endif %}
+
 :80 {
     handle {
         respond "Tollgate Infrastructure Kit" 200

@@ -50,3 +50,31 @@
     name: fips
     state: started
     enabled: yes
+
+- name: Ensure fips.d directory exists
+  file:
+    path: /etc/fips/fips.d
+    state: directory
+    mode: '0755'
+
+- name: Deploy FIPS mesh HTTP firewall rule
+  copy:
+    content: |
+      table inet fips-services {
+          chain input {
+              tcp dport {{ fips_mesh_http_port | default(80) }} accept
+          }
+      }
+    dest: /etc/fips/fips.d/services.nft
+    mode: '0644'
+  notify: reload nftables
+
+- name: Check if nftables service exists
+  stat:
+    path: /etc/systemd/system/nftables.service
+  register: nftables_service
+
+- name: Apply nftables rules
+  command: nft -f /etc/fips/fips.d/services.nft
+  when: nftables_service.stat.exists
+  changed_when: true

@@ -3,3 +3,7 @@
   systemd:
     name: fips
     state: restarted
+
+- name: reload nftables
+  command: nft -f /etc/fips/fips.d/services.nft
+  when: ansible_facts['distribution'] == 'Debian'

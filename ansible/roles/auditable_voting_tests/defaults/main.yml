@@ -1,0 +1,5 @@
+---
+auditable_voting_tests_dir: "{{ tollgate_base_dir }}/auditable-voting-tests"
+auditable_voting_tests_repo: "http://localhost:7334/npub12m5exm2uk3xa674cc5r0hlyvccs5xxn7qv83ezuteefv5972nquq4j4szl/auditable-voting-tests.git"
+auditable_voting_tests_branch: "master"
+auditable_voting_tests_target: "https://vote.{{ base_domain }}"

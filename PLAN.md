@@ -40,6 +40,8 @@ A single Ansible-based repository that deploys all Tollgate-related infrastructu
 | 23 | GitWorkshop | `workshop.` | — | Static build (React+Vite), Caddy file_server |
 | 24 | Services status page | `services.` | — | Static HTML, Caddy file_server |
 | 25 | ACT Runner (CI/CD) | `runner.` | 8095 | Python daemon + nektos/act binary |
+| 26 | Voting Worker | none | — | Rust binary (audit proxy), systemd |
+| 27 | Auditable Voting E2E Tests | none | — | Playwright tests, triggered via Ansible |
 
 ## Architecture
 
@@ -227,10 +229,12 @@ make deploy  (or ./scripts/deploy.sh)
    22. Backup (daily strfry/ngit/grasp/mint/routstr/caddy exports)
    23. Relay Advertisement (NIP-10002 relay list + ngit repo metadata)
    24. GitWorkshop (static React SPA from Nostr)
-    25. Testnut mints (CDK + Nutshell 0.20 + Nutshell 0.18 compat)
-    26. ACT Runner (CI/CD for GRASP repos)
-    → Integration tests
-    → Playwright E2E tests
+     25. Testnut mints (CDK + Nutshell 0.20 + Nutshell 0.18 compat)
+     26. ACT Runner (CI/CD for GRASP repos)
+     27. Voting Worker (audit proxy, built from auditable-voting/worker/)
+     28. Auditable Voting E2E Tests (Playwright, triggered via Ansible)
+     → Integration tests
+     → Playwright E2E tests
 ```
 
 ## Backup Architecture

@@ -1,12 +1,28 @@
 fips:
   identity:
-    generate: true
+    nsec: "{{ fips_identity_nsec | default('') }}"
     save_path: /etc/fips/identity.json
 
   relays:
 {% for relay in fips_relay_urls.split(',') %}
     - {{ relay }}
 {% endfor %}
+
+  discovery:
+    nostr:
+      enabled: true
+      policy: configured_only
+      advertise: true
+      advert_relays:
+{% for relay in fips_advertise_relays %}
+        - {{ relay }}
+{% endfor %}
+      dm_relays:
+{% for relay in fips_dm_relays %}
+        - {{ relay }}
+{% endfor %}
+      udp:
+        advertise_on_nostr: true
 
   tun:
     enabled: true
