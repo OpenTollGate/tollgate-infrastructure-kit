@@ -24,7 +24,7 @@ async def run_act(
     secrets: dict[str, str] | None = None,
     artifact_path: str = "",
 ) -> tuple[int, str, str]:
-    cmd = [act_binary, "push", "--bind", "--jobs", "1"]
+    cmd = [act_binary, "push", "--bind", "--concurrent-jobs", "1"]
     for key, value in (secrets or {}).items():
         cmd.extend(["-s", f"{key}={value}"])
     if artifact_path:
