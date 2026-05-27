@@ -85,10 +85,10 @@ def check_http(url, timeout):
         return False
 
 
-def run_ansible(playbook, env_vars):
+def run_ansible(playbook, env_vars, limit_host=None):
     playbook_path = ANSIBLE_DIR / "playbooks" / playbook
     if not playbook_path.exists():
-        log.error("Playbook not found: %s", playbook_path)
+        log.error("Playbook not found: %s", playbook)
         return False
 
     cmd = [
@@ -96,11 +96,13 @@ def run_ansible(playbook, env_vars):
         str(playbook_path),
         "-i", str(ANSIBLE_DIR / "inventory" / "hosts.yml"),
     ]
+    if limit_host:
+        cmd.extend(["--limit", limit_host])
 
     env = os.environ.copy()
     env.update(env_vars)
 
-    log.info("Running ansible-playbook %s", playbook)
+    log.info("Running ansible-playbook %s (limit=%s)", playbook, limit_host or "none")
     try:
         result = subprocess.run(
             cmd,
@@ -128,56 +130,81 @@ def render_url(template, env):
     return url
 
 
-def check_cycle(config, env, context, state, ssh_host, ssh_port, ssh_timeout, http_timeout, cooldown, run_redeploy=True):
-    check_interval = config.get("check_interval", 120)
-    now = time.time()
+def get_machine_ssh_host(machine_cfg, env):
+    return env.get(machine_cfg.get("ssh_host_env", ""), "")
 
-    ssh_ok = check_ssh(ssh_host, ssh_port, ssh_timeout)
-    if not ssh_ok:
-        log.warning("SSH unreachable at %s:%d — skipping health checks", ssh_host, ssh_port)
-        return {"ssh": False, "services": {}, "redeployed": []}
+
+def check_cycle(config, env, context, state, ssh_timeout, http_timeout, cooldown, run_redeploy=True):
+    now = time.time()
+    machines = config.get("machines", {})
+    services = config.get("services", [])
+
+    machine_ssh_status = {}
+    for mid, mcfg in machines.items():
+        host = get_machine_ssh_host(mcfg, env)
+        if not host:
+            machine_ssh_status[mid] = False
+            log.warning("Machine %s: no SSH host configured", mid)
+            continue
+        ok = check_ssh(host, 22, ssh_timeout)
+        machine_ssh_status[mid] = ok
+        if ok:
+            log.info("Machine %s (%s): SSH OK", mid, host)
+        else:
+            log.warning("Machine %s (%s): SSH UNREACHABLE", mid, host)
 
     results = {}
     down_services = []
 
-    for svc in config.get("services", []):
+    for svc in services:
         name = svc["name"]
+        mid = svc.get("machine", "m1")
         url = render_url(svc["url"], context)
         healthy = check_http(url, http_timeout)
-        results[name] = {"healthy": healthy, "url": url}
+        results[name] = {"healthy": healthy, "url": url, "machine": mid}
+
         if not healthy:
+            if not machine_ssh_status.get(mid, False):
+                log.warning("Service %s DOWN (%s) — machine %s SSH unreachable, cannot redeploy", name, url, mid)
+                continue
+
             last_ts = state["last_redeploy"].get(name, 0)
             elapsed = now - last_ts
             if elapsed < cooldown:
-                log.warning(
-                    "Service %s DOWN (%s) — cooling down (%ds/%ds)",
-                    name, url, int(elapsed), cooldown,
-                )
+                log.warning("Service %s DOWN (%s) — cooling down (%ds/%ds)", name, url, int(elapsed), cooldown)
                 continue
             down_services.append(svc)
-            log.warning("Service %s DOWN — %s", name, url)
+            log.warning("Service %s DOWN — %s (machine: %s)", name, url, mid)
         else:
             log.info("Service %s OK — %s", name, url)
 
     redeployed = []
     if down_services and run_redeploy:
-        playbooks_to_run = []
+        redeploy_keys = []
         for svc in down_services:
+            mid = svc.get("machine", "m1")
             pb = svc["playbook"]
-            if pb not in playbooks_to_run:
-                playbooks_to_run.append(pb)
+            key = (mid, pb)
+            if key not in redeploy_keys:
+                redeploy_keys.append(key)
 
-        ssh_user = env.get("VPS_USER", "debian")
-        ssh_key = os.path.expanduser(env.get("SSH_PRIVATE_KEY_FILE", "~/.ssh/id_ed25519"))
+        for mid, pb in redeploy_keys:
+            mcfg = machines.get(mid, {})
+            ssh_host = get_machine_ssh_host(mcfg, env)
+            ssh_user = env.get(mcfg.get("ssh_user_env", "VPS_USER"), "debian")
+            ssh_key = os.path.expanduser(env.get(mcfg.get("ssh_key_env", "SSH_PRIVATE_KEY_FILE"), "~/.ssh/id_ed25519"))
+            ansible_host = mcfg.get("ansible_host", "")
 
-        for pb in playbooks_to_run:
-            affected = [s["name"] for s in down_services if s["playbook"] == pb]
-            log.info("Redeploying %s for: %s", pb, ", ".join(affected))
+            affected = [s["name"] for s in down_services if s.get("machine", "m1") == mid and s["playbook"] == pb]
+            log.info("Redeploying %s on %s for: %s", pb, mid, ", ".join(affected))
 
             ansible_env = {
                 "VPS_IP": ssh_host,
                 "VPS_USER": ssh_user,
                 "SSH_PRIVATE_KEY_FILE": ssh_key,
+                "OLD_VPS_IP": env.get("OLD_VPS_IP", ""),
+                "OLD_VPS_USER": env.get("OLD_VPS_USER", "debian"),
+                "OLD_VPS_PASSWORD": env.get("OLD_VPS_PASSWORD", ""),
                 "BASE_DOMAIN": context.get("base_domain", ""),
                 "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
             }
@@ -185,9 +212,11 @@ def check_cycle(config, env, context, state, ssh_host, ssh_port, ssh_timeout, ht
                 if k not in ansible_env:
                     ansible_env[k] = v
 
-            success = run_ansible(pb, ansible_env)
+            limit = ansible_host if ansible_host else None
+            success = run_ansible(pb, ansible_env, limit_host=limit)
+
             for svc in down_services:
-                if svc["playbook"] == pb:
+                if svc.get("machine", "m1") == mid and svc["playbook"] == pb:
                     state["last_redeploy"][svc["name"]] = now
                     if success:
                         redeployed.append(svc["name"])
@@ -199,7 +228,7 @@ def check_cycle(config, env, context, state, ssh_host, ssh_port, ssh_timeout, ht
             status = "RECOVERED" if healthy else "STILL DOWN"
             log.info("Service %s: %s after redeploy", svc["name"], status)
 
-    return {"ssh": True, "services": results, "redeployed": redeployed}
+    return {"machines": {mid: {"ssh": ok} for mid, ok in machine_ssh_status.items()}, "services": results, "redeployed": redeployed}
 
 
 def main():
@@ -222,22 +251,24 @@ def main():
     http_timeout = config.get("http_timeout", 10)
     cooldown = config.get("cooldown", 600)
 
-    ssh_cfg = config.get("ssh", {})
-    ssh_host = env.get(ssh_cfg.get("host_env", "VPS_IP"), "")
-    ssh_port = ssh_cfg.get("port", 22)
-
     context = {"base_domain": base_domain}
     state = load_state()
 
-    log.info("Watchdog started — interval=%ds, cooldown=%ds, %d services", check_interval, cooldown, len(config.get("services", [])))
+    machines = config.get("machines", {})
+    svc_count = len(config.get("services", []))
+    log.info("Watchdog started — interval=%ds, cooldown=%ds, %d services, %d machines", check_interval, cooldown, svc_count, len(machines))
 
     if run_once or dry_run:
-        result = check_cycle(config, env, context, state, ssh_host, ssh_port, ssh_timeout, http_timeout, cooldown, run_redeploy=not dry_run)
+        result = check_cycle(config, env, context, state, ssh_timeout, http_timeout, cooldown, run_redeploy=not dry_run)
         print(json.dumps(result, indent=2))
-        sys.exit(0 if result["ssh"] else 1)
+        all_ssh_ok = all(m.get("ssh", False) for m in result.get("machines", {}).values())
+        sys.exit(0 if all_ssh_ok else 1)
 
     while True:
-        check_cycle(config, env, context, state, ssh_host, ssh_port, ssh_timeout, http_timeout, cooldown, run_redeploy=True)
+        try:
+            check_cycle(config, env, context, state, ssh_timeout, http_timeout, cooldown, run_redeploy=True)
+        except Exception as e:
+            log.error("Check cycle error: %s", e)
         time.sleep(check_interval)
 
 

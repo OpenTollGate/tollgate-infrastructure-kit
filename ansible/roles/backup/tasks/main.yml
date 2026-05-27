@@ -68,6 +68,12 @@
     state: started
     enabled: yes
 
+- name: Write machine ID file
+  copy:
+    content: "{{ machine_id | default('unknown') }}"
+    dest: /etc/tollgate-machine-id
+    mode: '0644'
+
 - name: Deploy VPS stats generator
   copy:
     src: gen-vps-stats.py
