@@ -49,6 +49,16 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .backup-status-bar .backup-time{font-size:0.7rem;color:var(--dim)}
 .backup-detail{overflow:hidden;max-height:0;transition:max-height 0.3s ease}
 .backup-detail.open{max-height:600px}
+.vps-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:10px}
+.vps-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center}
+.vps-card .val{font-size:1.6rem;font-weight:700}
+.vps-card .lbl{font-size:0.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:0.05em;margin-top:2px}
+.vps-bar{height:6px;background:var(--border);border-radius:3px;margin-top:6px;overflow:hidden}
+.vps-bar .fill{height:100%;border-radius:3px;transition:width 0.5s}
+.vps-procs{width:100%;border-collapse:collapse;font-size:0.7rem;margin-top:8px}
+.vps-procs th{text-align:left;color:var(--dim);padding:4px 6px;border-bottom:1px solid var(--border)}
+.vps-procs td{padding:3px 6px;border-bottom:1px solid var(--border)}
+.vps-procs tr:hover{background:rgba(124,58,237,0.08)}
 footer{text-align:center;padding:1rem;color:var(--dim);font-size:0.7rem;border-top:1px solid var(--border)}
 footer .next-check{color:var(--orange)}
 @media(max-width:600px){.meta .ms{display:none}.service{padding:0.6rem}}
@@ -69,6 +79,11 @@ footer .next-check{color:var(--orange)}
 <div class="group-title" style="border-left-color:var(--orange);margin-top:0">Backup Sync Status</div>
 <div id="backup-overview"></div>
 <div class="backup-detail open" id="backup-detail"></div>
+</div>
+<div class="container" id="vps-section" style="display:none">
+<div class="group-title" style="border-left-color:#22c55e;margin-top:0">VPS Resources</div>
+<div id="vps-stats"></div>
+<div id="vps-procs"></div>
 </div>
 <footer>Status checks run from your browser. Services showing down may be blocked by CORS policy (service is up but browser cannot probe it). <span class="next-check" id="next-check"></span></footer>
 <script>
@@ -269,6 +284,95 @@ if(s<3600)return Math.floor(s/60)+"m ago";
 if(s<86400)return Math.floor(s/3600)+"h ago";
 return Math.floor(s/86400)+"d ago";
 }
+
+function fmtBytes(b){
+if(b<1024)return b+"B";
+if(b<1048576)return (b/1024).toFixed(1)+"K";
+if(b<1073741824)return (b/1048576).toFixed(1)+"M";
+return (b/1073741824).toFixed(1)+"G";
+}
+
+function barColor(pct){
+if(pct<60)return"var(--up)";
+if(pct<85)return"var(--pending)";
+return"var(--down)";
+}
+
+async function fetchVpsStats(){
+try{
+const r=await fetch("vps-stats.json?_="+Date.now());
+if(!r.ok)return;
+const data=await r.json();
+renderVpsStats(data);
+}catch(e){console.warn("vps stats fetch failed",e)}
+}
+
+function renderVpsStats(data){
+const section=document.getElementById("vps-section");
+const statsDiv=document.getElementById("vps-stats");
+const procsDiv=document.getElementById("vps-procs");
+section.style.display="block";
+
+const mem=data.memory||{};
+const disk=data.disk||{};
+const load=data.load||[0,0,0];
+const cpuPct=data.cpu_percent||0;
+const memPct=mem.percent||0;
+const diskPct=disk.percent||0;
+const uptime=data.uptime||{};
+
+statsDiv.innerHTML=`
+<div class="vps-stats">
+<div class="vps-card">
+<div class="val" style="color:${barColor(cpuPct)}">${cpuPct}%</div>
+<div class="lbl">CPU (${data.cpu_cores||'?'} cores)</div>
+<div class="vps-bar"><div class="fill" style="width:${cpuPct}%;background:${barColor(cpuPct)}"></div></div>
+</div>
+<div class="vps-card">
+<div class="val" style="color:${barColor(memPct)}">${memPct}%</div>
+<div class="lbl">RAM (${fmtBytes(mem.used_bytes||0)} / ${fmtBytes(mem.total_bytes||0)})</div>
+<div class="vps-bar"><div class="fill" style="width:${memPct}%;background:${barColor(memPct)}"></div></div>
+</div>
+<div class="vps-card">
+<div class="val" style="color:${barColor(diskPct)}">${diskPct}%</div>
+<div class="lbl">Disk (${fmtBytes(disk.used_bytes||0)} / ${fmtBytes(disk.total_bytes||0)})</div>
+<div class="vps-bar"><div class="fill" style="width:${diskPct}%;background:${barColor(diskPct)}"></div></div>
+</div>
+<div class="vps-card">
+<div class="val">${load[0].toFixed(2)}</div>
+<div class="lbl">Load (1/5/15m: ${load.map(l=>l.toFixed(2)).join(" / ")})</div>
+</div>
+<div class="vps-card">
+<div class="val">${uptime.human||"?"}</div>
+<div class="lbl">Uptime (${data.hostname||"?"})</div>
+</div>
+</div>`;
+
+const procs=data.top_processes||[];
+const docker=data.docker_containers||[];
+
+let html="";
+if(docker.length){
+html+=`<table class="vps-procs"><thead><tr><th>Container</th><th>CPU</th><th>Memory</th><th>Mem%</th></tr></thead><tbody>`;
+for(const c of docker){
+html+=`<tr><td>${c.name}</td><td>${c.cpu_pct}</td><td>${c.mem_usage}</td><td>${c.mem_pct}</td></tr>`;
+}
+html+=`</tbody></table>`;
+}
+
+if(procs.length){
+html+=`<table class="vps-procs" style="margin-top:12px"><thead><tr><th>PID</th><th>CPU%</th><th>MEM%</th><th>RSS</th><th>Command</th></tr></thead><tbody>`;
+for(const p of procs.slice(0,8)){
+html+=`<tr><td>${p.pid}</td><td>${p.cpu_pct}</td><td>${p.mem_pct}</td><td>${p.rss_mb}M</td><td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.command}</td></tr>`;
+}
+html+=`</tbody></table>`;
+}
+
+procsDiv.innerHTML=html;
+}
+
+fetchVpsStats();
+setInterval(fetchVpsStats,10000);
 </script>
 </body>
 </html>

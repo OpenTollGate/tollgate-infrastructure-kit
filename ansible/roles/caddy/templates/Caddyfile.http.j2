@@ -1,3 +1,4 @@
+{% if 'mint_orchestrator' in machine_roles %}
 *.{{ mint_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
@@ -70,7 +71,9 @@
         respond "Mint not found" 404
     }
 }
+{% endif %}
 
+{% if 'routstr' in machine_roles %}
 routstr.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
@@ -78,7 +81,9 @@ routstr.{{ base_domain }} {
 
     reverse_proxy localhost:{{ routstr_port | default(8000) }}
 }
+{% endif %}
 
+{% if 'ngit_relay' in machine_roles %}
 ngit.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
@@ -86,7 +91,9 @@ ngit.{{ base_domain }} {
 
     reverse_proxy localhost:{{ ngit_relay_port | default(7778) }}
 }
+{% endif %}
 
+{% if 'backup' in machine_roles %}
 services.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
@@ -102,7 +109,9 @@ services.{{ base_domain }} {
         try_files {path} /index.html
     }
 }
+{% endif %}
 
+{% if 'auditable_voting' in machine_roles %}
 vote.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
@@ -112,7 +121,9 @@ vote.{{ base_domain }} {
     file_server
     try_files {path} /index.html
 }
+{% endif %}
 
+{% if 'solix_nsite' in machine_roles %}
 solix.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
@@ -122,7 +133,9 @@ solix.{{ base_domain }} {
     file_server
     try_files {path} /index.html
 }
+{% endif %}
 
+{% if 'strfry' in machine_roles %}
 relay.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
@@ -130,7 +143,9 @@ relay.{{ base_domain }} {
 
     reverse_proxy localhost:{{ strfry_port }}
 }
+{% endif %}
 
+{% if 'obelisk_relay' in machine_roles %}
 chat.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
@@ -138,7 +153,9 @@ chat.{{ base_domain }} {
 
     reverse_proxy localhost:{{ obelisk_port }}
 }
+{% endif %}
 
+{% if 'blossom' in machine_roles %}
 blossom.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
@@ -146,7 +163,9 @@ blossom.{{ base_domain }} {
 
     reverse_proxy localhost:{{ blossom_port }}
 }
+{% endif %}
 
+{% if 'nsite_gateway' in machine_roles %}
 *.nsite.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
@@ -162,7 +181,9 @@ nsite.{{ base_domain }} {
 
     reverse_proxy localhost:{{ nsite_gateway_port }}
 }
+{% endif %}
 
+{% if 'release_explorer' in machine_roles %}
 releases.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
@@ -172,7 +193,9 @@ releases.{{ base_domain }} {
     file_server
     try_files {path} /index.html
 }
+{% endif %}
 
+{% if 'hive_ci' in machine_roles %}
 ci.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
@@ -182,7 +205,9 @@ ci.{{ base_domain }} {
     file_server
     try_files {path} /index.html
 }
+{% endif %}
 
+{% if 'grasp' in machine_roles %}
 git.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
@@ -196,7 +221,9 @@ git.{{ base_domain }} {
         reverse_proxy localhost:{{ grasp_port }}
     }
 }
+{% endif %}
 
+{% if 'micro_vpn' in machine_roles %}
 vpn.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
@@ -204,7 +231,9 @@ vpn.{{ base_domain }} {
 
     reverse_proxy localhost:{{ micro_vpn_api_port | default(5010) }}
 }
+{% endif %}
 
+{% if 'relatr' in machine_roles %}
 wot.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
@@ -212,7 +241,9 @@ wot.{{ base_domain }} {
 
     reverse_proxy localhost:{{ relatr_port | default(3000) }}
 }
+{% endif %}
 
+{% if 'gitworkshop' in machine_roles %}
 {{ gitworkshop_subdomain | default('workshop') }}.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
@@ -222,7 +253,9 @@ wot.{{ base_domain }} {
     file_server
     try_files {path} /index.html
 }
+{% endif %}
 
+{% if 'act_runner' in machine_roles %}
 runner.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
@@ -238,6 +271,7 @@ runner.{{ base_domain }} {
         try_files {path} /index.html
     }
 }
+{% endif %}
 
 {{ base_domain }} {
     tls {
@@ -247,45 +281,53 @@ runner.{{ base_domain }} {
     log {
         output stdout
     }
-
+{% if 'strfry' in machine_roles %}
     handle /relay/* {
         reverse_proxy localhost:{{ strfry_port }}
     }
-
+{% endif %}
+{% if 'obelisk_relay' in machine_roles %}
     handle /chat/* {
         reverse_proxy localhost:{{ obelisk_port }}
     }
-
+{% endif %}
+{% if 'blossom' in machine_roles %}
     handle /blossom/* {
         reverse_proxy localhost:{{ blossom_port }}
     }
-
+{% endif %}
+{% if 'nsite_gateway' in machine_roles %}
     handle /nsite/* {
         reverse_proxy localhost:{{ nsite_gateway_port }}
     }
-
+{% endif %}
+{% if 'release_explorer' in machine_roles %}
     handle /releases/* {
         root * {{ tollgate_static_dir }}/releases
         file_server
         try_files {path} /index.html
     }
-
+{% endif %}
+{% if 'hive_ci' in machine_roles %}
     handle /ci/* {
         root * {{ tollgate_static_dir }}/hive-ci
         file_server
         try_files {path} /index.html
     }
-
+{% endif %}
+{% if 'grasp' in machine_roles %}
     handle /git/* {
         reverse_proxy localhost:{{ grasp_port }}
     }
-
+{% endif %}
+{% if 'act_runner' in machine_roles %}
     handle /runner/* {
         reverse_proxy localhost:{{ act_runner_port | default(8095) }}
     }
+{% endif %}
 
     handle / {
-        respond "Tollgate Infrastructure Kit - Running" 200
+        respond "Tollgate Infrastructure Kit - {{ machine_id | default('unknown') }} - Running" 200
     }
 
     handle {
@@ -295,63 +337,76 @@ runner.{{ base_domain }} {
 
 {% if fips_mesh_ipv6 is defined %}
 [{{ fips_mesh_ipv6 }}]:80 {
+{% if 'strfry' in machine_roles %}
     handle /relay/* {
         reverse_proxy localhost:{{ strfry_port }}
     }
-
+{% endif %}
+{% if 'obelisk_relay' in machine_roles %}
     handle /chat/* {
         reverse_proxy localhost:{{ obelisk_port }}
     }
-
+{% endif %}
+{% if 'blossom' in machine_roles %}
     handle /blossom/* {
         reverse_proxy localhost:{{ blossom_port }}
     }
-
+{% endif %}
+{% if 'nsite_gateway' in machine_roles %}
     handle /nsite/* {
         reverse_proxy localhost:{{ nsite_gateway_port }}
     }
-
+{% endif %}
+{% if 'release_explorer' in machine_roles %}
     handle /releases/* {
         root * {{ tollgate_static_dir }}/releases
         file_server
         try_files {path} /index.html
     }
-
+{% endif %}
+{% if 'hive_ci' in machine_roles %}
     handle /ci/* {
         root * {{ tollgate_static_dir }}/hive-ci
         file_server
         try_files {path} /index.html
     }
-
+{% endif %}
+{% if 'grasp' in machine_roles %}
     handle /git/* {
         reverse_proxy localhost:{{ grasp_port }}
     }
-
+{% endif %}
+{% if 'act_runner' in machine_roles %}
     handle /runner/* {
         reverse_proxy localhost:{{ act_runner_port | default(8095) }}
     }
-
+{% endif %}
+{% if 'auditable_voting' in machine_roles %}
     handle /vote/* {
         root * {{ tollgate_static_dir }}/auditable-voting
         file_server
         try_files {path} /index.html
     }
-
+{% endif %}
+{% if 'backup' in machine_roles %}
     handle /services/* {
         root * {{ tollgate_static_dir }}/services
         file_server
     }
-
+{% endif %}
+{% if 'routstr' in machine_roles %}
     handle /routstr/* {
         reverse_proxy localhost:{{ routstr_port | default(8000) }}
     }
-
+{% endif %}
+{% if 'ngit_relay' in machine_roles %}
     handle /ngit/* {
         reverse_proxy localhost:{{ ngit_relay_port | default(7778) }}
     }
+{% endif %}
 
     handle {
-        respond "Tollgate Infrastructure Kit - FIPS Mesh" 200
+        respond "Tollgate Infrastructure Kit - FIPS Mesh - {{ machine_id | default('unknown') }}" 200
     }
 }
 {% endif %}

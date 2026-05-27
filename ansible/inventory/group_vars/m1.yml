@@ -1,0 +1,47 @@
+machine_id: m1
+machine_domain: "m1.orangesync.tech"
+machine_ip: "{{ lookup('env', 'VPS_IP') }}"
+
+machine_roles:
+  - system
+  - docker
+  - cloudflare_dns
+  - caddy
+  - strfry
+  - obelisk_relay
+  - blossom
+  - nsite_gateway
+  - release_explorer
+  - hive_ci
+  - mint_orchestrator
+  - cashu_brrr
+  - mint_operator_proxy
+  - fips
+  - nsyte_cli
+  - grasp
+  - act_runner
+  - routstr
+  - auditable_voting
+  - ngit_relay
+  - backup
+  - gitworkshop
+  - grasp_mirror
+  - cloud_lab_runner
+  - relatr
+
+machine_cloudflare_subdomains:
+  - relay
+  - chat
+  - blossom
+  - nsite
+  - releases
+  - ci
+  - git
+  - routstr
+  - vote
+  - ngit
+  - services
+  - mints
+  - workshop
+  - runner
+  - wot

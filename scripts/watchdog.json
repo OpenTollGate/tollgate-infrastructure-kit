@@ -95,6 +95,16 @@
       "name": "grasp-mirror",
       "url": "https://git.orangesync.tech",
       "playbook": "30-grasp-mirror.yml"
+    },
+    {
+      "name": "micro-vpn",
+      "url": "https://vpn.orangesync.tech/api/v1/status",
+      "playbook": "31-micro-vpn.yml"
+    },
+    {
+      "name": "relatr",
+      "url": "https://wot.orangesync.tech",
+      "playbook": "32-relatr.yml"
     }
   ],
   "groups": {

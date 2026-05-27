@@ -1,0 +1,19 @@
+machine_id: m2
+machine_domain: "m2.orangesync.tech"
+machine_ip: "{{ lookup('env', 'OLD_VPS_IP') }}"
+
+machine_roles:
+  - system
+  - docker
+  - cloudflare_dns
+  - caddy
+  - strfry
+  - ngit_relay
+  - backup
+  - micro_vpn
+
+machine_cloudflare_subdomains:
+  - relay
+  - ngit
+  - services
+  - vpn

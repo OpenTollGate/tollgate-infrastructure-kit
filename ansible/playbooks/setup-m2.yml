@@ -1,0 +1,29 @@
+---
+- name: Deploy m2 (secondary) infrastructure
+  hosts: tollgate-vps-old
+  become: yes
+  gather_facts: yes
+  serial: 1
+  roles:
+    - system
+    - docker
+    - cloudflare_dns
+    - caddy
+    - strfry
+    - ngit_relay
+    - backup
+    - micro_vpn
+
+- name: Deploy VPS watchdog (local health monitor + auto-redeploy)
+  hosts: localhost
+  connection: local
+  become: no
+  gather_facts: yes
+  roles:
+    - watchdog
+
+- name: Deploy Syncthing on VPS and localhost
+  import_playbook: 21-syncthing.yml
+
+- name: Publish relay advertisement events
+  import_playbook: 23-relay-advertisement.yml

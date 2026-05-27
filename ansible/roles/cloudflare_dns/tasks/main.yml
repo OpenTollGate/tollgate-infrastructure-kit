@@ -42,73 +42,123 @@
   uri:
     url: >-
       {{ "https://api.cloudflare.com/client/v4/zones/" + cloudflare_zone_id_resolved + "/dns_records/" + cf_record_map[item + '.' + base_domain]
-         if (cf_record_map | default({})).get(item + '.' + base_domain) is defined
+         if (item + '.' + base_domain) in (cf_record_map | default({}))
          else "https://api.cloudflare.com/client/v4/zones/" + cloudflare_zone_id_resolved + "/dns_records" }}
     method: >-
-      {{ 'PUT' if (cf_record_map | default({})).get(item + '.' + base_domain) is defined else 'POST' }}
+      {{ 'PUT' if (item + '.' + base_domain) in (cf_record_map | default({})) else 'POST' }}
     headers:
       Authorization: "Bearer {{ cloudflare_api_token }}"
       Content-Type: "application/json"
     body:
       type: A
       name: "{{ item }}.{{ base_domain }}"
-      content: "{{ vps_ip }}"
+      content: "{{ machine_ip | default(vps_ip) }}"
       ttl: 300
       proxied: false
     body_format: json
     status_code: [200, 400]
-  loop: "{{ cloudflare_subdomains }}"
+  loop: "{{ machine_cloudflare_subdomains | default(cloudflare_subdomains) }}"
   register: cf_upsert_result
   changed_when: cf_upsert_result.json.success is defined and cf_upsert_result.json.success
 
-- name: Upsert A record for bare domain
+- name: Upsert A record for bare domain (m1 only)
   uri:
     url: >-
       {{ "https://api.cloudflare.com/client/v4/zones/" + cloudflare_zone_id_resolved + "/dns_records/" + cf_record_map[base_domain]
-         if (cf_record_map | default({})).get(base_domain) is defined
+         if base_domain in (cf_record_map | default({}))
          else "https://api.cloudflare.com/client/v4/zones/" + cloudflare_zone_id_resolved + "/dns_records" }}
     method: >-
-      {{ 'PUT' if (cf_record_map | default({})).get(base_domain) is defined else 'POST' }}
+      {{ 'PUT' if base_domain in (cf_record_map | default({})) else 'POST' }}
     headers:
       Authorization: "Bearer {{ cloudflare_api_token }}"
       Content-Type: "application/json"
     body:
       type: A
       name: "{{ base_domain }}"
-      content: "{{ vps_ip }}"
+      content: "{{ machine_ip | default(vps_ip) }}"
       ttl: 300
       proxied: false
     body_format: json
     status_code: [200, 400]
   register: cf_bare_result
+  when: machine_id is defined and machine_id == 'm1'
 
-- name: Upsert wildcard A record for mints subdomain
+- name: Upsert wildcard A record for machine subdomain
+  uri:
+    url: >-
+      {{ "https://api.cloudflare.com/client/v4/zones/" + cloudflare_zone_id_resolved + "/dns_records/" + cf_record_map['*.' + machine_domain]
+         if ('*.' + machine_domain) in (cf_record_map | default({}))
+         else "https://api.cloudflare.com/client/v4/zones/" + cloudflare_zone_id_resolved + "/dns_records" }}
+    method: >-
+      {{ 'PUT' if ('*.' + machine_domain) in (cf_record_map | default({})) else 'POST' }}
+    headers:
+      Authorization: "Bearer {{ cloudflare_api_token }}"
+      Content-Type: "application/json"
+    body:
+      type: A
+      name: "*.{{ machine_domain }}"
+      content: "{{ machine_ip | default(vps_ip) }}"
+      ttl: 300
+      proxied: false
+    body_format: json
+    status_code: [200, 400]
+  register: cf_machine_wildcard_result
+  when: machine_domain is defined
+
+- name: Upsert A record for machine domain root
+  uri:
+    url: >-
+      {{ "https://api.cloudflare.com/client/v4/zones/" + cloudflare_zone_id_resolved + "/dns_records/" + cf_record_map[machine_domain]
+         if machine_domain in (cf_record_map | default({}))
+         else "https://api.cloudflare.com/client/v4/zones/" + cloudflare_zone_id_resolved + "/dns_records" }}
+    method: >-
+      {{ 'PUT' if machine_domain in (cf_record_map | default({})) else 'POST' }}
+    headers:
+      Authorization: "Bearer {{ cloudflare_api_token }}"
+      Content-Type: "application/json"
+    body:
+      type: A
+      name: "{{ machine_domain }}"
+      content: "{{ machine_ip | default(vps_ip) }}"
+      ttl: 300
+      proxied: false
+    body_format: json
+    status_code: [200, 400]
+  register: cf_machine_root_result
+  when: machine_domain is defined
+
+- name: Upsert wildcard A record for mints subdomain (m1 only)
   uri:
     url: >-
       {{ "https://api.cloudflare.com/client/v4/zones/" + cloudflare_zone_id_resolved + "/dns_records/" + cf_record_map['*.' + mint_domain]
-         if (cf_record_map | default({})).get('*.' + mint_domain) is defined
+         if ('*.' + mint_domain) in (cf_record_map | default({}))
          else "https://api.cloudflare.com/client/v4/zones/" + cloudflare_zone_id_resolved + "/dns_records" }}
     method: >-
-      {{ 'PUT' if (cf_record_map | default({})).get('*.' + mint_domain) is defined else 'POST' }}
+      {{ 'PUT' if ('*.' + mint_domain) in (cf_record_map | default({})) else 'POST' }}
     headers:
       Authorization: "Bearer {{ cloudflare_api_token }}"
       Content-Type: "application/json"
     body:
       type: A
       name: "*.{{ mint_domain }}"
-      content: "{{ vps_ip }}"
+      content: "{{ machine_ip | default(vps_ip) }}"
       ttl: 300
       proxied: false
     body_format: json
     status_code: [200, 400]
   register: cf_wildcard_result
+  when: machine_id is defined and machine_id == 'm1'
 
 - name: Display DNS update summary
   debug:
     msg: |
-      DNS records updated to {{ vps_ip }}:
-      {% for sub in cloudflare_subdomains %}
+      DNS records updated for {{ machine_id | default('unknown') }} ({{ machine_ip | default(vps_ip) }}):
+      {% for sub in (machine_cloudflare_subdomains | default(cloudflare_subdomains)) %}
         {{ sub }}.{{ base_domain }}
       {% endfor %}
-        {{ base_domain }}
-        *.{{ mint_domain }}
+        {{ base_domain }} (m1 only)
+        *.{{ mint_domain }} (m1 only)
+      {% if machine_domain is defined %}
+        {{ machine_domain }}
+        *.{{ machine_domain }}
+      {% endif %}

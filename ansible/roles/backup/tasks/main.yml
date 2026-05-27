@@ -68,6 +68,34 @@
     state: started
     enabled: yes
 
+- name: Deploy VPS stats generator
+  copy:
+    src: gen-vps-stats.py
+    dest: /usr/local/bin/gen-vps-stats.py
+    mode: '0755'
+
+- name: Deploy VPS stats systemd service
+  template:
+    src: tollgate-vps-stats.service.j2
+    dest: /etc/systemd/system/tollgate-vps-stats.service
+    mode: '0644'
+
+- name: Deploy VPS stats systemd timer
+  template:
+    src: tollgate-vps-stats.timer.j2
+    dest: /etc/systemd/system/tollgate-vps-stats.timer
+    mode: '0644'
+
+- name: Reload systemd for VPS stats timer
+  systemd:
+    daemon_reload: yes
+
+- name: Enable and start VPS stats timer
+  systemd:
+    name: tollgate-vps-stats.timer
+    state: started
+    enabled: yes
+
 - name: Run initial backup
   command: /usr/local/bin/tollgate-backup.sh
   register: initial_backup
