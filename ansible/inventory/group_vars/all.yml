@@ -6,6 +6,7 @@ cloudflare_zone_id: "{{ lookup('env', 'CLOUDFLARE_ZONE_ID') | default('', true) 
 cloudflare_zone_name: "{{ base_domain }}"
 
 vps_ip: "{{ lookup('env', 'VPS_IP') | default('127.0.0.1', true) }}"
+vps2_ip: "{{ lookup('env', 'VPS2_IP') | default('127.0.0.1', true) }}"
 
 acme_email: "{{ lookup('env', 'ACME_EMAIL') | default('admin@' + base_domain, true) }}"
 
@@ -27,13 +28,17 @@ fips_identity_nsec: "{{ lookup('env', 'FIPS_IDENTITY_NSEC') | default('', true) 
 fips_mesh_ipv6: "{{ lookup('env', 'FIPS_MESH_IPV6') | default('', true) }}"
 fips_mesh_http_port: 80
 fips_advertise_relays:
-  - "wss://relay.{{ base_domain }}"
-  - "wss://ngit.{{ base_domain }}"
+  - "wss://relay1.{{ base_domain }}"
+  - "wss://relay2.{{ base_domain }}"
+  - "wss://ngit1.{{ base_domain }}"
+  - "wss://ngit2.{{ base_domain }}"
   - "wss://relay.damus.io"
   - "wss://nos.lol"
 fips_dm_relays:
-  - "wss://relay.{{ base_domain }}"
-  - "wss://ngit.{{ base_domain }}"
+  - "wss://relay1.{{ base_domain }}"
+  - "wss://relay2.{{ base_domain }}"
+  - "wss://ngit1.{{ base_domain }}"
+  - "wss://ngit2.{{ base_domain }}"
   - "wss://relay.damus.io"
   - "wss://nos.lol"
 
@@ -81,8 +86,8 @@ act_runner_port: 8095
 act_runner_domain: "runner.{{ base_domain }}"
 act_runner_poll_interval: 30
 act_runner_relays:
-  - "wss://ngit.{{ base_domain }}"
-  - "wss://relay.{{ base_domain }}"
+  - "wss://ngit1.{{ base_domain }}"
+  - "wss://relay1.{{ base_domain }}"
 act_runner_repos:
   - url: "http://localhost:7334/npub12m5exm2uk3xa674cc5r0hlyvccs5xxn7qv83ezuteefv5972nquq4j4szl/ai-laptop-setup-ansible.git"
     branch: "master"
@@ -150,21 +155,23 @@ act_runner_repos:
   - url: "http://localhost:7334/npub12m5exm2uk3xa674cc5r0hlyvccs5xxn7qv83ezuteefv5972nquq4j4szl/vanity-npub-ghdl.git"
     branch: "master"
 
-cloudflare_subdomains:
-  - relay
-  - chat
-  - blossom
+cloudflare_shared_subdomains:
   - nsite
-  - releases
-  - ci
+  - chat
   - git
+  - services
   - routstr
   - vote
-  - ngit
-  - services
-  - mints
   - workshop
-  - solix
+  - releases
+  - ci
   - runner
-  - vpn
+  - solix
   - wot
+
+cloudflare_per_machine_subdomains:
+  - { prefix: "relay", vps1_suffix: "1", vps2_suffix: "2" }
+  - { prefix: "ngit", vps1_suffix: "1", vps2_suffix: "2" }
+  - { prefix: "blossom", vps1_suffix: "1", vps2_suffix: "2" }
+
+cloudflare_subdomains: []

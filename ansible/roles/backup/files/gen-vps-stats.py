@@ -206,7 +206,7 @@ def get_cpu_cores():
         return 1
 
 
-SERVICES_M1 = [
+SERVICES_VPS = [
     {"name": "caddy",            "type": "http",  "url": "http://localhost:80"},
     {"name": "strfry",           "type": "tcp",   "host": "localhost", "port": 7777},
     {"name": "obelisk",          "type": "tcp",   "host": "localhost", "port": 8080},
@@ -231,19 +231,10 @@ SERVICES_M1 = [
     {"name": "act-runner",       "type": "tcp",   "host": "localhost", "port": 8095},
     {"name": "relatr",           "type": "http",  "url": "http://localhost:3020"},
     {"name": "fips",             "type": "tcp",   "host": "localhost", "port": 8443},
+    {"name": "micro-vpn",        "type": "http",  "url": "http://localhost:5010/api/v1/status"},
 ]
 
-SERVICES_M2 = [
-    {"name": "caddy",      "type": "http",  "url": "http://localhost:80"},
-    {"name": "strfry",     "type": "tcp",   "host": "localhost", "port": 7777},
-    {"name": "ngit-relay", "type": "tcp",   "host": "localhost", "port": 7778},
-    {"name": "micro-vpn",  "type": "http",  "url": "http://localhost:5010/api/v1/status"},
-]
-
-SERVICES_MAP = {
-    "m1": SERVICES_M1,
-    "m2": SERVICES_M2,
-}
+SERVICES_MAP = "auto"
 
 
 def probe_services(services):
@@ -260,8 +251,8 @@ def probe_services(services):
 
 
 PEER_FETCH = {
-    "m1": {"peer_id": "m2", "peer_ip_env": "OLD_VPS_IP"},
-    "m2": {"peer_id": "m1", "peer_ip_env": "VPS_IP"},
+    "vps-1": {"peer_id": "vps-2", "peer_ip_env": "VPS2_IP"},
+    "vps-2": {"peer_id": "vps-1", "peer_ip_env": "VPS_IP"},
 }
 
 
@@ -299,7 +290,7 @@ def fetch_peer_status(machine_id):
 
 def main():
     machine_id = get_machine_id()
-    services = SERVICES_MAP.get(machine_id, [])
+    services = SERVICES_VPS if SERVICES_MAP == "auto" else SERVICES_MAP.get(machine_id, [])
 
     stats = {
         "machine_id": machine_id,

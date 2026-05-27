@@ -80,8 +80,8 @@ footer .next-check{color:var(--orange)}
 <footer>Status data is collected on each VPS by a local agent every 10 seconds. No browser-side probing needed. <span class="next-check" id="next-check"></span></footer>
 <script>
 const MACHINE_APIS={
-m1:{statusUrl:"m1-status.json",fallbackUrl:"vps-stats.json",label:"m1 (Primary)",ip:"23.182.128.226"},
-m2:{statusUrl:"m2-status.json",label:"m2 (Secondary)",ip:"23.182.128.51"}
+m1:{statusUrl:"vps-1-status.json",fallbackUrl:"vps-stats.json",label:"vps-1 (Primary)",ip:"66.92.204.38"},
+m2:{statusUrl:"vps-2-status.json",label:"vps-2 (Secondary)",ip:"23.182.128.51"}
 };
 
 let currentMachine="m1";

@@ -1,8 +1,9 @@
 ---
-- name: Deploy m2 (secondary) infrastructure
-  hosts: tollgate-vps-old
+- name: Deploy vps-2 (secondary) infrastructure
+  hosts: vps-2
   become: yes
   gather_facts: yes
+  ignore_unreachable: true
   serial: 1
   roles:
     - system
@@ -10,8 +11,28 @@
     - cloudflare_dns
     - caddy
     - strfry
+    - obelisk_relay
+    - blossom
+    - nsite_gateway
+    - release_explorer
+    - hive_ci
+    - mint_orchestrator
+    - cashu_brrr
+    - mint_operator_proxy
+    - mptcp_server
+    - fips
+    - nsyte_cli
+    - grasp
+    - grasp_snapshot
+    - act_runner
+    - routstr
+    - auditable_voting
     - ngit_relay
     - backup
+    - gitworkshop
+    - grasp_mirror
+    - cloud_lab_runner
+    - relatr
     - micro_vpn
 
 - name: Deploy VPS watchdog (local health monitor + auto-redeploy)

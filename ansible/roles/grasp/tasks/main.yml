@@ -94,3 +94,4 @@
     state: started
     enabled: yes
     daemon_reload: yes
+  when: machine_active | default(true)

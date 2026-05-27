@@ -134,10 +134,60 @@ def get_machine_ssh_host(machine_cfg, env):
     return env.get(machine_cfg.get("ssh_host_env", ""), "")
 
 
+def _check_failover(state, machines, machine_ssh_status, env, threshold, failover_cfg):
+    failover_active = state.get("failover_active", False)
+    auto_failback = failover_cfg.get("auto_failback", False)
+
+    vps1_down = state.get("vps_down_count", {}).get("vps-1", 0)
+    vps1_reachable = machine_ssh_status.get("vps-1", False)
+
+    if not failover_active and vps1_down >= threshold and machine_ssh_status.get("vps-2", False):
+        log.warning("VPS-1 down %d consecutive checks — triggering failover to VPS-2", vps1_down)
+        try:
+            result = subprocess.run(
+                [sys.executable, str(WATCHDOG_DIR / "scripts" / "failover.py"), "--failover"],
+                capture_output=True, text=True, timeout=300,
+                env={**os.environ, **env},
+            )
+            if result.returncode == 0:
+                state["failover_active"] = True
+                state["active_vps"] = "vps-2"
+                state["failover_since"] = datetime.now(timezone.utc).isoformat()
+                state["last_action"] = "failover"
+                save_state(state)
+                log.info("Failover to VPS-2 completed successfully")
+            else:
+                log.error("Failover script failed: %s", result.stderr[-300:])
+        except Exception as e:
+            log.error("Failover script error: %s", e)
+
+    if failover_active and auto_failback and vps1_reachable:
+        log.info("VPS-1 recovered — auto-failback enabled, triggering failback")
+        try:
+            result = subprocess.run(
+                [sys.executable, str(WATCHDOG_DIR / "scripts" / "failover.py"), "--failback"],
+                capture_output=True, text=True, timeout=300,
+                env={**os.environ, **env},
+            )
+            if result.returncode == 0:
+                state["failover_active"] = False
+                state["active_vps"] = "vps-1"
+                state["failover_since"] = None
+                state["last_action"] = "failback"
+                save_state(state)
+                log.info("Failback to VPS-1 completed")
+            else:
+                log.error("Failback script failed: %s", result.stderr[-300:])
+        except Exception as e:
+            log.error("Failback script error: %s", e)
+
+
 def check_cycle(config, env, context, state, ssh_timeout, http_timeout, cooldown, run_redeploy=True):
     now = time.time()
     machines = config.get("machines", {})
     services = config.get("services", [])
+    failover_cfg = config.get("failover", {})
+    detection_threshold = failover_cfg.get("detection_threshold", 3)
 
     machine_ssh_status = {}
     for mid, mcfg in machines.items():
@@ -150,15 +200,22 @@ def check_cycle(config, env, context, state, ssh_timeout, http_timeout, cooldown
         machine_ssh_status[mid] = ok
         if ok:
             log.info("Machine %s (%s): SSH OK", mid, host)
+            state.setdefault("vps_down_count", {})[mid] = 0
         else:
-            log.warning("Machine %s (%s): SSH UNREACHABLE", mid, host)
+            state.setdefault("vps_down_count", {})[mid] = state.get("vps_down_count", {}).get(mid, 0) + 1
+            log.warning("Machine %s (%s): SSH UNREACHABLE (count: %d)", mid, host, state["vps_down_count"][mid])
+
+    save_state(state)
+
+    if run_redeploy:
+        _check_failover(state, machines, machine_ssh_status, env, detection_threshold, failover_cfg)
 
     results = {}
     down_services = []
 
     for svc in services:
         name = svc["name"]
-        mid = svc.get("machine", "m1")
+        mid = svc.get("machine", "vps-1")
         url = render_url(svc["url"], context)
         healthy = check_http(url, http_timeout)
         results[name] = {"healthy": healthy, "url": url, "machine": mid}
@@ -182,7 +239,7 @@ def check_cycle(config, env, context, state, ssh_timeout, http_timeout, cooldown
     if down_services and run_redeploy:
         redeploy_keys = []
         for svc in down_services:
-            mid = svc.get("machine", "m1")
+            mid = svc.get("machine", "vps-1")
             pb = svc["playbook"]
             key = (mid, pb)
             if key not in redeploy_keys:
@@ -199,12 +256,12 @@ def check_cycle(config, env, context, state, ssh_timeout, http_timeout, cooldown
             log.info("Redeploying %s on %s for: %s", pb, mid, ", ".join(affected))
 
             ansible_env = {
-                "VPS_IP": ssh_host,
-                "VPS_USER": ssh_user,
+                "VPS_IP": env.get("VPS_IP", ""),
+                "VPS_USER": env.get("VPS_USER", "root"),
                 "SSH_PRIVATE_KEY_FILE": ssh_key,
-                "OLD_VPS_IP": env.get("OLD_VPS_IP", ""),
-                "OLD_VPS_USER": env.get("OLD_VPS_USER", "debian"),
-                "OLD_VPS_PASSWORD": env.get("OLD_VPS_PASSWORD", ""),
+                "VPS2_IP": env.get("VPS2_IP", ""),
+                "VPS2_USER": env.get("VPS2_USER", "debian"),
+                "VPS2_PASSWORD": env.get("VPS2_PASSWORD", ""),
                 "BASE_DOMAIN": context.get("base_domain", ""),
                 "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
             }

@@ -11,6 +11,8 @@
     - mints
     - routstr
     - caddy
+    - blossom
+    - act-runner
 
 - name: Deploy backup status generator
   copy:

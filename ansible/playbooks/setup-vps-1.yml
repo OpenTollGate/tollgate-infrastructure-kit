@@ -1,9 +1,9 @@
 ---
-- name: Deploy m1 (primary) infrastructure
-  hosts: tollgate-vps
+- name: Deploy vps-1 (primary) infrastructure
+  hosts: vps-1
   become: yes
   gather_facts: yes
-  serial: 1
+  ignore_unreachable: true
   roles:
     - system
     - docker

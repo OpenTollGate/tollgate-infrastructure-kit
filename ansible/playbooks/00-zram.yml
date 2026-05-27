@@ -1,6 +1,7 @@
 ---
 - name: Configure zram compressed swap
   hosts: all
+  ignore_unreachable: true
   become: yes
   gather_facts: yes
   roles:

@@ -1,4 +1,4 @@
-{% if 'mint_orchestrator' in machine_roles %}
+{% if 'mint_orchestrator' in machine_roles and machine_active | default(true) %}
 *.{{ mint_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
@@ -73,70 +73,8 @@
 }
 {% endif %}
 
-{% if 'routstr' in machine_roles %}
-routstr.{{ base_domain }} {
-    tls {
-        dns cloudflare {env.CF_API_TOKEN}
-    }
-
-    reverse_proxy localhost:{{ routstr_port | default(8000) }}
-}
-{% endif %}
-
-{% if 'ngit_relay' in machine_roles %}
-ngit.{{ base_domain }} {
-    tls {
-        dns cloudflare {env.CF_API_TOKEN}
-    }
-
-    reverse_proxy localhost:{{ ngit_relay_port | default(7778) }}
-}
-{% endif %}
-
-{% if 'backup' in machine_roles %}
-services.{{ base_domain }} {
-    tls {
-        dns cloudflare {env.CF_API_TOKEN}
-    }
-
-    handle /api/mirror-health* {
-        reverse_proxy localhost:{{ grasp_mirror_health_port | default(7335) }}
-    }
-
-    handle {
-        root * {{ tollgate_static_dir }}/services
-        file_server
-        try_files {path} /index.html
-    }
-}
-{% endif %}
-
-{% if 'auditable_voting' in machine_roles %}
-vote.{{ base_domain }} {
-    tls {
-        dns cloudflare {env.CF_API_TOKEN}
-    }
-
-    root * {{ tollgate_static_dir }}/auditable-voting
-    file_server
-    try_files {path} /index.html
-}
-{% endif %}
-
-{% if 'solix_nsite' in machine_roles %}
-solix.{{ base_domain }} {
-    tls {
-        dns cloudflare {env.CF_API_TOKEN}
-    }
-
-    root * {{ tollgate_static_dir }}/solix
-    file_server
-    try_files {path} /index.html
-}
-{% endif %}
-
 {% if 'strfry' in machine_roles %}
-relay.{{ base_domain }} {
+relay{{ machine_number }}.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
     }
@@ -145,18 +83,18 @@ relay.{{ base_domain }} {
 }
 {% endif %}
 
-{% if 'obelisk_relay' in machine_roles %}
-chat.{{ base_domain }} {
+{% if 'ngit_relay' in machine_roles %}
+ngit{{ machine_number }}.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
     }
 
-    reverse_proxy localhost:{{ obelisk_port }}
+    reverse_proxy localhost:{{ ngit_relay_port | default(7778) }}
 }
 {% endif %}
 
 {% if 'blossom' in machine_roles %}
-blossom.{{ base_domain }} {
+blossom{{ machine_number }}.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
     }
@@ -171,7 +109,12 @@ blossom.{{ base_domain }} {
         dns cloudflare {env.CF_API_TOKEN}
     }
 
-    reverse_proxy localhost:{{ nsite_gateway_port }}
+    reverse_proxy {
+        to localhost:{{ nsite_gateway_port }}
+        to {{ other_vps_ip }}:{{ nsite_gateway_port }}
+        fail_duration 30s
+        try_duration 10s
+    }
 }
 
 nsite.{{ base_domain }} {
@@ -179,7 +122,53 @@ nsite.{{ base_domain }} {
         dns cloudflare {env.CF_API_TOKEN}
     }
 
-    reverse_proxy localhost:{{ nsite_gateway_port }}
+    reverse_proxy {
+        to localhost:{{ nsite_gateway_port }}
+        to {{ other_vps_ip }}:{{ nsite_gateway_port }}
+        fail_duration 30s
+        try_duration 10s
+    }
+}
+{% endif %}
+
+{% if 'obelisk_relay' in machine_roles %}
+chat.{{ base_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    reverse_proxy {
+        to localhost:{{ obelisk_port }}
+        to {{ other_vps_ip }}:{{ obelisk_port }}
+        fail_duration 30s
+        try_duration 10s
+    }
+}
+{% endif %}
+
+{% if 'grasp' in machine_roles and machine_active | default(true) %}
+git.{{ base_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    handle /api/mirror-health {
+        reverse_proxy localhost:{{ grasp_mirror_health_port | default(7335) }}
+    }
+
+    handle {
+        reverse_proxy localhost:{{ grasp_port }}
+    }
+}
+{% endif %}
+
+{% if 'routstr' in machine_roles and machine_active | default(true) %}
+routstr.{{ base_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    reverse_proxy localhost:{{ routstr_port | default(8000) }}
 }
 {% endif %}
 
@@ -207,39 +196,27 @@ ci.{{ base_domain }} {
 }
 {% endif %}
 
-{% if 'grasp' in machine_roles %}
-git.{{ base_domain }} {
+{% if 'auditable_voting' in machine_roles %}
+vote.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
     }
 
-    handle /api/mirror-health {
-        reverse_proxy localhost:{{ grasp_mirror_health_port | default(7335) }}
-    }
-
-    handle {
-        reverse_proxy localhost:{{ grasp_port }}
-    }
+    root * {{ tollgate_static_dir }}/auditable-voting
+    file_server
+    try_files {path} /index.html
 }
 {% endif %}
 
-{% if 'micro_vpn' in machine_roles %}
-vpn.{{ base_domain }} {
+{% if 'solix_nsite' in machine_roles %}
+solix.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
     }
 
-    reverse_proxy localhost:{{ micro_vpn_api_port | default(5010) }}
-}
-{% endif %}
-
-{% if 'relatr' in machine_roles %}
-wot.{{ base_domain }} {
-    tls {
-        dns cloudflare {env.CF_API_TOKEN}
-    }
-
-    reverse_proxy localhost:{{ relatr_port | default(3000) }}
+    root * {{ tollgate_static_dir }}/solix
+    file_server
+    try_files {path} /index.html
 }
 {% endif %}
 
@@ -255,7 +232,7 @@ wot.{{ base_domain }} {
 }
 {% endif %}
 
-{% if 'act_runner' in machine_roles %}
+{% if 'act_runner' in machine_roles and machine_active | default(true) %}
 runner.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
@@ -270,6 +247,49 @@ runner.{{ base_domain }} {
         file_server
         try_files {path} /index.html
     }
+}
+{% endif %}
+
+{% if 'backup' in machine_roles %}
+services.{{ base_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    handle /api/mirror-health* {
+        reverse_proxy localhost:{{ grasp_mirror_health_port | default(7335) }}
+    }
+
+    handle {
+        root * {{ tollgate_static_dir }}/services
+        file_server
+        try_files {path} /index.html
+    }
+}
+{% endif %}
+
+{% if 'relatr' in machine_roles %}
+wot.{{ base_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    reverse_proxy {
+        to localhost:{{ relatr_port | default(3000) }}
+        to {{ other_vps_ip }}:{{ relatr_port | default(3000) }}
+        fail_duration 30s
+        try_duration 10s
+    }
+}
+{% endif %}
+
+{% if 'micro_vpn' in machine_roles %}
+vpn.{{ base_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    reverse_proxy localhost:{{ micro_vpn_api_port | default(5010) }}
 }
 {% endif %}
 
@@ -323,6 +343,29 @@ runner.{{ base_domain }} {
 {% if 'act_runner' in machine_roles %}
     handle /runner/* {
         reverse_proxy localhost:{{ act_runner_port | default(8095) }}
+    }
+{% endif %}
+{% if 'auditable_voting' in machine_roles %}
+    handle /vote/* {
+        root * {{ tollgate_static_dir }}/auditable-voting
+        file_server
+        try_files {path} /index.html
+    }
+{% endif %}
+{% if 'backup' in machine_roles %}
+    handle /services/* {
+        root * {{ tollgate_static_dir }}/services
+        file_server
+    }
+{% endif %}
+{% if 'routstr' in machine_roles %}
+    handle /routstr/* {
+        reverse_proxy localhost:{{ routstr_port | default(8000) }}
+    }
+{% endif %}
+{% if 'ngit_relay' in machine_roles %}
+    handle /ngit/* {
+        reverse_proxy localhost:{{ ngit_relay_port | default(7778) }}
     }
 {% endif %}
 

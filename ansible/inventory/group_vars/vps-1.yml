@@ -1,6 +1,9 @@
-machine_id: m1
-machine_domain: "m1.orangesync.tech"
+machine_id: vps-1
+machine_number: 1
+machine_domain: "vps1.orangesync.tech"
 machine_ip: "{{ lookup('env', 'VPS_IP') }}"
+other_vps_ip: "{{ lookup('env', 'VPS2_IP') }}"
+machine_active: true
 
 machine_roles:
   - system
@@ -16,9 +19,11 @@ machine_roles:
   - mint_orchestrator
   - cashu_brrr
   - mint_operator_proxy
+  - mptcp_server
   - fips
   - nsyte_cli
   - grasp
+  - grasp_snapshot
   - act_runner
   - routstr
   - auditable_voting
@@ -30,18 +35,18 @@ machine_roles:
   - relatr
 
 machine_cloudflare_subdomains:
-  - relay
-  - chat
-  - blossom
+  - relay1
+  - ngit1
+  - blossom1
   - nsite
-  - releases
-  - ci
+  - chat
   - git
+  - services
   - routstr
   - vote
-  - ngit
-  - services
-  - mints
   - workshop
+  - releases
+  - ci
   - runner
+  - solix
   - wot

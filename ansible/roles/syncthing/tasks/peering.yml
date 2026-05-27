@@ -10,9 +10,9 @@
 
 - name: Get VPS connection details
   set_fact:
-    vps_ip: "{{ hostvars['tollgate-vps'].ansible_host | default(hostvars['tollgate-vps'].inventory_hostname) }}"
-    vps_ssh_user: "{{ hostvars['tollgate-vps'].ansible_user | default('debian') }}"
-    vps_ssh_key: "{{ hostvars['tollgate-vps'].ansible_ssh_private_key_file | default('') }}"
+    vps_ip: "{{ hostvars['vps-1'].ansible_host | default(hostvars['vps-1'].inventory_hostname) }}"
+    vps_ssh_user: "{{ hostvars['vps-1'].ansible_user | default('debian') }}"
+    vps_ssh_key: "{{ hostvars['vps-1'].ansible_ssh_private_key_file | default('') }}"
 
 - name: Add VPS device to backup machine syncthing
   uri:
