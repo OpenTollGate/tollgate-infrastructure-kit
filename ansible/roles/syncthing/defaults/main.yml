@@ -2,6 +2,7 @@
 syncthing_user: syncthing
 syncthing_home: "/var/lib/{{ syncthing_user }}"
 syncthing_config_dir: "{{ syncthing_home }}/.config/syncthing"
+syncthing_state_dir: "{{ syncthing_home }}/.local/state/syncthing"
 syncthing_listen_port: 22000
 syncthing_gui_port: 8384
 syncthing_local_listen_port: 22001

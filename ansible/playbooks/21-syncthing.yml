@@ -21,14 +21,17 @@
   hosts: tollgate-vps
   become: yes
   gather_facts: no
+  vars:
+    syncthing_user: syncthing
+    syncthing_config_dir: "/var/lib/{{ syncthing_user }}/.config/syncthing"
   tasks:
     - name: Get VPS syncthing device ID
-      shell: "syncthing --device-id --home=/var/lib/syncthing/.config/syncthing"
+      shell: "syncthing --device-id --home={{ syncthing_config_dir }}"
       register: vps_device_id_raw
       changed_when: false
 
     - name: Get VPS syncthing API key
-      command: "grep -oP '(?<=<apikey>)[^<]+' /var/lib/syncthing/.config/syncthing/config.xml"
+      command: "grep -oP '(?<=<apikey>)[^<]+' {{ syncthing_config_dir }}/config.xml"
       register: vps_api_key_raw
       changed_when: false
 

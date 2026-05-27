@@ -49,6 +49,24 @@
     label: "{{ item.id }}"
   ignore_errors: yes
 
+- name: Create backup directories on backup machine
+  file:
+    path: "{{ syncthing_backup_machine_backup_root }}/{{ item.label | lower | replace(' ', '-') }}"
+    state: directory
+    mode: '0755'
+  loop: "{{ syncthing_backup_dirs }}"
+  loop_control:
+    label: "{{ item.id }}"
+
+- name: Create .stfolder markers in backup directories
+  file:
+    path: "{{ syncthing_backup_machine_backup_root }}/{{ item.label | lower | replace(' ', '-') }}/.stfolder"
+    state: directory
+    mode: '0755'
+  loop: "{{ syncthing_backup_dirs }}"
+  loop_control:
+    label: "{{ item.id }}"
+
 - name: Restart backup machine syncthing to apply config
   systemd:
     name: syncthing

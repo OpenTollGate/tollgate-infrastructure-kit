@@ -1,6 +1,6 @@
 ---
 - name: Get VPS syncthing API key
-  command: "grep -oP '(?<=<apikey>)[^<]+' /var/lib/syncthing/.config/syncthing/config.xml"
+  command: "grep -oP '(?<=<apikey>)[^<]+' {{ syncthing_config_dir }}/config.xml"
   register: vps_api_key_resolved
   changed_when: false
 
@@ -10,7 +10,7 @@
 
 - name: Add backup machine device to VPS syncthing
   uri:
-    url: "http://127.0.0.1:8384/rest/config/devices/{{ backup_syncthing_id }}"
+    url: "http://127.0.0.1:{{ syncthing_gui_port }}/rest/config/devices/{{ backup_syncthing_id }}"
     method: PUT
     headers:
       X-API-Key: "{{ vps_syncthing_api_key }}"
@@ -26,7 +26,7 @@
 
 - name: Create sendreceive folders on VPS syncthing
   uri:
-    url: "http://127.0.0.1:8384/rest/config/folders/{{ item.id }}"
+    url: "http://127.0.0.1:{{ syncthing_gui_port }}/rest/config/folders/{{ item.id }}"
     method: PUT
     headers:
       X-API-Key: "{{ vps_syncthing_api_key }}"
@@ -48,15 +48,37 @@
     label: "{{ item.id }}"
   ignore_errors: yes
 
+- name: Ensure backup staging directories exist
+  file:
+    path: "{{ item.vps_path }}"
+    state: directory
+    owner: "{{ syncthing_user }}"
+    group: "{{ syncthing_user }}"
+    mode: '0755'
+  loop: "{{ syncthing_backup_dirs }}"
+  loop_control:
+    label: "{{ item.id }}"
+
+- name: Create .stfolder markers in syncthing directories
+  file:
+    path: "{{ item.vps_path }}/.stfolder"
+    state: directory
+    owner: "{{ syncthing_user }}"
+    group: "{{ syncthing_user }}"
+    mode: '0755'
+  loop: "{{ syncthing_backup_dirs }}"
+  loop_control:
+    label: "{{ item.id }}"
+
 - name: Restart VPS syncthing to apply config
   systemd:
-    name: syncthing@syncthing
+    name: "syncthing@{{ syncthing_user }}"
     state: restarted
   ignore_errors: yes
 
 - name: Wait for VPS syncthing after restart
   wait_for:
-    port: 8384
+    port: "{{ syncthing_gui_port }}"
     host: 127.0.0.1
     delay: 3
     timeout: 30
@@ -69,3 +91,5 @@
         Backup machine device: {{ backup_syncthing_id }}
         Folders: {{ syncthing_backup_dirs | map(attribute='id') | list | join(', ') }}
         VPS staging dir: {{ backup_staging_dir }}
+        Syncthing user: {{ syncthing_user }}
+        Config dir: {{ syncthing_config_dir }}
