@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     user: "{{ relatr_uid }}:{{ relatr_gid }}"
     environment:
-      SERVER_SECRET_KEY: "{{ lookup('env', 'RELATR_SERVER_SECRET_KEY') | default('changeme', true) }}"
+      SERVER_SECRET_KEY: "{{ relatr_server_secret }}"
       DEFAULT_SOURCE_PUBKEY: "{{ relatr_source_pubkey }}"
       NOSTR_RELAYS: "{{ relatr_nostr_relays }}"
       SERVER_RELAYS: "{{ relatr_server_relays }}"

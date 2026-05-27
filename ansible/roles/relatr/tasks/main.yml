@@ -10,6 +10,30 @@
         - "{{ relatr_data_dir }}"
         - "{{ relatr_plugins_dir }}"
 
+    - name: Check for existing RELATR_SERVER_SECRET_KEY in .env
+      command: grep -c '^RELATR_SERVER_SECRET_KEY=' {{ tollgate_base_dir | default('/opt/tollgate') }}/../.env 2>/dev/null || true
+      register: relatr_key_check
+      changed_when: false
+      failed_when: false
+
+    - name: Generate random Relatr server secret key
+      shell: openssl rand -hex 32
+      register: relatr_generated_key
+      changed_when: false
+      when: relatr_key_check.stdout | default('0') | int == 0
+
+    - name: Store generated key in .env
+      lineinfile:
+        path: "{{ playbook_dir }}/../.env"
+        line: "RELATR_SERVER_SECRET_KEY={{ relatr_generated_key.stdout }}"
+        create: yes
+        mode: "0600"
+      when: relatr_key_check.stdout | default('0') | int == 0 and relatr_generated_key.stdout is defined
+
+    - name: Set relatr server secret key fact
+      set_fact:
+        relatr_server_secret: "{{ lookup('env', 'RELATR_SERVER_SECRET_KEY') | default(relatr_generated_key.stdout | default('changeme', true), true) }}"
+
     - name: Deploy relatr docker-compose
       template:
         src: docker-compose.relatr.yml.j2
