@@ -7,6 +7,7 @@ Each VPS probes only its own local services (localhost, no CORS, instant).
 import json
 import os
 import socket
+import ssl
 import subprocess
 import sys
 import urllib.request
@@ -76,6 +77,11 @@ def probe_tcp(host, port, timeout=2):
 def probe_docker_container(name):
     out = run(f"docker inspect --format '{{{{.State.Status}}}}' {name} 2>/dev/null")
     return {"healthy": out == "running", "status": out or "unknown"}
+
+
+def probe_systemd(unit):
+    out = run(f"systemctl is-active {unit} 2>/dev/null")
+    return {"healthy": out == "active", "status": out or "unknown"}
 
 
 def get_cpu():
@@ -206,7 +212,7 @@ def get_cpu_cores():
         return 1
 
 
-SERVICES_VPS = [
+SERVICES_M1 = [
     {"name": "caddy",            "type": "http",  "url": "http://localhost:80"},
     {"name": "strfry",           "type": "tcp",   "host": "localhost", "port": 7777},
     {"name": "obelisk",          "type": "tcp",   "host": "localhost", "port": 8080},
@@ -214,27 +220,33 @@ SERVICES_VPS = [
     {"name": "nsite-gateway",    "type": "tcp",   "host": "localhost", "port": 3002},
     {"name": "releases",         "type": "http",  "url": "http://localhost/releases/"},
     {"name": "hive-ci",          "type": "http",  "url": "http://localhost/ci/"},
+    {"name": "routstr",          "type": "http",  "url": "http://localhost:8000/v1/models"},
+    {"name": "routstr-mint",     "type": "http",  "url": "http://localhost:8089/v1/info"},
+    {"name": "ngit-relay",       "type": "tcp",   "host": "localhost", "port": 7778},
+    {"name": "relatr",           "type": "http",  "url": "http://localhost:3000"},
+    {"name": "fips",             "type": "tcp",   "host": "localhost", "port": 8443},
+    {"name": "act-runner",       "type": "systemd", "unit": "tollgate-act-runner.service"},
+    {"name": "cashu-brrr",       "type": "http",  "url": "http://localhost:3000"},
+]
+
+SERVICES_M2 = [
+    {"name": "caddy",            "type": "http",  "url": "http://localhost:80"},
+    {"name": "strfry",           "type": "tcp",   "host": "localhost", "port": 7777},
+    {"name": "obelisk",          "type": "tcp",   "host": "localhost", "port": 8080},
+    {"name": "blossom",          "type": "tcp",   "host": "localhost", "port": 3001},
+    {"name": "nsite-gateway",    "type": "tcp",   "host": "localhost", "port": 3002},
     {"name": "grasp",            "type": "tcp",   "host": "localhost", "port": 7334},
     {"name": "grasp-mirror",     "type": "http",  "url": "http://localhost:7335"},
-    {"name": "test-mb-mint",     "type": "http",  "url": "http://localhost:8085/v1/info"},
-    {"name": "test-kb-mint",     "type": "http",  "url": "http://localhost:8086/v1/info"},
-    {"name": "test-gb-mint",     "type": "http",  "url": "http://localhost:8087/v1/info"},
-    {"name": "test-min-mint",    "type": "http",  "url": "http://localhost:8088/v1/info"},
-    {"name": "testnut-cdk",      "type": "http",  "url": "http://localhost:8091/v1/info"},
-    {"name": "testnut-nutshell", "type": "http",  "url": "http://localhost:8092/v1/info"},
-    {"name": "testnut-compat",   "type": "http",  "url": "http://localhost:8093/v1/info"},
-    {"name": "routstr-mint",     "type": "http",  "url": "http://localhost:8089/v1/info"},
-    {"name": "cashu-brrr",       "type": "http",  "url": "http://localhost:3000/api/health"},
-    {"name": "mint-operator-proxy","type":"http", "url": "http://localhost:3000/api/health"},
-    {"name": "routstr",          "type": "http",  "url": "http://localhost:8000/v1/models"},
     {"name": "ngit-relay",       "type": "tcp",   "host": "localhost", "port": 7778},
-    {"name": "act-runner",       "type": "tcp",   "host": "localhost", "port": 8095},
-    {"name": "relatr",           "type": "http",  "url": "http://localhost:3020"},
-    {"name": "fips",             "type": "tcp",   "host": "localhost", "port": 8443},
     {"name": "micro-vpn",        "type": "http",  "url": "http://localhost:5010/api/v1/status"},
 ]
 
-SERVICES_MAP = "auto"
+SERVICES_MAP = {
+    "m1": SERVICES_M1,
+    "m2": SERVICES_M2,
+    "vps-1": SERVICES_M1,
+    "vps-2": SERVICES_M2,
+}
 
 
 def probe_services(services):
@@ -247,10 +259,14 @@ def probe_services(services):
             results[name] = probe_tcp(svc["host"], svc["port"])
         elif svc["type"] == "docker":
             results[name] = probe_docker_container(svc["container"])
+        elif svc["type"] == "systemd":
+            results[name] = probe_systemd(svc["unit"])
     return results
 
 
 PEER_FETCH = {
+    "m1": {"peer_id": "m2", "peer_ip_env": "VPS2_IP"},
+    "m2": {"peer_id": "m1", "peer_ip_env": "VPS_IP"},
     "vps-1": {"peer_id": "vps-2", "peer_ip_env": "VPS2_IP"},
     "vps-2": {"peer_id": "vps-1", "peer_ip_env": "VPS_IP"},
 }
@@ -265,32 +281,30 @@ def fetch_peer_status(machine_id):
     if not peer_ip:
         return
     for path in [f"{peer['peer_id']}-status.json", "vps-stats.json"]:
-        url = f"http://{peer_ip}/{path}"
+        url = f"https://services.orangesync.tech/{path}"
         try:
-            req = urllib.request.Request(url, method="GET")
-            req.add_header("Host", "services.orangesync.tech")
-            req.add_header("User-Agent", "tollgate-stats/1.0")
-            resp = urllib.request.urlopen(req, timeout=5)
-            if resp.status == 200:
-                data = resp.read()
-                try:
-                    d = json.loads(data)
-                    if d.get("machine_id") == peer["peer_id"] or path == "vps-stats.json":
-                        peer_file = os.path.join(STATS_DIR, f"{peer['peer_id']}-status.json")
-                        tmp = peer_file + ".tmp"
-                        with open(tmp, "wb") as f:
-                            f.write(data)
-                        os.replace(tmp, peer_file)
-                        return
-                except (json.JSONDecodeError, ValueError):
-                    pass
+            cmd = f"curl -sk --resolve services.orangesync.tech:443:{peer_ip} --connect-timeout 5 --max-time 10 '{url}'"
+            data = run(cmd)
+            if not data:
+                continue
+            try:
+                d = json.loads(data)
+                if d.get("machine_id") == peer["peer_id"] or path == "vps-stats.json":
+                    peer_file = os.path.join(STATS_DIR, f"{peer['peer_id']}-status.json")
+                    tmp = peer_file + ".tmp"
+                    with open(tmp, "w") as f:
+                        f.write(data)
+                    os.replace(tmp, peer_file)
+                    return
+            except (json.JSONDecodeError, ValueError):
+                pass
         except Exception:
             pass
 
 
 def main():
     machine_id = get_machine_id()
-    services = SERVICES_VPS if SERVICES_MAP == "auto" else SERVICES_MAP.get(machine_id, [])
+    services = SERVICES_MAP.get(machine_id, SERVICES_M1)
 
     stats = {
         "machine_id": machine_id,

@@ -109,11 +109,7 @@ blossom{{ machine_number }}.{{ base_domain }} {
         dns cloudflare {env.CF_API_TOKEN}
     }
 
-    reverse_proxy {
-        to localhost:{{ nsite_gateway_port }}
-        to {{ other_vps_ip }}:{{ nsite_gateway_port }}
-
-    }
+    reverse_proxy localhost:{{ nsite_gateway_port }}
 }
 
 nsite.{{ base_domain }} {
@@ -121,11 +117,7 @@ nsite.{{ base_domain }} {
         dns cloudflare {env.CF_API_TOKEN}
     }
 
-    reverse_proxy {
-        to localhost:{{ nsite_gateway_port }}
-        to {{ other_vps_ip }}:{{ nsite_gateway_port }}
-
-    }
+    reverse_proxy localhost:{{ nsite_gateway_port }}
 }
 {% endif %}
 
@@ -135,11 +127,7 @@ chat.{{ base_domain }} {
         dns cloudflare {env.CF_API_TOKEN}
     }
 
-    reverse_proxy {
-        to localhost:{{ obelisk_port }}
-        to {{ other_vps_ip }}:{{ obelisk_port }}
-
-    }
+    reverse_proxy localhost:{{ obelisk_port }}
 }
 {% endif %}
 
@@ -271,11 +259,7 @@ wot.{{ base_domain }} {
         dns cloudflare {env.CF_API_TOKEN}
     }
 
-    reverse_proxy {
-        to localhost:{{ relatr_port | default(3000) }}
-        to {{ other_vps_ip }}:{{ relatr_port | default(3000) }}
-
-    }
+    reverse_proxy localhost:{{ relatr_port | default(3000) }}
 }
 {% endif %}
 
