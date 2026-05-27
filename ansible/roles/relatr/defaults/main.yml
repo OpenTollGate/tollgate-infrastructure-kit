@@ -5,8 +5,8 @@ relatr_data_dir: "{{ tollgate_base_dir }}/relatr/data"
 relatr_plugins_dir: "{{ tollgate_base_dir }}/relatr/plugins"
 relatr_domain: "wot.{{ base_domain }}"
 
-relatr_server_secret_key: "{{ lookup('env', 'RELATR_SERVER_SECRET_KEY') | default('', true) }}"
-relatr_source_npub_hex: "{{ lookup('env', 'RELATR_SOURCE_NPUB_HEX') | default('', true) }}"
+relatr_server_secret_key: ""
+relatr_source_npub_hex: ""
 relatr_nostr_relays:
   - "wss://relay.{{ base_domain }}"
   - "wss://ngit.{{ base_domain }}"

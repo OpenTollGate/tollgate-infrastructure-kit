@@ -1,0 +1,91 @@
+---
+- name: Install Python dependencies for grasp-audit
+  pip:
+    name:
+      - pynostr
+      - PyNaCl
+    state: present
+    extra_args: "--break-system-packages"
+
+- name: Create grasp-audit directory
+  file:
+    path: "{{ grasp_audit_output_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Check for existing grasp-audit keypair in .env
+  slurp:
+    src: /opt/tollgate/.env
+  register: audit_env_file
+  failed_when: false
+
+- name: Check if GRASP_AUDIT_NSEC already in .env
+  set_fact:
+    audit_nsec_exists: "{{ audit_env_file.content is defined and 'GRASP_AUDIT_NSEC=' in (audit_env_file.content | b64decode) }}"
+
+- name: Generate grasp-audit Nostr keypair if missing
+  shell: |
+    set -o pipefail
+    python3 << 'PYEOF'
+    import secrets, json
+    from bech32 import bech32_encode, convertbits
+    from nacl.signing import SigningKey
+    sk = secrets.token_bytes(32)
+    nsec = bech32_encode('nsec', convertbits(sk, 8, 5))
+    signing_key = SigningKey(sk)
+    pk = bytes(signing_key.verify_key)
+    npub = bech32_encode('npub', convertbits(pk, 8, 5))
+    print(json.dumps({'nsec': nsec, 'npub': npub, 'hex_sk': sk.hex(), 'hex_pk': pk.hex()}))
+    PYEOF
+  register: audit_keypair
+  when: not audit_nsec_exists
+
+- name: Store grasp-audit keypair in .env
+  shell: |
+    echo "GRASP_AUDIT_NSEC=$(echo '{{ audit_keypair.stdout }}' | python3 -c 'import sys,json; print(json.load(sys.stdin)[\"nsec\"])')" >> /opt/tollgate/.env
+    echo "GRASP_AUDIT_NPUB=$(echo '{{ audit_keypair.stdout }}' | python3 -c 'import sys,json; print(json.load(sys.stdin)[\"npub\"])')" >> /opt/tollgate/.env
+    echo "GRASP_AUDIT_HEX_SK=$(echo '{{ audit_keypair.stdout }}' | python3 -c 'import sys,json; print(json.load(sys.stdin)[\"hex_sk\"])')" >> /opt/tollgate/.env
+  when: not audit_nsec_exists
+
+- name: Read grasp-audit key from .env
+  shell: "grep {{ item }} /opt/tollgate/.env | cut -d= -f2"
+  register: audit_env_keys
+  loop:
+    - GRASP_AUDIT_NSEC
+    - GRASP_AUDIT_NPUB
+  changed_when: false
+
+- name: Deploy grasp-audit script
+  copy:
+    src: "{{ playbook_dir }}/../../scripts/grasp-audit.py"
+    dest: "{{ grasp_audit_output_dir }}/grasp-audit.py"
+    mode: '0755'
+
+- name: Deploy grasp-audit systemd service
+  template:
+    src: grasp-audit.service.j2
+    dest: /etc/systemd/system/grasp-audit.service
+    mode: '0644'
+
+- name: Deploy grasp-audit systemd timer
+  template:
+    src: grasp-audit.timer.j2
+    dest: /etc/systemd/system/grasp-audit.timer
+    mode: '0644'
+
+- name: Enable and start grasp-audit timer
+  systemd:
+    name: grasp-audit.timer
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Display grasp-audit deployment info
+  debug:
+    msg: |
+      Grasp Audit service deployed!
+      Script: {{ grasp_audit_output_dir }}/grasp-audit.py
+      Schedule: daily at {{ grasp_audit_cron_hour }}:{{ grasp_audit_cron_minute }} UTC
+      DM recipient: {{ grasp_audit_recipient_npub }}
+      Sender npub: {{ audit_env_keys.results[1].stdout }}
+      Relays: {{ grasp_audit_relays | join(', ') }}

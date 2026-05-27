@@ -1,0 +1,9 @@
+[Unit]
+Description=Daily GRASP Server Disk Usage Audit
+
+[Timer]
+OnCalendar=*-*-* {{ grasp_audit_cron_hour | string | pad(2) }}:{{ grasp_audit_cron_minute | string | pad(2) }}:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

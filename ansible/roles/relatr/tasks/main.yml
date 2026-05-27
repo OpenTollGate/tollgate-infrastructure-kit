@@ -1,10 +1,69 @@
 ---
-- name: Validate Relatr configuration
-  assert:
-    that:
-      - relatr_server_secret_key | length > 0
-      - relatr_source_npub_hex | length > 0
-    fail_msg: "RELATR_SERVER_SECRET_KEY and RELATR_SOURCE_NPUB_HEX must be set in .env"
+- name: Check for existing Relatr keys in .env
+  slurp:
+    src: /opt/tollgate/.env
+  register: relatr_env_file
+  failed_when: false
+
+- name: Check if RELATR_SERVER_SECRET_KEY already in .env
+  set_fact:
+    relatr_secret_key_exists: "{{ relatr_env_file.content is defined and 'RELATR_SERVER_SECRET_KEY=' in (relatr_env_file.content | b64decode) }}"
+
+- name: Generate RELATR_SERVER_SECRET_KEY if missing
+  shell: |
+    SECRET=$(openssl rand -hex 32)
+    echo "RELATR_SERVER_SECRET_KEY=${SECRET}" >> /opt/tollgate/.env
+  when: not relatr_secret_key_exists
+
+- name: Check if RELATR_SOURCE_NPUB_HEX already in .env
+  set_fact:
+    relatr_npub_exists: "{{ relatr_env_file.content is defined and 'RELATR_SOURCE_NPUB_HEX=' in (relatr_env_file.content | b64decode) }}"
+
+- name: Install pynostr and PyNaCl for keypair generation
+  pip:
+    name:
+      - pynostr
+      - PyNaCl
+    state: present
+    extra_args: "--break-system-packages"
+  when: not relatr_npub_exists
+
+- name: Generate Relatr Nostr keypair if missing
+  shell: |
+    set -o pipefail
+    python3 << 'PYEOF'
+    import secrets, json
+    from bech32 import bech32_encode, convertbits
+    from nacl.signing import SigningKey
+    sk = secrets.token_bytes(32)
+    nsec = bech32_encode('nsec', convertbits(sk, 8, 5))
+    signing_key = SigningKey(sk)
+    pk = bytes(signing_key.verify_key)
+    npub = bech32_encode('npub', convertbits(pk, 8, 5))
+    print(json.dumps({'nsec': nsec, 'npub': npub, 'hex_sk': sk.hex(), 'hex_pk': pk.hex()}))
+    PYEOF
+  register: relatr_keypair
+  when: not relatr_npub_exists
+
+- name: Store Relatr keypair in .env
+  shell: |
+    echo "RELATR_SOURCE_NPUB_HEX=$(echo '{{ relatr_keypair.stdout }}' | python3 -c 'import sys,json; print(json.load(sys.stdin)[\"hex_pk\"])')" >> /opt/tollgate/.env
+    echo "RELATR_NSEC=$(echo '{{ relatr_keypair.stdout }}' | python3 -c 'import sys,json; print(json.load(sys.stdin)[\"nsec\"])')" >> /opt/tollgate/.env
+    echo "RELATR_NPUB=$(echo '{{ relatr_keypair.stdout }}' | python3 -c 'import sys,json; print(json.load(sys.stdin)[\"npub\"])')" >> /opt/tollgate/.env
+  when: not relatr_npub_exists
+
+- name: Read Relatr keys from .env
+  shell: "grep {{ item }} /opt/tollgate/.env | cut -d= -f2"
+  register: relatr_env_keys
+  loop:
+    - RELATR_SERVER_SECRET_KEY
+    - RELATR_SOURCE_NPUB_HEX
+  changed_when: false
+
+- name: Set Relatr key facts
+  set_fact:
+    relatr_server_secret_key: "{{ relatr_env_keys.results[0].stdout }}"
+    relatr_source_npub_hex: "{{ relatr_env_keys.results[1].stdout }}"
 
 - name: Install build dependencies for Relatr
   apt:

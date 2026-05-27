@@ -1,0 +1,14 @@
+[Unit]
+Description=GRASP Server Disk Usage Audit with Nostr DM Report
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 {{ grasp_audit_output_dir }}/grasp-audit.py --dm
+Environment=GRASP_DATA_DIR={{ grasp_audit_data_dir }}
+Environment=GRASP_MIRROR_DIR={{ grasp_audit_mirror_dir }}
+Environment=GRASP_AUDIT_OUTPUT={{ grasp_audit_output_dir }}/audit-report.csv
+Environment=GRASP_AUDIT_RECIPIENT_NPUB={{ grasp_audit_recipient_npub }}
+Environment=GRASP_AUDIT_RELAYS={{ grasp_audit_relays | join(',') }}
+Environment=GRASP_AUDIT_DISK_THRESHOLD_MB={{ grasp_audit_disk_threshold_mb }}
+EnvironmentFile=/opt/tollgate/.env

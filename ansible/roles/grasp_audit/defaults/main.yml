@@ -1,0 +1,12 @@
+---
+grasp_audit_data_dir: "{{ tollgate_base_dir }}/grasp/data"
+grasp_audit_mirror_dir: "{{ tollgate_base_dir }}/grasp-mirror"
+grasp_audit_output_dir: "{{ tollgate_base_dir }}/grasp-audit"
+grasp_audit_cron_hour: 3
+grasp_audit_cron_minute: 0
+grasp_audit_recipient_npub: "npub1c03rad0r6q833vh57kyd3ndu2jry30nkr0wepqfpsm05vq7he25slryrnw"
+grasp_audit_relays:
+  - "wss://relay.{{ base_domain }}"
+  - "wss://ngit.{{ base_domain }}"
+  - "wss://relay.damus.io"
+grasp_audit_disk_threshold_mb: 500

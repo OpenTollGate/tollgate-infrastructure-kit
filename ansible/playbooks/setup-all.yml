@@ -31,6 +31,7 @@
     - gitworkshop
     - grasp_mirror
     - relatr
+    - grasp_audit
     - budabit
 
 - name: Deploy VPS watchdog (local health monitor + auto-redeploy)

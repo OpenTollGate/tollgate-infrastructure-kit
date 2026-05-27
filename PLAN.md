@@ -11,7 +11,7 @@ A single Ansible-based repository that deploys all Tollgate-related infrastructu
 - **Domain**: User brings their own (`BASE_DOMAIN` variable)
 - **Secrets**: `.env` file (not committed to git)
 
-## Services (25 total)
+## Services (34 total)
 
 | # | Service | Subdomain | Internal Port | Install Method |
 |---|---------|-----------|---------------|----------------|
@@ -42,12 +42,13 @@ A single Ansible-based repository that deploys all Tollgate-related infrastructu
 | 25 | ACT Runner (CI/CD) | `runner.` | 8095 | Python daemon + nektos/act binary |
 | 26 | Voting Worker | none | — | Rust binary (audit proxy), systemd |
 | 27 | Auditable Voting E2E Tests | none | — | Playwright tests, triggered via Ansible |
-| 28 | Routstr Vision AI node | `routstr-vision.` | 8001 | Docker (ghcr.io/routstr/proxy) + OpenRouter |
+| 28 | Routstr Vision AI node | `routstr-vision.` | 8001 | Docker (ghcr.io/routstr/proxy) + ppq.ai (PayPerQ) |
 | 29 | Routstr Vision Tor hidden service | `.onion` | 80 | Docker (tor-hidden-service) |
 | 30 | Routstr Vision Mint | `routstr-vision-mint.mints.` | 8094 | Docker (CDK mintd) |
 | 31 | Relatr (Web of Trust) | `wot.` | 3000 | Docker (ContextVM/relatr from source) |
 | 32 | Trust Score API | localhost only | 3001 | Python systemd (reads Relatr DuckDB) |
 | 33 | Budabit (Community Q&A) | `community.` | — | Static SPA (SvelteKit, built from source) |
+| 34 | GRASP Audit Service | none | — | Python systemd timer, Nostr DM reporting |
 
 ## Architecture
 
@@ -239,9 +240,10 @@ make deploy  (or ./scripts/deploy.sh)
       26. ACT Runner (CI/CD for GRASP repos)
       27. Voting Worker (audit proxy, built from auditable-voting/worker/)
       28. Auditable Voting E2E Tests (Playwright, triggered via Ansible)
-      29. Routstr Vision AI node + dedicated mint + Tor (port 8001, OpenRouter)
-      30. Relatr WoT service + Trust API (spam filtering for GRASP)
+      29. Routstr Vision AI node + dedicated mint + Tor (port 8001, ppq.ai)
+      30. Relatr WoT service + Trust API (spam filtering for GRASP, auto-keygen)
       31. Budabit community platform (Q&A, Git collaboration, static SPA)
+      32. GRASP Audit Service (daily timer, Nostr DM reporting to c03rad0r)
       → Integration tests
      → Playwright E2E tests
 ```

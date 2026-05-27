@@ -1,0 +1,6 @@
+---
+- name: Deploy GRASP Audit Service
+  hosts: vps
+  become: yes
+  roles:
+    - grasp_audit

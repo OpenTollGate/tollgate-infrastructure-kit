@@ -46,7 +46,7 @@
 - name: Set Routstr Vision facts from env
   set_fact:
     routstr_vision_admin_password: "{{ lookup('env', 'ROUTSTR_VISION_ADMIN_PASSWORD') | default('changeme', true) }}"
-    routstr_vision_upstream_base_url: "{{ lookup('env', 'ROUTSTR_VISION_UPSTREAM_BASE_URL') | default('https://openrouter.ai/api/v1', true) }}"
+    routstr_vision_upstream_base_url: "{{ lookup('env', 'ROUTSTR_VISION_UPSTREAM_BASE_URL') | default('https://api.ppq.ai/v1', true) }}"
     routstr_vision_upstream_api_key: "{{ lookup('env', 'ROUTSTR_VISION_UPSTREAM_API_KEY') | default('', true) }}"
     routstr_vision_node_name: "{{ lookup('env', 'ROUTSTR_VISION_NODE_NAME') | default('Tollgate Vision Node', true) }}"
     routstr_vision_node_description: "{{ lookup('env', 'ROUTSTR_VISION_NODE_DESCRIPTION') | default('Vision-capable AI inference via Cashu micropayments', true) }}"

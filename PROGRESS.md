@@ -310,11 +310,12 @@
 - [x] **Cherry-picked from PR #5a4aab8a** — clean, unrelated changes excluded
 - [x] `routstr_vision` Ansible role (defaults, handlers, tasks, templates)
 - [x] Playbook `ansible/playbooks/19-routstr-vision.yml`
-- [x] Port 8001, subdomain `routstr-vision`, OpenRouter upstream
+- [x] Port 8001, subdomain `routstr-vision`, ppq.ai (PayPerQ) upstream
 - [x] Dedicated mint: routstr-vision-mint (port 8094 REST, 50056 gRPC)
 - [x] Caddy routes for subdomain + mint wildcard + FIPS mesh proxy
 - [x] Cloudflare DNS entry for `routstr-vision`
 - [x] `.env.example` updated with ROUTSTR_VISION_* vars
+- [x] Switched from OpenRouter to ppq.ai (PayPerQ) — `https://api.ppq.ai/v1`
 - [ ] Deploy to VPS and verify at `https://routstr-vision.orangesync.tech`
 
 ### Relatr Web of Trust (GRASP Spam Filtering)
@@ -336,11 +337,27 @@
 - [x] `.env.example` updated with RELATR_* vars
 - [x] `setup-all.yml` updated with relatr role
 - [x] Plan documented: `docs/relatr-wot-plan.md`
-- [ ] Set RELATR_SERVER_SECRET_KEY and RELATR_SOURCE_NPUB_HEX in .env
+- [x] Auto-generate RELATR_SERVER_SECRET_KEY and RELATR_SOURCE_NPUB_HEX if not set in .env
 - [ ] Deploy to VPS via `31-relatr.yml`
 - [ ] Run `grasp-audit.py` to assess current state
 - [ ] Run `grasp-cleanup.py --dry-run` to preview cleanup
 - [ ] Configure strfry write-policy threshold
+
+### GRASP Audit Service (Nostr DM Reporting)
+- [x] `grasp_audit` Ansible role created
+  - [x] `ansible/roles/grasp_audit/defaults/main.yml`
+  - [x] `ansible/roles/grasp_audit/tasks/main.yml`
+  - [x] `ansible/roles/grasp_audit/templates/grasp-audit.service.j2`
+  - [x] `ansible/roles/grasp_audit/templates/grasp-audit.timer.j2`
+- [x] Playbook `ansible/playbooks/33-grasp-audit.yml`
+- [x] Enhanced `scripts/grasp-audit.py` with `--dm` flag + NIP-04 DM reporting
+- [x] DM recipient: `npub1c03rad0r6q833vh57kyd3ndu2jry30nkr0wepqfpsm05vq7he25slryrnw`
+- [x] Sender keypair auto-generated (GRASP_AUDIT_NSEC/GRASP_AUDIT_NPUB)
+- [x] Daily systemd timer at 03:00 UTC
+- [x] `setup-all.yml` updated with grasp_audit role
+- [x] `.env.example` updated with GRASP_AUDIT_* vars
+- [ ] Deploy to VPS via `33-grasp-audit.yml`
+- [ ] Verify DM delivery
 
 ## Separate Repo
 
