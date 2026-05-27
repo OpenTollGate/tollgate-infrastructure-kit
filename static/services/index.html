@@ -211,21 +211,23 @@ section.style.display="block";
 
 const statusMap={synced:"up",syncing:"syncing",problem:"down"};
 const dotClass=statusMap[data.overall_status]||"pending";
-const statusLabel={synced:"All Synced",syncing:"Syncing...",problem:"Problem"}[data.overall_status]||data.overall_status;
-const statusColor={synced:"var(--up)",syncing:"var(--pending)",problem:"var(--down)"}[data.overall_status]||"var(--dim)";
+  const statusLabel={synced:"All Synced",syncing:"Syncing...",problem:"Problem"}[data.overall_status]||data.overall_status;
+  const statusColor={synced:"var(--up)",syncing:"var(--pending)",problem:"var(--down)"}[data.overall_status]||"var(--dim)";
 
-const timeAgo=data.last_backup?timeSince(new Date(data.last_backup)):"never";
+  const timeAgo=data.last_backup?timeSince(new Date(data.last_backup)):"never";
+  const host=data.source_host||"?";
+  const ip=data.source_ip||"";
 
-overview.innerHTML=`
+  overview.innerHTML=`
 <div class="backup-status-bar" onclick="toggleBackupDetail()">
-<div class="dot ${dotClass}"></div>
-<div class="info">
-<div class="name">VPS ↔ Backup Machine</div>
-<span class="backup-time">Last backup: ${timeAgo}</span>
-</div>
-<div class="meta">
-<span style="font-size:0.85rem;font-weight:600;color:${statusColor}">${statusLabel}</span>
-</div>
+  <div class="dot ${dotClass}"></div>
+  <div class="info">
+  <div class="name">Backup Sync — ${host}${ip?" ("+ip+")":""}</div>
+  <span class="backup-time">Last backup: ${timeAgo}</span>
+  </div>
+  <div class="meta">
+  <span style="font-size:0.85rem;font-weight:600;color:${statusColor}">${statusLabel}</span>
+  </div>
 </div>`;
 
   let detailHtml="";

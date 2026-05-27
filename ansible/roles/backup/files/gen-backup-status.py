@@ -118,12 +118,23 @@ def main():
         folders[fid] = folder_entry
 
     hostname = os.uname().nodename
+    try:
+        ip_r = subprocess.run(
+            ["hostname", "-I"], capture_output=True, text=True, check=False,
+        )
+        ip = ip_r.stdout.strip().split()[0] if ip_r.stdout.strip() else ""
+    except Exception:
+        ip = ""
     status = {
         "last_backup": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "overall_status": overall,
         "source_host": hostname,
+        "source_ip": ip,
         "machines": {dinfo["name"]: {"connected": dinfo["connected"]} for dinfo in devices.values()},
         "folders": folders,
+        "total_local_size_human": human_size(
+            sum(f["local_size"] for f in folders.values())
+        ),
     }
 
     tmp = STATUS_FILE + ".tmp"
