@@ -42,10 +42,12 @@
 
 ## Phase 5: Services Dashboard for Both Machines
 
-- [ ] 5a Update services page to show both machines' stats side-by-side
-- [ ] 5b Fetch vps-stats.json from both m1 and m2
-- [ ] 5c Add machine selector or combined view
-- [ ] 5d Update backup status to show cross-machine sync
+- [x] 5a Server-side service health agent (gen-vps-stats.py probes localhost HTTP/TCP)
+- [x] 5b Dashboard rewritten with m1/m2 tabs, fetches {machine_id}-status.json
+- [x] 5c Peer cross-fetch: each VPS fetches other machine's status via HTTP
+- [x] 5d No browser-side service probing needed
+- [ ] 5e Deploy updated dashboard + agent to VPS 226 (m1) when back online
+- [ ] 5f Verify cross-machine status visibility when both VPSs are up
 
 ## Phase 6: Deploy to Both Machines
 
@@ -88,3 +90,13 @@
 - DNS uses `in` operator for dict key checks (not `.get() is defined`)
 - Env vars must be exported (`set -a && source .env`) for Ansible lookups
 - Committed: `9f0326a` on `act-runner-tollgate-module-ci` branch
+
+## Watchdog Dual-Machine
+
+- [x] watchdog.json: each service has `"machine"` field (m1/m2)
+- [x] watchdog.json: `"machines"` block with SSH config per machine
+- [x] watchdog.py: checks SSH for both machines, probes HTTP per service
+- [x] watchdog.py: redeploys with `--limit <ansible_host>` for correct target
+- [x] watchdog.py: loads .env vars for both VPS_IP and OLD_VPS_IP
+- [x] watchdog.json.j2 template updated with machine field per service
+- [ ] Deploy watchdog config to both machines when online
