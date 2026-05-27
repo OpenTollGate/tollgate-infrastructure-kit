@@ -1,0 +1,7 @@
+---
+- name: Deploy Relatr Web of Trust service
+  hosts: tollgate-vps
+  become: yes
+  gather_facts: yes
+  roles:
+    - relatr

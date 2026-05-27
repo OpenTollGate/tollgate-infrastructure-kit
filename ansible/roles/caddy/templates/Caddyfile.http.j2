@@ -205,6 +205,14 @@ vpn.{{ base_domain }} {
     reverse_proxy localhost:{{ micro_vpn_api_port | default(5010) }}
 }
 
+wot.{{ base_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    reverse_proxy localhost:{{ relatr_port | default(3000) }}
+}
+
 {{ gitworkshop_subdomain | default('workshop') }}.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}

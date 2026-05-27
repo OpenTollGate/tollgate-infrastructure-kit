@@ -24,16 +24,28 @@
 
 - name: Get existing DNS records
   uri:
-    url: "https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone_id_resolved }}/dns_records?type=A"
+    url: "https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone_id_resolved }}/dns_records?per_page=100"
     headers:
       Authorization: "Bearer {{ cloudflare_api_token }}"
     return_content: yes
   register: cf_existing_records
 
-- name: Create A records for service subdomains
+- name: Build record map from existing DNS records
+  set_fact:
+    cf_record_map: >-
+      {{ cf_record_map | default({}) | combine({item.name: item.id}) }}
+  loop: "{{ cf_existing_records.json.result }}"
+  when: item.type == 'A'
+  no_log: true
+
+- name: Upsert A records for service subdomains
   uri:
-    url: "https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone_id_resolved }}/dns_records"
-    method: POST
+    url: >-
+      {{ "https://api.cloudflare.com/client/v4/zones/" + cloudflare_zone_id_resolved + "/dns_records/" + cf_record_map[item + '.' + base_domain]
+         if (cf_record_map | default({})).get(item + '.' + base_domain) is defined
+         else "https://api.cloudflare.com/client/v4/zones/" + cloudflare_zone_id_resolved + "/dns_records" }}
+    method: >-
+      {{ 'PUT' if (cf_record_map | default({})).get(item + '.' + base_domain) is defined else 'POST' }}
     headers:
       Authorization: "Bearer {{ cloudflare_api_token }}"
       Content-Type: "application/json"
@@ -46,13 +58,17 @@
     body_format: json
     status_code: [200, 400]
   loop: "{{ cloudflare_subdomains }}"
-  register: cf_create_result
-  changed_when: cf_create_result.json.success is defined and cf_create_result.json.success
+  register: cf_upsert_result
+  changed_when: cf_upsert_result.json.success is defined and cf_upsert_result.json.success
 
-- name: Create A record for bare domain
+- name: Upsert A record for bare domain
   uri:
-    url: "https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone_id_resolved }}/dns_records"
-    method: POST
+    url: >-
+      {{ "https://api.cloudflare.com/client/v4/zones/" + cloudflare_zone_id_resolved + "/dns_records/" + cf_record_map[base_domain]
+         if (cf_record_map | default({})).get(base_domain) is defined
+         else "https://api.cloudflare.com/client/v4/zones/" + cloudflare_zone_id_resolved + "/dns_records" }}
+    method: >-
+      {{ 'PUT' if (cf_record_map | default({})).get(base_domain) is defined else 'POST' }}
     headers:
       Authorization: "Bearer {{ cloudflare_api_token }}"
       Content-Type: "application/json"
@@ -66,10 +82,14 @@
     status_code: [200, 400]
   register: cf_bare_result
 
-- name: Create wildcard A record for mints subdomain
+- name: Upsert wildcard A record for mints subdomain
   uri:
-    url: "https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone_id_resolved }}/dns_records"
-    method: POST
+    url: >-
+      {{ "https://api.cloudflare.com/client/v4/zones/" + cloudflare_zone_id_resolved + "/dns_records/" + cf_record_map['*.' + mint_domain]
+         if (cf_record_map | default({})).get('*.' + mint_domain) is defined
+         else "https://api.cloudflare.com/client/v4/zones/" + cloudflare_zone_id_resolved + "/dns_records" }}
+    method: >-
+      {{ 'PUT' if (cf_record_map | default({})).get('*.' + mint_domain) is defined else 'POST' }}
     headers:
       Authorization: "Bearer {{ cloudflare_api_token }}"
       Content-Type: "application/json"
@@ -82,3 +102,13 @@
     body_format: json
     status_code: [200, 400]
   register: cf_wildcard_result
+
+- name: Display DNS update summary
+  debug:
+    msg: |
+      DNS records updated to {{ vps_ip }}:
+      {% for sub in cloudflare_subdomains %}
+        {{ sub }}.{{ base_domain }}
+      {% endfor %}
+        {{ base_domain }}
+        *.{{ mint_domain }}

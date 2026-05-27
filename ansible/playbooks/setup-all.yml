@@ -32,6 +32,7 @@
     - grasp_mirror
     - cloud_lab_runner
     - micro_vpn
+    - relatr
 
 - name: Deploy VPS watchdog (local health monitor + auto-redeploy)
   hosts: localhost
