@@ -1,0 +1,27 @@
+services:
+  {{ relatr_container_name }}:
+    build: {{ tollgate_base_dir }}/relatr/src
+    container_name: {{ relatr_container_name }}
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - {{ relatr_data_dir }}:/usr/src/app/data
+      - {{ relatr_plugins_dir }}:/usr/src/app/plugins
+    environment:
+      SERVER_SECRET_KEY: "{{ relatr_server_secret_key }}"
+      DEFAULT_SOURCE_PUBKEY: "{{ relatr_source_npub_hex }}"
+      NOSTR_RELAYS: "{{ relatr_nostr_relays | join(',') }}"
+      SERVER_RELAYS: "{{ relatr_server_relays | join(',') }}"
+      DATABASE_PATH: "/usr/src/app/data/relatr.db"
+      GRAPH_BINARY_PATH: "/usr/src/app/data/socialGraph.bin"
+      NUMBER_OF_HOPS: "{{ relatr_number_of_hops }}"
+      DECAY_FACTOR: "{{ relatr_decay_factor }}"
+      CACHE_TTL_HOURS: "{{ relatr_cache_ttl_hours }}"
+      SYNC_INTERVAL_HOURS: "{{ relatr_sync_interval_hours }}"
+      CLEANUP_INTERVAL_HOURS: "{{ relatr_cleanup_interval_hours }}"
+      IS_PUBLIC_SERVER: "{{ relatr_is_public_server }}"
+      TA_ENABLED: "{{ relatr_ta_enabled }}"
+      RATE_LIMIT_TOKENS: "{{ relatr_rate_limit_tokens }}"
+      RATE_LIMIT_REFILL_RATE: "{{ relatr_rate_limit_refill_rate }}"
+      MAX_STORED_RELAYS: "{{ relatr_max_stored_relays }}"
+      TRUST_API_PORT: "{{ relatr_trust_api_port }}"

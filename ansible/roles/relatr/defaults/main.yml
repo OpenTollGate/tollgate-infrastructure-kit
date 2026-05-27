@@ -1,0 +1,33 @@
+---
+relatr_port: 3000
+relatr_container_name: tollgate-relatr
+relatr_data_dir: "{{ tollgate_base_dir }}/relatr/data"
+relatr_plugins_dir: "{{ tollgate_base_dir }}/relatr/plugins"
+relatr_domain: "wot.{{ base_domain }}"
+
+relatr_server_secret_key: "{{ lookup('env', 'RELATR_SERVER_SECRET_KEY') | default('', true) }}"
+relatr_source_npub_hex: "{{ lookup('env', 'RELATR_SOURCE_NPUB_HEX') | default('', true) }}"
+relatr_nostr_relays:
+  - "wss://relay.{{ base_domain }}"
+  - "wss://ngit.{{ base_domain }}"
+  - "wss://relay.damus.io"
+  - "wss://relay.nostr.band"
+  - "wss://relay.snort.social"
+relatr_server_relays:
+  - "wss://relay.{{ base_domain }}"
+  - "wss://ngit.{{ base_domain }}"
+relatr_number_of_hops: 2
+relatr_decay_factor: 0.1
+relatr_cache_ttl_hours: 72
+relatr_sync_interval_hours: 21
+relatr_cleanup_interval_hours: 7
+relatr_is_public_server: "false"
+relatr_ta_enabled: "false"
+relatr_rate_limit_tokens: 25
+relatr_rate_limit_refill_rate: 2
+relatr_max_stored_relays: 15
+relatr_wot_min_trust_score: 0.1
+relatr_wot_cache_file: "{{ tollgate_base_dir }}/relatr/wot-cache.json"
+relatr_wot_cache_ttl_seconds: 3600
+relatr_trust_api_port: 3001
+relatr_trust_api_db_path: "{{ relatr_data_dir }}/relatr.db"

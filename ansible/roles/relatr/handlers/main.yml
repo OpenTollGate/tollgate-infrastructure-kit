@@ -1,0 +1,15 @@
+---
+- name: restart relatr
+  community.docker.docker_compose_v2:
+    project_src: "{{ tollgate_base_dir }}/relatr"
+    state: present
+    recreate: always
+
+- name: restart trust-api
+  systemd:
+    name: trust-api
+    state: restarted
+    daemon_reload: yes
+
+- name: reload caddy
+  shell: docker exec tollgate-caddy caddy reload --config /etc/caddy/Caddyfile 2>&1

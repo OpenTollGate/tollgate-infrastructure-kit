@@ -1,0 +1,140 @@
+---
+- name: Validate Relatr configuration
+  assert:
+    that:
+      - relatr_server_secret_key | length > 0
+      - relatr_source_npub_hex | length > 0
+    fail_msg: "RELATR_SERVER_SECRET_KEY and RELATR_SOURCE_NPUB_HEX must be set in .env"
+
+- name: Install build dependencies for Relatr
+  apt:
+    name:
+      - git
+      - ca-certificates
+    state: present
+
+- name: Ensure Relatra source directory exists
+  file:
+    path: "{{ tollgate_base_dir }}/relatr/src"
+    state: directory
+    mode: '0755'
+
+- name: Clone Relatr repository
+  git:
+    repo: "https://github.com/ContextVM/relatr.git"
+    dest: "{{ tollgate_base_dir }}/relatr/src"
+    depth: 1
+    force: yes
+  register: relatr_clone
+
+- name: Create Relatr directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ relatr_data_dir }}"
+    - "{{ relatr_plugins_dir }}"
+
+- name: Initialize WoT cache file
+  copy:
+    content: '{}'
+    dest: "{{ relatr_wot_cache_file }}"
+    mode: '0644'
+    force: no
+
+- name: Deploy Relatr docker-compose
+  template:
+    src: docker-compose.relatr.yml.j2
+    dest: "{{ tollgate_base_dir }}/relatr/docker-compose.yml"
+    mode: '0644'
+  notify: restart relatr
+
+- name: Build Relatr Docker image
+  shell: |
+    cd {{ tollgate_base_dir }}/relatr
+    docker compose build --no-cache 2>&1
+  register: relatr_build
+  changed_when: "'Successfully built' in relatr_build.stdout or 'Successfully tagged' in relatr_build.stdout or 'Building' in relatr_build.stdout"
+  when: relatr_clone.changed
+
+- name: Start Relatr container
+  community.docker.docker_compose_v2:
+    project_src: "{{ tollgate_base_dir }}/relatr"
+    state: present
+    build: "{{ 'always' if relatr_clone.changed else 'never' }}"
+  register: relatr_deploy
+
+- name: Wait for Relatr to start
+  uri:
+    url: "http://localhost:{{ relatr_port }}"
+    return_content: yes
+  register: relatr_health
+  until: relatr_health.status == 200
+  retries: 30
+  delay: 5
+
+- name: Verify Relatr is accessible via Caddy
+  uri:
+    url: "https://{{ relatr_domain }}"
+    return_content: yes
+    validate_certs: no
+  register: relatr_caddy_health
+  until: relatr_caddy_health.status == 200
+  retries: 15
+  delay: 3
+
+- name: Deploy trust API server script
+  copy:
+    src: trust-api-server.py
+    dest: "{{ tollgate_base_dir }}/relatr/trust-api-server.py"
+    mode: '0755'
+
+- name: Deploy trust API systemd unit
+  template:
+    src: trust-api.service.j2
+    dest: /etc/systemd/system/trust-api.service
+    mode: '0644'
+  notify: restart trust-api
+
+- name: Enable and start trust API
+  systemd:
+    name: trust-api
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Wait for trust API
+  uri:
+    url: "http://localhost:{{ relatr_trust_api_port }}/health"
+    return_content: yes
+  register: trust_api_health
+  until: trust_api_health.status == 200
+  retries: 15
+  delay: 3
+
+- name: Deploy strfry WoT write-policy script
+  copy:
+    src: strfry-wot-policy.sh
+    dest: "{{ tollgate_base_dir }}/relatr/strfry-wot-policy.sh"
+    mode: '0755'
+  notify: restart ngit-strfry
+
+- name: Deploy GRASP trust filter script
+  copy:
+    src: grasp-trust-filter.sh
+    dest: "{{ tollgate_base_dir }}/relatr/grasp-trust-filter.sh"
+    mode: '0755'
+
+- name: Display Relatr deployment info
+  debug:
+    msg: |
+      Relatr WoT service deployed successfully!
+      Config UI: https://{{ relatr_domain }}
+      Relatr API: http://localhost:{{ relatr_port }}
+      Trust API: http://localhost:{{ relatr_trust_api_port }}
+      Source pubkey: {{ relatr_source_npub_hex }}
+      WoT hops: {{ relatr_number_of_hops }}
+      Min trust score: {{ relatr_wot_min_trust_score }}
+      Trust cache: {{ relatr_wot_cache_file }}
+      Write policy: {{ tollgate_base_dir }}/relatr/strfry-wot-policy.sh

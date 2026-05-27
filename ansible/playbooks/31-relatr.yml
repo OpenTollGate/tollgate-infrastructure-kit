@@ -1,0 +1,7 @@
+---
+- name: Deploy Relatr WoT service for GRASP spam filtering
+  hosts: tollgate-vps
+  become: yes
+  gather_facts: yes
+  roles:
+    - relatr

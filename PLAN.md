@@ -42,6 +42,11 @@ A single Ansible-based repository that deploys all Tollgate-related infrastructu
 | 25 | ACT Runner (CI/CD) | `runner.` | 8095 | Python daemon + nektos/act binary |
 | 26 | Voting Worker | none | — | Rust binary (audit proxy), systemd |
 | 27 | Auditable Voting E2E Tests | none | — | Playwright tests, triggered via Ansible |
+| 28 | Routstr Vision AI node | `routstr-vision.` | 8001 | Docker (ghcr.io/routstr/proxy) + OpenRouter |
+| 29 | Routstr Vision Tor hidden service | `.onion` | 80 | Docker (tor-hidden-service) |
+| 30 | Routstr Vision Mint | `routstr-vision-mint.mints.` | 8094 | Docker (CDK mintd) |
+| 31 | Relatr (Web of Trust) | `wot.` | 3000 | Docker (ContextVM/relatr from source) |
+| 32 | Trust Score API | localhost only | 3001 | Python systemd (reads Relatr DuckDB) |
 
 ## Architecture
 
@@ -230,10 +235,12 @@ make deploy  (or ./scripts/deploy.sh)
    23. Relay Advertisement (NIP-10002 relay list + ngit repo metadata)
    24. GitWorkshop (static React SPA from Nostr)
      25. Testnut mints (CDK + Nutshell 0.20 + Nutshell 0.18 compat)
-     26. ACT Runner (CI/CD for GRASP repos)
-     27. Voting Worker (audit proxy, built from auditable-voting/worker/)
-     28. Auditable Voting E2E Tests (Playwright, triggered via Ansible)
-     → Integration tests
+      26. ACT Runner (CI/CD for GRASP repos)
+      27. Voting Worker (audit proxy, built from auditable-voting/worker/)
+      28. Auditable Voting E2E Tests (Playwright, triggered via Ansible)
+      29. Routstr Vision AI node + dedicated mint + Tor (port 8001, OpenRouter)
+      30. Relatr WoT service + Trust API (spam filtering for GRASP)
+      → Integration tests
      → Playwright E2E tests
 ```
 

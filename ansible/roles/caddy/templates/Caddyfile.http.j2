@@ -92,6 +92,14 @@ routstr-vision.{{ base_domain }} {
     reverse_proxy localhost:{{ routstr_vision_port | default(8001) }}
 }
 
+wot.{{ base_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    reverse_proxy localhost:{{ relatr_port | default(3000) }}
+}
+
 ngit.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}

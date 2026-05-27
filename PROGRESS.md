@@ -284,6 +284,43 @@
 ### Services Status Page Update
 - [x] Updated to 21 services (was 17)
 - [x] Added: testnut-cdk, testnut-nutshell, testnut-compat, GitWorkshop
+- [x] Updated to 25 services — added Routstr Vision, Routstr Vision Mint, Relatr (WoT)
+
+### Routstr Vision Node
+- [x] **Cherry-picked from PR #5a4aab8a** — clean, unrelated changes excluded
+- [x] `routstr_vision` Ansible role (defaults, handlers, tasks, templates)
+- [x] Playbook `ansible/playbooks/19-routstr-vision.yml`
+- [x] Port 8001, subdomain `routstr-vision`, OpenRouter upstream
+- [x] Dedicated mint: routstr-vision-mint (port 8094 REST, 50056 gRPC)
+- [x] Caddy routes for subdomain + mint wildcard + FIPS mesh proxy
+- [x] Cloudflare DNS entry for `routstr-vision`
+- [x] `.env.example` updated with ROUTSTR_VISION_* vars
+- [ ] Deploy to VPS and verify at `https://routstr-vision.orangesync.tech`
+
+### Relatr Web of Trust (GRASP Spam Filtering)
+- [x] `relatr` Ansible role created
+  - [x] `ansible/roles/relatr/defaults/main.yml`
+  - [x] `ansible/roles/relatr/tasks/main.yml`
+  - [x] `ansible/roles/relatr/handlers/main.yml`
+  - [x] `ansible/roles/relatr/templates/docker-compose.relatr.yml.j2`
+  - [x] `ansible/roles/relatr/templates/trust-api.service.j2`
+- [x] Playbook `ansible/playbooks/31-relatr.yml`
+- [x] Trust API HTTP wrapper (`scripts/trust-api-server.py`)
+- [x] strfry write-policy script (`scripts/strfry-wot-policy.sh`)
+- [x] GRASP mirror trust filter (`scripts/grasp-trust-filter.sh`)
+- [x] GRASP audit script (`scripts/grasp-audit.py`)
+- [x] GRASP cleanup script (`scripts/grasp-cleanup.py`)
+- [x] Caddy route: `wot.{{ base_domain }}` → Relatr config UI
+- [x] Cloudflare DNS: `wot` subdomain
+- [x] ngit relay strfry config updated with write-policy
+- [x] `.env.example` updated with RELATR_* vars
+- [x] `setup-all.yml` updated with relatr role
+- [x] Plan documented: `docs/relatr-wot-plan.md`
+- [ ] Set RELATR_SERVER_SECRET_KEY and RELATR_SOURCE_NPUB_HEX in .env
+- [ ] Deploy to VPS via `31-relatr.yml`
+- [ ] Run `grasp-audit.py` to assess current state
+- [ ] Run `grasp-cleanup.py --dry-run` to preview cleanup
+- [ ] Configure strfry write-policy threshold
 
 ## Separate Repo
 

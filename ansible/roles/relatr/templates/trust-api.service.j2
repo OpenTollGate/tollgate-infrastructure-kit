@@ -1,0 +1,17 @@
+[Unit]
+Description=Relatr Trust Score HTTP API
+After=network.target docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 {{ tollgate_base_dir }}/relatr/trust-api-server.py
+Environment=RELATR_DB_PATH={{ relatr_trust_api_db_path }}
+Environment=RELATR_SOURCE_NPUB_HEX={{ relatr_source_npub_hex }}
+Environment=TRUST_API_PORT={{ relatr_trust_api_port }}
+WorkingDirectory={{ tollgate_base_dir }}/relatr
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
