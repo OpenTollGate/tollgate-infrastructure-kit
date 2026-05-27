@@ -96,6 +96,11 @@ const NPUB_MAP = {
   '2c8db3b4bf7075f9f24db49d6443e144c780206c2b15671d0ddaebc1091108f9': 'npub1c03ra...ryrnw',
   '56e9936d5cb44ddd7ab8c506fbfc8cc621431a7e030f1c8b8bce52ca17ca9838': 'npub19jxm8...s3s0f3',
 };
+const FALLBACK_SESSIONS = [
+  {npub:'c3e23eb5e3d00f18b2f4f588d8cdbc548648be761bdd90812186df4603d7caa9',connected:false,pairing_uri:'nostrconnect://2839411006e06e1c83b9cbd29a63ae7f58444e2fe03fa04e720e4eaff6e28fd2?metadata=%7B%22name%22%3A%22grasp-mirror%22%7D&relay=wss://relay.orangesync.tech&relay=wss://ngit.orangesync.tech'},
+  {npub:'2c8db3b4bf7075f9f24db49d6443e144c780206c2b15671d0ddaebc1091108f9',connected:false,pairing_uri:'nostrconnect://92d7842be1b30c4ea627447c30ec6fe555b6b0139136436233e2ee0aaa72990f?metadata=%7B%22name%22%3A%22grasp-mirror%22%7D&relay=wss://relay.orangesync.tech&relay=wss://ngit.orangesync.tech'},
+  {npub:'56e9936d5cb44ddd7ab8c506fbfc8cc621431a7e030f1c8b8bce52ca17ca9838',connected:false,pairing_uri:'nostrconnect://9c273012cd08569fe3e8081643243b58a863707dff90c06cf156cf65703f50a4?metadata=%7B%22name%22%3A%22grasp-mirror%22%7D&relay=wss://relay.orangesync.tech&relay=wss://ngit.orangesync.tech'},
+];
 
 let sessions = [];
 let refreshInterval = null;
@@ -130,10 +135,13 @@ async function fetchHealth() {
     }
   } catch (e) {
     dot.className = 'status-dot err';
-    text.textContent = 'Connection failed';
-    errArea.textContent = `Failed to reach grasp-mirror health endpoint: ${e.message}`;
+    text.textContent = 'Daemon offline (showing cached URIs)';
+    sessions = FALLBACK_SESSIONS;
+    mainContent.classList.remove('hidden');
+    errArea.textContent = 'Cannot reach grasp-mirror daemon live status. Showing last known pairing URIs — QR codes are still valid.';
     errArea.classList.remove('hidden');
-    mainContent.classList.add('hidden');
+    populateSelect();
+    updateSelectedSession();
   }
 }
 
