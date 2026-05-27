@@ -92,8 +92,15 @@ services.{{ base_domain }} {
         dns cloudflare {env.CF_API_TOKEN}
     }
 
-    root * {{ tollgate_static_dir }}/services
-    file_server
+    handle /api/mirror-health* {
+        reverse_proxy localhost:{{ grasp_mirror_health_port | default(7335) }}
+    }
+
+    handle {
+        root * {{ tollgate_static_dir }}/services
+        file_server
+        try_files {path} /index.html
+    }
 }
 
 vote.{{ base_domain }} {

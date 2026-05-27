@@ -10,19 +10,12 @@ grasp_mirror_npubs_list:
   - "npub19jxm8d9lwp6lnujdkjwkgslpgnrcqgrv9v2kw8gdmt4uzzg3pruse3s0f3"
   - "npub1c03rad0r6q833vh57kyd3ndu2jry30nkr0wepqfpsm05vq7he25slryrnw"
 grasp_mirror_servers:
-  - "relay.ngit.dev"
-  - "gitnostr.com"
   - "git.orangesync.tech"
-  - "ngit.danconwaydev.com"
-  - "git.shakespeare.diy"
-  - "git.upleb.uk"
-  - "grasp.budabit.club"
-  - "git.uid.ovh"
-  - "git.vps.satsnode.xyz"
 grasp_mirror_index_relays:
-  - "wss://index.ngit.dev"
+  - "wss://git.orangesync.tech"
 grasp_mirror_signing_key_file: ""
 grasp_mirror_nip46_relays:
+  - "wss://git.orangesync.tech"
   - "wss://relay.orangesync.tech"
-  - "wss://ngit.orangesync.tech"
 grasp_mirror_nip46_signing_timeout: 604800
+grasp_mirror_rust_version: "1.95.0"

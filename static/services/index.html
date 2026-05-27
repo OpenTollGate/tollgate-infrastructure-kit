@@ -99,7 +99,8 @@ const SERVICES=[
 {group:"IoT",name:"Solix C1000 BLE Bridge",url:"https://solix.orangesync.tech"},
 {group:"CI",name:"Act Runner Daemon",url:"https://runner.orangesync.tech/api/health"},
 {group:"CI",name:"CI Dashboard",url:"https://runner.orangesync.tech"},
-{group:"Mirroring",name:"GRASP Mirror Daemon",url:"https://git.orangesync.tech/api/mirror-health"}
+{group:"Mirroring",name:"GRASP Mirror Daemon",url:"https://git.orangesync.tech/api/mirror-health"},
+{group:"Mirroring",name:"NIP-46 Amber Pairing",url:"https://services.orangesync.tech/mirror-pairing.html"}
 ];
 
 const state=SERVICES.map(()=>({status:"pending",ms:null,retryTimer:null}));
