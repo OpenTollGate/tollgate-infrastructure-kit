@@ -202,7 +202,23 @@
 
 ## In Progress
 
-### 5. Backup Infrastructure (Syncthing + strfry export)
+### Dual-Machine Architecture (m1/m2)
+- [x] VPS Stats UI rendering JS added to `static/services/index.html`
+- [x] Inventory split: m1 (226) + m2 (51) groups with `machine_id`, `machine_domain`, `machine_roles`
+- [x] Caddyfile template conditional: `{% if 'role' in machine_roles %}`
+- [x] DNS role: per-machine wildcards, `in` operator for dict key checks
+- [x] `setup-m1.yml` and `setup-m2.yml` playbooks
+- [x] `setup-all.yml` imports both machine playbooks
+- [x] Deployed Caddy + VPS stats to m1 (VPS 226) — services operational
+- [x] VPS 226 back online (was unreachable, now responding)
+- [ ] Full m1 deploy (all roles) to VPS 226
+- [ ] Deploy m2 config to VPS 51
+- [ ] Create `*.m1.orangesync.tech` DNS wildcard → 226
+- [ ] Create `*.m2.orangesync.tech` DNS wildcard → 51
+- [ ] Services dashboard dual-machine view
+- [x] Committed and pushed (9f0326a)
+
+### Backup Infrastructure (Syncthing + strfry export)
 - [x] `backup` Ansible role created — daily systemd timer at 02:00 UTC
   - [x] `ansible/roles/backup/defaults/main.yml`
   - [x] `ansible/roles/backup/tasks/main.yml`
