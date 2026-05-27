@@ -1,0 +1,124 @@
+---
+- name: Install build dependencies for Budabit
+  apt:
+    name:
+      - git
+      - ca-certificates
+      - curl
+    state: present
+
+- name: Check if pnpm is installed
+  command: which pnpm
+  register: pnpm_check
+  changed_when: false
+  failed_when: false
+
+- name: Install pnpm
+  shell: "curl -fsSL https://get.pnpm.io/install.sh | sh -"
+  environment:
+    PNPM_HOME: "/root/.local/share/pnpm"
+  when: pnpm_check.rc != 0
+
+- name: Check if Node.js LTS is installed
+  shell: "source /root/.nvm/nvm.sh && nvm current"
+  args:
+    executable: /bin/bash
+  register: node_check
+  changed_when: false
+  failed_when: false
+
+- name: Install Node.js LTS via nvm
+  shell: |
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+    source /root/.nvm/nvm.sh
+    nvm install --lts=Jod
+    nvm use --lts=Jod
+  args:
+    executable: /bin/bash
+  when: "'Jod' not in node_check.stdout or node_check.rc != 0"
+
+- name: Ensure source directory exists
+  file:
+    path: "{{ budabit_src_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Clone Budabit repository
+  git:
+    repo: "{{ budabit_repo_url }}"
+    dest: "{{ budabit_src_dir }}"
+    depth: 1
+    force: yes
+    version: "{{ budabit_branch }}"
+  register: budabit_clone
+
+- name: Sync git submodules
+  shell: |
+    cd {{ budabit_src_dir }}
+    git submodule sync --recursive
+    git submodule update --init --recursive
+  when: budabit_clone.changed
+
+- name: Deploy Budabit environment file
+  template:
+    src: env.production.j2
+    dest: "{{ budabit_src_dir }}/.env"
+    mode: '0644'
+
+- name: Ensure static directory exists
+  file:
+    path: "{{ budabit_static_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Build Budabit (production)
+  shell: |
+    source /root/.nvm/nvm.sh
+    nvm use --lts=Jod
+    export PATH="/root/.local/share/pnpm:$PATH"
+    cd {{ budabit_src_dir }}
+    pnpm run build-in-production
+  args:
+    executable: /bin/bash
+  register: budabit_build
+  changed_when: "'building' in budabit_build.stdout|lower or 'done' in budabit_build.stdout|lower"
+
+- name: Clean old deployment
+  shell: "rm -rf {{ budabit_static_dir }}/*"
+
+- name: Copy built files to static dir
+  synchronize:
+    src: "{{ budabit_src_dir }}/build/"
+    dest: "{{ budabit_static_dir }}/"
+    delete: yes
+    rsync_opts:
+      - "--chmod=D0755,F0644"
+
+- name: Fix permissions
+  file:
+    path: "{{ budabit_static_dir }}"
+    state: directory
+    owner: root
+    group: root
+    recurse: yes
+
+- name: Verify Budabit is accessible via Caddy
+  uri:
+    url: "https://{{ budabit_domain }}"
+    return_content: yes
+    validate_certs: no
+  register: budabit_caddy_health
+  until: budabit_caddy_health.status == 200
+  retries: 15
+  delay: 3
+
+- name: Display Budabit deployment info
+  debug:
+    msg: |
+      Budabit community platform deployed!
+      URL: https://{{ budabit_domain }}
+      Community: {{ budabit_community_npub }}
+      Source: {{ budabit_src_dir }}
+      Static: {{ budabit_static_dir }}
+      GRASP: {{ budabit_feature_grasp }}
+      CI/CD: {{ budabit_feature_cicd }}

@@ -1,0 +1,7 @@
+---
+- name: Deploy Budabit community platform
+  hosts: tollgate-vps
+  become: yes
+  gather_facts: yes
+  roles:
+    - budabit

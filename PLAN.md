@@ -47,6 +47,7 @@ A single Ansible-based repository that deploys all Tollgate-related infrastructu
 | 30 | Routstr Vision Mint | `routstr-vision-mint.mints.` | 8094 | Docker (CDK mintd) |
 | 31 | Relatr (Web of Trust) | `wot.` | 3000 | Docker (ContextVM/relatr from source) |
 | 32 | Trust Score API | localhost only | 3001 | Python systemd (reads Relatr DuckDB) |
+| 33 | Budabit (Community Q&A) | `community.` | — | Static SPA (SvelteKit, built from source) |
 
 ## Architecture
 
@@ -240,6 +241,7 @@ make deploy  (or ./scripts/deploy.sh)
       28. Auditable Voting E2E Tests (Playwright, triggered via Ansible)
       29. Routstr Vision AI node + dedicated mint + Tor (port 8001, OpenRouter)
       30. Relatr WoT service + Trust API (spam filtering for GRASP)
+      31. Budabit community platform (Q&A, Git collaboration, static SPA)
       → Integration tests
      → Playwright E2E tests
 ```

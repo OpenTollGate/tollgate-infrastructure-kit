@@ -285,6 +285,26 @@
 - [x] Updated to 21 services (was 17)
 - [x] Added: testnut-cdk, testnut-nutshell, testnut-compat, GitWorkshop
 - [x] Updated to 25 services — added Routstr Vision, Routstr Vision Mint, Relatr (WoT)
+- [x] Updated to 26 services — added Budabit (Community)
+
+### Budabit Community Platform
+- [x] `budabit` Ansible role created
+  - [x] `ansible/roles/budabit/defaults/main.yml`
+  - [x] `ansible/roles/budabit/tasks/main.yml`
+  - [x] `ansible/roles/budabit/templates/env.production.j2`
+  - [x] `ansible/roles/budabit/handlers/main.yml`
+- [x] Playbook `ansible/playbooks/32-budabit.yml`
+- [x] Caddy route: `community.{{ base_domain }}` with SPA fallback
+- [x] Cloudflare DNS: `community` subdomain
+- [x] `.env.example` updated with BUDABIT_* vars
+- [x] `setup-all.yml` updated with budabit role
+- [x] Services dashboard updated with Budabit entry
+- [x] Plan documented: `docs/budabit-community-plan.md`
+- [ ] Generate TollGate Communikey keypair
+- [ ] Create kind 0 profile + kind 10222 community definition
+- [ ] Set BUDABIT_COMMUNITY_NPUB and BUDABIT_DEFAULT_PUBKEYS_HEX in .env
+- [ ] Deploy to VPS via `32-budabit.yml`
+- [ ] Verify at `https://community.orangesync.tech`
 
 ### Routstr Vision Node
 - [x] **Cherry-picked from PR #5a4aab8a** — clean, unrelated changes excluded

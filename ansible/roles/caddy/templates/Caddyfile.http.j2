@@ -137,6 +137,16 @@ solix.{{ base_domain }} {
     try_files {path} /index.html
 }
 
+community.{{ base_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    root * {{ tollgate_static_dir }}/budabit
+    file_server
+    try_files {path} /index.html
+}
+
 relay.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}

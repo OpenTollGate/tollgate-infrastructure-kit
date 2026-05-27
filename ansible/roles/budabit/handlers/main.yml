@@ -1,0 +1,10 @@
+---
+- name: rebuild budabit
+  shell: |
+    source /root/.nvm/nvm.sh
+    nvm use --lts=Jod
+    export PATH="/root/.local/share/pnpm:$PATH"
+    cd {{ budabit_src_dir }}
+    pnpm run build-in-production
+  args:
+    executable: /bin/bash

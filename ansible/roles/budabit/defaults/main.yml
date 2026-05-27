@@ -1,0 +1,28 @@
+---
+budabit_repo_url: "https://github.com/Pleb5/flotilla-budabit.git"
+budabit_branch: "master"
+budabit_src_dir: "{{ tollgate_base_dir }}/src/budabit"
+budabit_static_dir: "{{ tollgate_static_dir }}/budabit"
+budabit_domain: "community.{{ base_domain }}"
+budabit_app_name: "{{ lookup('env', 'BUDABIT_APP_NAME') | default('TollGate Community', true) }}"
+budabit_app_accent: "{{ lookup('env', 'BUDABIT_APP_ACCENT') | default('#f7931a', true) }}"
+budabit_app_logo: "{{ lookup('env', 'BUDABIT_APP_LOGO') | default('', true) }}"
+budabit_community_npub: "{{ lookup('env', 'BUDABIT_COMMUNITY_NPUB') | default('', true) }}"
+budabit_default_pubkeys_hex: "{{ lookup('env', 'BUDABIT_DEFAULT_PUBKEYS_HEX') | default('', true) }}"
+budabit_indexer_relays:
+  - "wss://relay.{{ base_domain }}"
+  - "wss://ngit.{{ base_domain }}"
+  - "wss://relay.damus.io"
+budabit_git_relays:
+  - "wss://ngit.{{ base_domain }}"
+  - "wss://relay.ngit.dev"
+  - "wss://gitnostr.com"
+budabit_signer_relays:
+  - "wss://relay.{{ base_domain }}"
+  - "wss://ngit.{{ base_domain }}"
+budabit_blossom_servers:
+  - "https://blossom.{{ base_domain }}"
+budabit_cors_proxy: "{{ lookup('env', 'BUDABIT_CORS_PROXY') | default('', true) }}"
+budabit_feature_grasp: "1"
+budabit_feature_cicd: "1"
+budabit_feature_alerts: "0"
