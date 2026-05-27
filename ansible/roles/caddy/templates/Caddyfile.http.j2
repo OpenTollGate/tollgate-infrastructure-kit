@@ -190,6 +190,14 @@ git.{{ base_domain }} {
     }
 }
 
+vpn.{{ base_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    reverse_proxy localhost:{{ micro_vpn_api_port | default(5010) }}
+}
+
 {{ gitworkshop_subdomain | default('workshop') }}.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}

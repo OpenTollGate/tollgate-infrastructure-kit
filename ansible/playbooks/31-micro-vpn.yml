@@ -1,0 +1,7 @@
+---
+- name: Deploy Micro VPN port forwarding service
+  hosts: tollgate-vps
+  become: yes
+  gather_facts: yes
+  roles:
+    - micro_vpn

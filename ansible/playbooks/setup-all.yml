@@ -31,6 +31,7 @@
     - gitworkshop
     - grasp_mirror
     - cloud_lab_runner
+    - micro_vpn
 
 - name: Deploy VPS watchdog (local health monitor + auto-redeploy)
   hosts: localhost
