@@ -79,7 +79,7 @@ routstr_vision_domain: "routstr-vision.{{ base_domain }}"
 routstr_vision_mint_rest_port: 8094
 routstr_vision_mint_grpc_port: 50056
 
-relatr_port: 3000
+relatr_port: 3020
 relatr_domain: "wot.{{ base_domain }}"
 
 budabit_domain: "community.{{ base_domain }}"

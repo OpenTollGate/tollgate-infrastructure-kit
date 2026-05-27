@@ -5,9 +5,9 @@
   register: relatr_env_file
   failed_when: false
 
-- name: Check if RELATR_SERVER_SECRET_KEY already in .env
+- name: Check if RELATR_SERVER_SECRET_KEY already in .env with non-empty value
   set_fact:
-    relatr_secret_key_exists: "{{ relatr_env_file.content is defined and 'RELATR_SERVER_SECRET_KEY=' in (relatr_env_file.content | b64decode) }}"
+    relatr_secret_key_exists: "{{ relatr_env_file.content is defined and (relatr_env_file.content | b64decode | regex_search('RELATR_SERVER_SECRET_KEY=\\S+')) }}"
 
 - name: Generate RELATR_SERVER_SECRET_KEY if missing
   shell: |
@@ -15,9 +15,9 @@
     echo "RELATR_SERVER_SECRET_KEY=${SECRET}" >> /opt/tollgate/.env
   when: not relatr_secret_key_exists
 
-- name: Check if RELATR_SOURCE_NPUB_HEX already in .env
+- name: Check if RELATR_SOURCE_NPUB_HEX already in .env with non-empty value
   set_fact:
-    relatr_npub_exists: "{{ relatr_env_file.content is defined and 'RELATR_SOURCE_NPUB_HEX=' in (relatr_env_file.content | b64decode) }}"
+    relatr_npub_exists: "{{ relatr_env_file.content is defined and (relatr_env_file.content | b64decode | regex_search('RELATR_SOURCE_NPUB_HEX=\\S+')) }}"
 
 - name: Install pynostr and PyNaCl for keypair generation
   pip:
@@ -102,6 +102,12 @@
     mode: '0644'
     force: no
 
+- name: Patch Relatr manager port to avoid conflicts
+  replace:
+    path: "{{ tollgate_base_dir }}/relatr/src/manager.ts"
+    regexp: 'port: 3000'
+    replace: "port: {{ relatr_port }}"
+
 - name: Deploy Relatr docker-compose
   template:
     src: docker-compose.relatr.yml.j2
@@ -115,7 +121,6 @@
     docker compose build --no-cache 2>&1
   register: relatr_build
   changed_when: "'Successfully built' in relatr_build.stdout or 'Successfully tagged' in relatr_build.stdout or 'Building' in relatr_build.stdout"
-  when: relatr_clone.changed
 
 - name: Start Relatr container
   community.docker.docker_compose_v2:
@@ -129,7 +134,7 @@
     url: "http://localhost:{{ relatr_port }}"
     return_content: yes
   register: relatr_health
-  until: relatr_health.status == 200
+  until: relatr_health.status in [200, 404]
   retries: 30
   delay: 5
 
@@ -139,7 +144,7 @@
     return_content: yes
     validate_certs: no
   register: relatr_caddy_health
-  until: relatr_caddy_health.status == 200
+  until: relatr_caddy_health.status in [200, 404]
   retries: 15
   delay: 3
 

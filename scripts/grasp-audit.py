@@ -86,38 +86,20 @@ def build_report(results):
 
 
 def send_dm(report_text):
-    try:
-        from pynostr.key import PrivateKey
-        from pynostr.event import Event
-        from pynostr.relay_manager import RelayManager
-    except ImportError:
-        print("pynostr not installed, skipping DM")
-        return False
-
-    nsec = os.environ.get("GRASP_AUDIT_NSEC", "")
+    hex_sk = os.environ.get("GRASP_AUDIT_HEX_SK", "")
     recipient_npub = os.environ.get("GRASP_AUDIT_RECIPIENT_NPUB", "")
     relays_str = os.environ.get("GRASP_AUDIT_RELAYS", "wss://relay.damus.io")
     relays = [r.strip() for r in relays_str.split(",") if r.strip()]
 
-    if not nsec or not recipient_npub:
-        print("GRASP_AUDIT_NSEC or GRASP_AUDIT_RECIPIENT_NPUB not set, skipping DM")
+    if not hex_sk or not recipient_npub:
+        print("GRASP_AUDIT_HEX_SK or GRASP_AUDIT_RECIPIENT_NPUB not set, skipping DM")
         return False
 
     try:
-        sk = PrivateKey(bech32=nsec)
-    except Exception:
-        try:
-            from bech32 import bech32_decode, convertbits
-            _, data = bech32_decode(nsec)
-            if data:
-                hex_bytes = convertbits(data, 5, 8, False)
-                sk = PrivateKey(bytes(hex_bytes).hex())
-            else:
-                print("Invalid nsec format")
-                return False
-        except Exception as e:
-            print(f"Failed to parse nsec: {e}")
-            return False
+        from pynostr.event import Event
+    except ImportError:
+        print("pynostr not installed, skipping DM")
+        return False
 
     try:
         from bech32 import bech32_decode, convertbits
@@ -131,26 +113,46 @@ def send_dm(report_text):
         print(f"Failed to parse recipient npub: {e}")
         return False
 
-    event = Event(
-        kind=4,
-        content=report_text,
-        tags=[["p", recipient_hex]],
-    )
-    sk.sign_event(event)
+    import hashlib, secp256k1, json as json_mod
 
-    try:
-        rm = RelayManager()
-        for relay in relays:
-            rm.add_relay(relay)
-        rm.run(timeout=5)
-        time.sleep(1.5)
-        event.publish_to(relay_manager=rm)
-        time.sleep(2)
-        rm.close()
-        print(f"DM sent to {recipient_npub[:20]}... via {len(relays)} relays")
+    pubkey_bytes = bytes.fromhex(hex_sk)
+    sk = secp256k1.PrivateKey(pubkey_bytes)
+
+    event_obj = {
+        "kind": 4,
+        "content": report_text,
+        "tags": [["p", recipient_hex]],
+        "created_at": int(time.time()),
+    }
+
+    full_pubkey = sk.pubkey.serialize()
+    event_obj["pubkey"] = full_pubkey[1:].hex()
+    serialized = json_mod.dumps([0, event_obj["pubkey"], event_obj["created_at"], event_obj["kind"], event_obj["tags"], event_obj["content"]], separators=(',', ':'))
+    event_id = hashlib.sha256(serialized.encode()).hexdigest()
+    event_obj["id"] = event_id
+
+    sig = sk.schnorr_sign(bytes.fromhex(event_id), None, raw=True)
+    event_obj["sig"] = sig.hex() if isinstance(sig, bytes) else sig.serialize().hex()
+
+    sent = False
+    for relay_url in relays:
+        try:
+            import websocket
+            ws = websocket.create_connection(relay_url, timeout=10, suppress_origin=True)
+            ws.send(json_mod.dumps(["EVENT", event_obj]))
+            result = ws.recv()
+            ws.close()
+            if "true" in result.lower() or "ok" in result.lower() or "\"error\"" not in result.lower():
+                sent = True
+                break
+        except Exception as e:
+            continue
+
+    if sent:
+        print(f"DM sent to {recipient_npub[:20]}... via {relay_url}")
         return True
-    except Exception as e:
-        print(f"Failed to send DM: {e}")
+    else:
+        print(f"Failed to send DM to any relay")
         return False
 
 

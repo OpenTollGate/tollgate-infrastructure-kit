@@ -2,7 +2,7 @@
 Description=Daily GRASP Server Disk Usage Audit
 
 [Timer]
-OnCalendar=*-*-* {{ grasp_audit_cron_hour | string | pad(2) }}:{{ grasp_audit_cron_minute | string | pad(2) }}:00
+OnCalendar=*-*-* {{ "%02d" | format(grasp_audit_cron_hour) }}:{{ "%02d" | format(grasp_audit_cron_minute) }}:00
 Persistent=true
 
 [Install]

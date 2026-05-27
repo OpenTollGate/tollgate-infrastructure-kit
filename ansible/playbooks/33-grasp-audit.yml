@@ -1,6 +1,6 @@
 ---
 - name: Deploy GRASP Audit Service
-  hosts: vps
+  hosts: tollgate-vps
   become: yes
   roles:
     - grasp_audit

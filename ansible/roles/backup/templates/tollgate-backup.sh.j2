@@ -46,41 +46,39 @@ else
 fi
 
 # --- GRASP git mirror ---
+# NOTE: GRASP data is synced directly via Syncthing from /opt/tollgate/grasp/data/
+# to avoid doubling 21GB+ on the staging disk. Not copied here.
 if [ -d "{{ backup_grasp_git_dir }}" ]; then
-    log "Mirroring GRASP git repos..."
-    rm -rf "$BACKUP_DIR/grasp/git"
-    cp -a "{{ backup_grasp_git_dir }}" "$BACKUP_DIR/grasp/git"
-    log "GRASP git mirror done"
+    GRASP_SIZE=$(du -sm "{{ backup_grasp_git_dir }}" 2>/dev/null | cut -f1)
+    log "GRASP git repos: ${GRASP_SIZE}MB (synced directly via Syncthing, not staged)"
 else
     log "SKIP: GRASP git dir not found"
 fi
 
 # --- Mint SQLite databases ---
 if [ -d "{{ backup_mints_dir }}" ]; then
-    log "Copying mint databases..."
-    rm -rf "$BACKUP_DIR/mints"/*
-    find "{{ backup_mints_dir }}" -name '*.db' -exec bash -c 'mkdir -p "$BACKUP_DIR/mints/$(dirname "$1" | sed "s|{{ backup_mints_dir }}/\?||")" && cp "$1" "$BACKUP_DIR/mints/$(dirname "$1" | sed "s|{{ backup_mints_dir }}/\?||")/"' _ {} \;
-    log "Mint databases copied"
+    log "Syncing mint databases via rsync..."
+    mkdir -p "$BACKUP_DIR/mints"
+    rsync -a --include='*.sqlite' --include='*/' --exclude='*' --delete "{{ backup_mints_dir }}/" "$BACKUP_DIR/mints/"
+    log "Mint databases synced"
 else
     log "SKIP: mints dir not found"
 fi
 
 # --- Routstr data ---
 if [ -d "{{ backup_routstr_dir }}" ]; then
-    log "Copying Routstr data..."
-    rm -rf "$BACKUP_DIR/routstr"/*
-    cp -a "{{ backup_routstr_dir }}/." "$BACKUP_DIR/routstr/"
-    log "Routstr data copied"
+    log "Syncing Routstr data..."
+    rsync -a --delete "{{ backup_routstr_dir }}/." "$BACKUP_DIR/routstr/"
+    log "Routstr data synced"
 else
     log "SKIP: Routstr dir not found"
 fi
 
 # --- Caddy certs ---
 if [ -d "{{ backup_caddy_dir }}" ]; then
-    log "Copying Caddy certs..."
-    rm -rf "$BACKUP_DIR/caddy"/*
-    cp -a "{{ backup_caddy_dir }}/." "$BACKUP_DIR/caddy/"
-    log "Caddy certs copied"
+    log "Syncing Caddy certs..."
+    rsync -a --delete "{{ backup_caddy_dir }}/." "$BACKUP_DIR/caddy/"
+    log "Caddy certs synced"
 else
     log "SKIP: Caddy data dir not found"
 fi
