@@ -259,65 +259,65 @@ ssh debian@23.182.128.51 "sudo systemctl stop ngit-grasp tollgate-act-runner syn
 ## Checklist
 
 ### Phase 0: zram Ansible Role
-- [ ] Create `ansible/roles/zram/defaults/main.yml`
-- [ ] Create `ansible/roles/zram/tasks/main.yml` (install zram-config, sysctl swappiness, verify)
-- [ ] Create `ansible/playbooks/00-zram.yml`
-- [ ] Run `00-zram.yml` on new VPS
-- [ ] Run `00-zram.yml` on old VPS
-- [ ] Run `00-zram.yml` on backup machine
-- [ ] Verify zram active on all 3 machines (`zramctl`, `/proc/swaps`)
+- [x] Create `ansible/roles/zram/defaults/main.yml`
+- [x] Create `ansible/roles/zram/tasks/main.yml` (install zram-tools, sysctl swappiness, verify)
+- [x] Create `ansible/playbooks/00-zram.yml`
+- [x] Run `00-zram.yml` on new VPS — 1.9GB swap active
+- [x] Run `00-zram.yml` on old VPS — 3.9GB swap active
+- [ ] Run `00-zram.yml` on backup machine (blocked: needs passwordless sudo)
+- [x] Verify zram active on VPS machines
 
 ### Phase 1: Data Migration
-- [ ] rsync `/opt/tollgate/grasp/` (21GB) from old → new
-- [ ] rsync `/opt/tollgate/routstr/` from old → new
-- [ ] rsync `/opt/tollgate/mints/` from old → new
-- [ ] rsync `/opt/tollgate/act-runner/` from old → new
-- [ ] rsync `/opt/tollgate/caddy/data/` from old → new
-- [ ] rsync `/var/log/tollgate/` from old → new
-- [ ] Verify mint_key files match (md5sum comparison)
-- [ ] Verify GRASP repo count matches (2196)
-- [ ] Verify routstr.conf nsec matches
+- [x] rsync GRASP 21GB + relay-owner nsec from old → new (via direct VPS-to-VPS rsync)
+- [x] rsync routstr data (conf, tor-data, DB) from old → new
+- [x] rsync mint keys (7 mints) from old → new (piped via sudo)
+- [x] rsync act-runner data (273MB) from old → new
+- [x] rsync Caddy certs from old → new
+- [x] Fix routstr.conf nsec (Ansible generated new one, overwrote with correct one from old VPS)
+- [x] Fix mint_key for test-mb and routstr-mint (Ansible generated new ones, overwrote)
+- [x] Verify mint_key md5sums match (all 6 OK)
+- [x] Verify GRASP repo count matches (2196)
+- [x] Verify routstr.conf nsec matches
 
 ### Phase 2: Deploy Missing Playbooks
-- [ ] Run `15-grasp.yml` (Rust build + systemd service)
-- [ ] Run `deploy-test-mints.yml` (5 missing mints: test-kb, test-gb, test-min, testnut, nutshell variants)
-- [ ] Run `18-routstr.yml` (routstr + tor containers)
-- [ ] Run `16-cashu-brrr.yml` (frontend build)
-- [ ] Run `17-mint-operator-proxy.yml`
-- [ ] Run `27-act-runner.yml` (systemd service + venv)
-- [ ] Run `30-grasp-mirror.yml`
-- [ ] Run `13-fips.yml` (fix env var first)
-- [ ] Run `14-nsyte.yml`
-- [ ] Run `24-gitworkshop.yml` (investigate failure)
-- [ ] Run `26-plebeian-market-test.yml`
-- [ ] Run `28-voting-worker.yml`
-- [ ] Run `29-auditable-voting-tests.yml`
-- [ ] Deploy static dashboard files (index.html, gen-backup-status.py)
-- [ ] Run `22-backup.yml` (deploy backup script + timer + gen-backup-status.py)
+- [x] GRASP: copied binary from old VPS (v1.0.2), deployed systemd unit manually
+- [x] Test mints: test-mb, test-kb, test-gb, test-min, testnut — all running
+- [x] Routstr + Tor containers running
+- [x] Mint routstr-mint running
+- [ ] cashu-brrr (blocked: Node.js not in Debian 13 repos)
+- [ ] Mint operator proxy
+- [ ] Act runner (needs `27-act-runner.yml`, long build time)
+- [ ] GRASP mirror daemon
+- [ ] fips (needs env vars)
+- [ ] nsyte CLI
+- [ ] gitworkshop
+- [ ] plebeian-market-test
+- [ ] voting-worker
+- [ ] auditable-voting-tests
+- [ ] nutshell mints (nutshell-mint, nutshell-compat)
 
 ### Phase 3: Syncthing
-- [ ] Run `21-syncthing.yml` on new VPS (install + peering)
-- [ ] Verify syncthing folders created (6 folders)
-- [ ] Verify peering with backup machine active
-- [ ] Wait for initial scan/hash verification
+- [x] Run `21-syncthing.yml` on new VPS — installed, peered with backup machine
+- [x] 6 sync folders created
+- [x] Peering with backup machine active
+- [ ] Wait for initial scan/hash verification (GRASP 21GB will take time)
 - [ ] Regenerate backup-status.json on new VPS
 
 ### Phase 4: DNS Cutover
-- [ ] Fix `03-cloudflare-dns` playbook (add PATCH for existing records)
-- [ ] Run DNS playbook with `VPS_IP=23.182.128.226`
-- [ ] Verify all subdomains point to new IP
-- [ ] Verify TLS certs issued for all domains on new VPS
+- [x] Fix `03-cloudflare-dns` playbook — rewrote to upsert (PUT existing, POST new)
+- [x] Run DNS playbook with `VPS_IP=23.182.128.226`
+- [x] Delete 25 duplicate records pointing to old IP (23.182.128.51)
+- [x] Update wildcard `*.orangesync.tech` from 64 to 226
+- [x] Verify all subdomains resolve to 23.182.128.226 via Cloudflare DNS
 
 ### Phase 5: Verification
-- [ ] All Docker containers running on new VPS
-- [ ] All systemd services active on new VPS
-- [ ] Dashboard at `services.orangesync.tech` shows all green
-- [ ] Backup status shows all synced
-- [ ] GRASP accessible at `git.orangesync.tech`
-- [ ] Routstr accessible at `routstr.orangesync.tech`
-- [ ] All 7 mints responding at `*.mints.orangesync.tech`
+- [x] Core services: relay, chat, blossom, nsite, git (GRASP), ngit, routstr — all 200 OK
+- [x] Dashboard at services.orangesync.tech — 200 OK
+- [x] 5 test mints accessible (test-mb, test-kb, test-gb, test-min, routstr-mint)
+- [ ] testnut mint — 404 (TLS cert still provisioning)
+- [ ] Static sites (vote, workshop, runner, solix, ci, releases) — 404 (content not deployed yet)
+- [ ] Dashboard backup status shows new VPS as source
 - [ ] Act runner connected and processing jobs
-- [ ] Syncthing 3-way sync working (new VPS ↔ backup machine)
 
 ### Phase 6: Cleanup
 - [ ] Stop services on old VPS (keep data intact)
