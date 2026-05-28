@@ -1,5 +1,5 @@
 [Interface]
-PrivateKey = {{ lookup('file', micro_vpn_config_dir + '/server_private.key') }}
+PrivateKey = {{ micro_vpn_server_private_key }}
 Address = {{ micro_vpn_server_vpn_ip }}/16
 ListenPort = {{ micro_vpn_wireguard_port }}
 
