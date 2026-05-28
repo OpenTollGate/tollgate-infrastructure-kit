@@ -38,6 +38,11 @@
     state: directory
     mode: '0755'
 
+- name: Check if bitcoind binary already installed
+  stat:
+    path: /usr/local/bin/bitcoind
+  register: core_binary
+
 - name: Clone Bitcoin Core source
   git:
     repo: "{{ bitcoin_core_repo }}"
@@ -45,6 +50,7 @@
     version: "{{ bitcoin_core_version }}"
     depth: 1
     force: yes
+  when: not core_binary.stat.exists
 
 - name: Configure Bitcoin Core (no wallet, no GUI)
   shell: |
@@ -55,6 +61,7 @@
   args:
     chdir: "{{ tollgate_base_dir }}/src/bitcoin-core"
     creates: "{{ tollgate_base_dir }}/src/bitcoin-core/build/Makefile"
+  when: not core_binary.stat.exists
 
 - name: Build Bitcoin Core (single core to save RAM)
   shell: cmake --build build -j1
@@ -63,6 +70,7 @@
   register: bitcoin_build
   failed_when: bitcoin_build.rc != 0
   changed_when: "'Building' in bitcoin_build.stdout or bitcoin_build.rc == 0"
+  when: not core_binary.stat.exists
 
 - name: Install Bitcoin Core
   shell: cmake --install build
@@ -70,6 +78,7 @@
     chdir: "{{ tollgate_base_dir }}/src/bitcoin-core"
   register: bitcoin_install
   changed_when: "'Installing' in bitcoin_install.stdout or bitcoin_install.rc == 0"
+  when: not core_binary.stat.exists
 
 - name: Deploy bitcoin.conf
   template:
@@ -117,6 +126,7 @@
     host: 127.0.0.1
     delay: 10
     timeout: 120
+  ignore_errors: yes
 
 - name: Display Bitcoin Core info
   debug:
