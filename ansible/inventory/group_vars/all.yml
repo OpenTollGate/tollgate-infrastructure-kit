@@ -74,6 +74,7 @@ firewall_allowed_ports:
   - "65101"
   - "22000"
   - "51820"
+  - "10000/udp"
 
 routstr_port: 8000
 routstr_domain: "routstr.{{ base_domain }}"
@@ -168,6 +169,7 @@ cloudflare_shared_subdomains:
   - runner
   - solix
   - wot
+  - meet
 
 cloudflare_per_machine_subdomains:
   - { prefix: "relay", vps1_suffix: "1", vps2_suffix: "2" }

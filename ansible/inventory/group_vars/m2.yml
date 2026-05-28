@@ -1,4 +1,4 @@
-machine_id: vps-2
+machine_id: vps2
 machine_number: 2
 machine_domain: "vps2.orangesync.tech"
 machine_ip: "{{ lookup('env', 'VPS2_IP') }}"
@@ -34,6 +34,7 @@ machine_roles:
   - cloud_lab_runner
   - relatr
   - micro_vpn
+  - jitsi_meet
 
 machine_cloudflare_subdomains:
   - relay2
@@ -52,3 +53,4 @@ machine_cloudflare_subdomains:
   - solix
   - wot
   - vpn
+  - meet

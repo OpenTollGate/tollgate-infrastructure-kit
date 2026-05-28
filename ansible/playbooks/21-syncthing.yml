@@ -47,8 +47,8 @@
         vps_syncthing_api_key: "{{ vps_api_key_raw.stdout | trim }}"
       loop:
         - backup
-        - vps-1
-        - vps-2
+        - vps1
+        - vps2
 
 - name: Get backup machine syncthing info
   hosts: backup
@@ -72,8 +72,8 @@
         backup_syncthing_id: "{{ backup_device_id_raw.stdout | trim }}"
         backup_syncthing_api_key: "{{ backup_api_key_raw.stdout | trim }}"
       loop:
-        - vps-1
-        - vps-2
+        - vps1
+        - vps2
 
 - name: Configure peering on backup machine (local API)
   hosts: backup

@@ -1,6 +1,6 @@
 ---
-- name: Deploy vps-1 (primary) infrastructure
+- name: Deploy vps1 (primary) infrastructure
   import_playbook: setup-vps-1.yml
 
-- name: Deploy vps-2 (secondary) infrastructure
+- name: Deploy vps2 (secondary) infrastructure
   import_playbook: setup-vps-2.yml

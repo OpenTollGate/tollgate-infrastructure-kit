@@ -434,6 +434,21 @@ vpn.{{ base_domain }} {
 }
 {% endif %}
 
+{% if 'jitsi_meet' in machine_roles %}
+{{ jitsi_meet_subdomain }}.{{ base_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    reverse_proxy localhost:{{ jitsi_meet_http_port | default(8080) }} {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+}
+{% endif %}
+
 :80 {
     handle {
         respond "Tollgate Infrastructure Kit" 200

@@ -1,6 +1,6 @@
 ---
-- name: Deploy vps-1 (primary) infrastructure
-  hosts: vps-1
+- name: Deploy vps1 (primary) infrastructure
+  hosts: vps1
   become: yes
   gather_facts: yes
   ignore_unreachable: true
@@ -31,6 +31,7 @@
     - grasp_mirror
     - cloud_lab_runner
     - relatr
+    - jitsi_meet
 
 - name: Deploy VPS watchdog (local health monitor + auto-redeploy)
   hosts: localhost

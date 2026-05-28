@@ -19,7 +19,7 @@
       {
         "deviceID": "{{ vps_syncthing_id }}",
         "name": "vps-orangesync",
-        "addresses": ["tcp://{{ hostvars['vps-1'].ansible_host | default(hostvars['vps-1'].inventory_hostname) }}:22000"]
+        "addresses": ["tcp://{{ hostvars['vps1'].ansible_host | default(hostvars['vps1'].inventory_hostname) }}:22000"]
       }
     body_format: raw
   ignore_errors: yes

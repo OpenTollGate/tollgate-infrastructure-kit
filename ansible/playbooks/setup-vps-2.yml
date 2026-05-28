@@ -1,6 +1,6 @@
 ---
-- name: Deploy vps-2 (secondary) infrastructure
-  hosts: vps-2
+- name: Deploy vps2 (secondary) infrastructure
+  hosts: vps2
   become: yes
   gather_facts: yes
   ignore_unreachable: true
@@ -34,6 +34,7 @@
     - cloud_lab_runner
     - relatr
     - micro_vpn
+    - jitsi_meet
 
 - name: Deploy VPS watchdog (local health monitor + auto-redeploy)
   hosts: localhost
