@@ -54,6 +54,9 @@ services:
       - ENABLE_SCTP=1
       - PUBLIC_URL=https://{{ jitsi_meet_subdomain }}.{{ base_domain }}
       - TZ=UTC
+      - JICOFO_AUTH_PASSWORD=jicofopass
+      - JICOFO_COMPONENT_SECRET=jicofosecret
+      - JVB_AUTH_PASSWORD=jvbpass
       - JIBRI_RECORDER_USER=recorder
       - JIBRI_RECORDER_PASSWORD=pass
     networks:
@@ -70,6 +73,7 @@ services:
     environment:
       - AUTH_TYPE=none
       - ENABLE_AUTH=0
+      - JICOFO_AUTH_PASSWORD=jicofopass
       - TZ=UTC
     depends_on:
       - prosody

@@ -178,4 +178,7 @@ cloudflare_per_machine_subdomains:
   - { prefix: "ngit", vps1_suffix: "1", vps2_suffix: "2" }
   - { prefix: "blossom", vps1_suffix: "1", vps2_suffix: "2" }
 
+jitsi_meet_subdomain: meet
+jitsi_meet_http_port: 8090
+
 cloudflare_subdomains: []

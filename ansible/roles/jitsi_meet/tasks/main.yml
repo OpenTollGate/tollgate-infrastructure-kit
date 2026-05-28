@@ -18,11 +18,10 @@
     pull: always
   register: jitsi_pull
 
-- name: Start jitsi-meet
+- name: Ensure jitsi-meet is running
   community.docker.docker_compose_v2:
     project_src: "{{ jitsi_meet_dir }}"
     state: present
-    restarted: true
 
 - name: Wait for jitsi-meet web container
   wait_for:
