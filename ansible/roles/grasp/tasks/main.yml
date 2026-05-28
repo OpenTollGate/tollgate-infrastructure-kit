@@ -56,13 +56,24 @@
     - grasp_version | length > 0
     - grasp_staging.stat.exists
 
-- name: Clone ngit-grasp via ngit HTTP
-  shell: |
-    git clone http://localhost:{{ ngit_relay_port | default(7778) }}/{{ grasp_repo_url | replace('nostr://', '') }} {{ tollgate_base_dir }}/src/ngit-grasp
+- name: Remove broken ngit-grasp directory
+  file:
+    path: "{{ tollgate_base_dir }}/src/ngit-grasp"
+    state: absent
   when:
+    - grasp_repo_url is not regex('^https?://')
     - grasp_version is defined
-    - grasp_version | length > 0
     - not grasp_staging.stat.exists
+
+- name: Clone ngit-grasp from GitHub
+  git:
+    repo: "https://github.com/danconwaydev/ngit-grasp.git"
+    dest: "{{ tollgate_base_dir }}/src/ngit-grasp"
+    depth: 1
+    force: yes
+  when:
+    - grasp_repo_url is not regex('^https?://')
+    - grasp_version is defined
 
 - name: Clone ngit-grasp (HTTPS URL)
   git:
