@@ -1,5 +1,5 @@
-bitcoin_knots_version: "v29.0.knots20250208"
-bitcoin_knots_repo: "https://github.com/bitcoinknots/bitcoinknots.git"
+bitcoin_knots_version: "v29.3.knots20260508"
+bitcoin_knots_repo: "https://github.com/bitcoinknots/bitcoin.git"
 bitcoin_knots_data_dir: "/opt/tollgate/bitcoin-knots"
 bitcoin_knots_port: 8334
 bitcoin_knots_prune_mb: 10000

@@ -1,5 +1,5 @@
-# Network & Reachability
-listen=1
+# Network (listen=0: outbound-only, no inbound P2P)
+listen=0
 port={{ bitcoin_knots_port }}
 
 # Disk Limit (Pruned to ~10 GB)
@@ -23,5 +23,4 @@ disablewallet=1
 rpcport={{ bitcoin_knots_rpc_port }}
 rpcuser={{ bitcoin_knots_rpc_user }}
 rpcpassword={{ bitcoin_knots_rpc_password }}
-rpcbind=127.0.0.1
-rpcallowip=127.0.0.1
+rpcconnect=127.0.0.1

@@ -26,18 +26,23 @@
     state: directory
     mode: '0755'
 
+- name: Check if bitcoind binary already installed
+  stat:
+    path: /usr/local/bin/bitcoind
+  register: knots_binary
+
 - name: Clone Bitcoin Knots source
-  git:
-    repo: "{{ bitcoin_knots_repo }}"
-    dest: "{{ tollgate_base_dir }}/src/bitcoin-knots"
-    version: "{{ bitcoin_knots_version }}"
-    depth: 1
-    force: yes
+  shell: |
+    git clone --depth 1 --branch {{ bitcoin_knots_version }} {{ bitcoin_knots_repo }} {{ tollgate_base_dir }}/src/bitcoin-knots
+  args:
+    creates: "{{ tollgate_base_dir }}/src/bitcoin-knots/CMakeLists.txt"
+  when: not knots_binary.stat.exists
 
 - name: Check if CMakeLists.txt exists (CMake vs Autotools)
   stat:
     path: "{{ tollgate_base_dir }}/src/bitcoin-knots/CMakeLists.txt"
   register: knots_cmake
+  when: not knots_binary.stat.exists
 
 - name: Build Bitcoin Knots with CMake
   block:
@@ -46,7 +51,8 @@
         cmake -B build \
           -DENABLE_WALLET=OFF \
           -DBUILD_GUI=OFF \
-          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_BUILD_TYPE=Release \
+          -DRDTS_CONSENT=IMPLICIT
       args:
         chdir: "{{ tollgate_base_dir }}/src/bitcoin-knots"
 
@@ -59,7 +65,9 @@
       shell: cmake --install build
       args:
         chdir: "{{ tollgate_base_dir }}/src/bitcoin-knots"
-  when: knots_cmake.stat.exists
+  when: 
+    - not knots_binary.stat.exists
+    - knots_cmake.stat.exists
 
 - name: Build Bitcoin Knots with Autotools
   block:
@@ -84,7 +92,9 @@
       shell: make install
       args:
         chdir: "{{ tollgate_base_dir }}/src/bitcoin-knots"
-  when: not knots_cmake.stat.exists
+  when: 
+    - not knots_binary.stat.exists
+    - not knots_cmake.stat.exists
 
 - name: Deploy bitcoin.conf
   template:
@@ -131,6 +141,7 @@
     host: 127.0.0.1
     delay: 10
     timeout: 120
+  ignore_errors: yes
 
 - name: Display Bitcoin Knots info
   debug:
