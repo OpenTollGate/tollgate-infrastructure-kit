@@ -35,6 +35,7 @@
     - relatr
     - micro_vpn
     - jitsi_meet
+    - bitcoin_knots
 
 - name: Deploy VPS watchdog (local health monitor + auto-redeploy)
   hosts: localhost

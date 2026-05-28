@@ -34,6 +34,7 @@ machine_roles:
   - cloud_lab_runner
   - relatr
   - jitsi_meet
+  - bitcoin_core
 
 machine_cloudflare_subdomains:
   - relay1

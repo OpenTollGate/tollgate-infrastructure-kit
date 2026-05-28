@@ -75,6 +75,8 @@ firewall_allowed_ports:
   - "22000"
   - "51820"
   - "10000/udp"
+  - "8333/tcp"
+  - "8334/tcp"
 
 routstr_port: 8000
 routstr_domain: "routstr.{{ base_domain }}"
