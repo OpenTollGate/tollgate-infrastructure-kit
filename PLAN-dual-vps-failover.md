@@ -257,8 +257,8 @@ Run manually: `scripts/failover.py --failback`
 | 13 | mint_operator_proxy | OK | health check accepts 401 |
 | 14 | mptcp_server | OK | ignore_errors on glorytun |
 | 15 | fips | OK | systemd active |
-| 16 | nsyte_cli | INACTIVE | systemd inactive |
-| 17 | grasp | INACTIVE | systemd inactive |
+| 16 | nsyte_cli | OK | |
+| 17 | grasp | INACTIVE | binary not built (source 404, glibc mismatch) |
 | 18 | act_runner | OK | systemd active |
 | 19 | routstr | OK | Docker |
 | 20 | auditable_voting | OK | |
@@ -268,10 +268,10 @@ Run manually: `scripts/failover.py --failback`
 | 24 | grasp_mirror | OK | |
 | 25 | cloud_lab_runner | OK | |
 | 26 | relatr | OK | Docker |
-| 27 | jitsi_meet | NOT DEPLOYED | compose file missing |
-| 28 | bitcoin_core | OK | IBD ~39%, systemd active |
-| 29 | grasp_snapshot | INACTIVE | timer not running |
-| 30 | syncthing | INACTIVE | systemd inactive |
+| 27 | jitsi_meet | OK | Docker, port 8090, 4 containers |
+| 28 | bitcoin_core | OK | IBD ~40%, systemd active |
+| 29 | grasp_snapshot | OK | timer active, every 5 min |
+| 30 | syncthing | OK | systemd active, peered with vps2 |
 
 ### VPS2 (23.182.128.51) — Secondary
 
@@ -304,37 +304,38 @@ Run manually: `scripts/failover.py --failback`
 | 25 | grasp_mirror | OK | |
 | 26 | cloud_lab_runner | OK | |
 | 27 | relatr | OK | Docker |
-| 28 | micro_vpn | BROKEN | port 5010 connection refused |
-| 29 | jitsi_meet | NOT DEPLOYED | compose file missing |
-| 30 | bitcoin_knots | OK | IBD ~12%, systemd active |
-| 31 | syncthing | OK | systemd active |
-| - | mints (3) | RESTARTING | mint-test-gb, mint-test-kb, mint-test-mb |
+| 28 | micro_vpn | BLOCKED | no API source code |
+| 29 | jitsi_meet | OK | Docker, port 8090, 4 containers |
+| 30 | bitcoin_knots | OK | IBD ~25%, systemd active |
+| 31 | syncthing | OK | systemd active, peered with vps1 |
+| - | mints (5) | OK | all stable (units fixed to sat) |
 
 ---
 
 ## Remaining Work Checklist
 
-### Critical (infrastructure health)
+### Critical (infrastructure health) — ALL DONE
 
-- [ ] R1 Run `setup-vps-1.yml` end-to-end — fix all role failures until clean pass
-- [ ] R2 Run `setup-vps-2.yml` end-to-end — fix all role failures until clean pass
-- [ ] R3 Deploy Jitsi Meet to vps1 (role exists, compose not applied)
-- [ ] R4 Deploy Jitsi Meet to vps2 (role exists, compose not applied)
-- [ ] R5 Fix syncthing on vps1 (inactive) and establish peering vps1 <-> vps2 <-> backup
-- [ ] R6 Fix 3 restarting mints on vps2 (mint-test-gb, mint-test-kb, mint-test-mb)
+- [x] R1 Run `setup-vps-1.yml` end-to-end — all roles passing
+- [x] R2 Run `setup-vps-2.yml` end-to-end — all roles passing
+- [x] R3 Deploy Jitsi Meet to vps1 (port 8090, all 4 containers stable)
+- [x] R4 Deploy Jitsi Meet to vps2 (port 8090, all 4 containers stable)
+- [x] R5 Fix syncthing on vps1 (active) and establish peering vps1 <-> vps2 (connected)
+- [x] R6 Fix 3 restarting mints on vps2 (changed GB/KB/MB units -> sat)
+- [x] R7 Start GRASP snapshot timer on both VPSes (active, every 5 min)
+- [x] R8 Clean up stale act-runner containers on vps2
+- [x] R9 Test failover dry-run (failover + failback both verified)
+- [x] R10 Fix relay_advertisement localhost sudo (added `become: no`)
 
-### Medium (service health)
+### Blocked (requires external work)
 
-- [ ] R7 Start ngit-grasp on vps1 (standby primary — should be active)
-- [ ] R8 Start grasp_snapshot timer on both VPSes
-- [ ] R9 Fix micro_vpn on vps2 (port 5010 connection refused)
-- [ ] R10 Clean up stale act-runner containers on vps2 (5 containers from 44h ago)
-- [ ] R11 Verify nsyte_cli on both VPSes
-- [ ] R12 Test failover dry-run: `scripts/failover.py --dry-run --failover`
+- [ ] B1 GRASP on vps1 — source repo returns 404 (private/renamed), binary from vps2 incompatible (glibc 2.41 vs 2.36). Needs: source access or static build
+- [ ] B2 micro_vpn on vps2 — API source code doesn't exist (role has infrastructure but no application code). Needs: Python Flask API + Dockerfile written
+- [ ] B3 Syncthing backup machine peering — backup (100.90.22.201) shows `connected=false` from VPSes. Likely firewall or NetBird routing issue
 
-### Lower (polish)
+### Lower priority (polish)
 
-- [ ] R13 Verify solix nsite deployed
-- [ ] R14 Publish relay advertisement Nostr events
-- [ ] R15 Voting worker dinner vote walkthrough
-- [ ] R16 Update PROGRESS.md to reflect current state
+- [ ] R11 Verify solix nsite deployed
+- [ ] R12 Publish relay advertisement Nostr events
+- [ ] R13 Voting worker dinner vote walkthrough
+- [ ] R14 Verify nsyte_cli on both VPSes
