@@ -181,4 +181,15 @@ cloudflare_per_machine_subdomains:
 jitsi_meet_subdomain: meet
 jitsi_meet_http_port: 8090
 
+tollgate_status_npub: "{{ lookup('env', 'TOLLGATE_STATUS_NPUB') | default('npub1u37txkvf3cskntkfzwvh54aqqfsau998acg0uwa6lrxwy48e6fws7gfnyr', true) }}"
+tollgate_status_nsec_hex: "{{ lookup('env', 'TOLLGATE_STATUS_NSEC_HEX') | default('0330988385971e2c331bcf9e1c0bd331807525b74648c53a04bed2a8aee25e7f', true) }}"
+tollgate_status_relays:
+  - "wss://relay1.{{ base_domain }}"
+  - "wss://relay2.{{ base_domain }}"
+tollgate_status_pub_relays:
+  - "wss://relay1.{{ base_domain }}"
+  - "wss://relay2.{{ base_domain }}"
+  - "wss://relay.damus.io"
+  - "wss://nos.lol"
+
 cloudflare_subdomains: []

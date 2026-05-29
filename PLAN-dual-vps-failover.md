@@ -333,6 +333,83 @@ Run manually: `scripts/failover.py --failback`
 - [ ] B2 micro_vpn on vps2 — API source code doesn't exist (role has infrastructure but no application code). Needs: Python Flask API + Dockerfile written
 - [ ] B3 Syncthing backup machine peering — backup (100.90.22.201) shows `connected=false` from VPSes. Likely firewall or NetBird routing issue
 
+### ContextVM Dashboard — Nostr-Native Status Monitoring
+
+The dashboard at `services.orangesync.tech` has been rewritten as a pure Nostr client.
+Each VPS publishes its status as a kind 31998 (parameterized replaceable) Nostr event
+every 10 seconds. The browser dashboard subscribes to relay1 + relay2 (with public
+fallback) and renders status in real-time. JSON fallback activates after 15s if no
+Nostr events received.
+
+**Architecture:**
+
+```
+gen-vps-stats.py (every 10s via systemd timer)
+    |
+    +-- writes vps1-status.json / vps2-status.json (local fallback)
+    |
+    +-- publishes kind 31998 Nostr event to relay1 + relay2
+        +- d-tag: "tollgate-vps-status"
+        +- t-tag: machine_id (vps1 / vps2)
+        +- content: same JSON as status file
+        +- signed with TOLLGATE_STATUS_NSEC
+
+Browser (index.html)
+    |
+    +-- Minimal Nostr WebSocket client (~200 lines inline JS, 5KB, zero deps)
+    +-- Subscribes: { kinds: [31998], authors: [STATUS_NPUB], "#d": ["tollgate-vps-status"] }
+    +-- Relays: relay1.orangesync.tech, relay2.orangesync.tech
+    +-- Public fallback: relay.damus.io, nos.lol
+    +-- JSON fallback: fetches vps1-status.json / vps2-status.json after 15s timeout
+```
+
+**Event format (kind 31998):**
+
+```json
+{
+  "kind": 31998,
+  "content": "<full status JSON>",
+  "tags": [
+    ["d", "tollgate-vps-status"],
+    ["t", "tollgate-infrastructure"],
+    ["t", "vps1"],
+    ["machine", "vps1"]
+  ],
+  "created_at": 1748512345,
+  "pubkey": "<TOLLGATE_STATUS_NPUB>"
+}
+```
+
+**Key management:**
+- `TOLLGATE_STATUS_NSEC` / `TOLLGATE_STATUS_NPUB` in `.env`
+- Templated into dashboard HTML by Ansible (caddy role)
+- Read by gen-vps-stats.py from `/opt/tollgate/.env`
+- Read-only keypair (no auth implications if leaked)
+
+**Machine ID normalization:**
+- `/etc/tollgate-machine-id` now contains `vps1`/`vps2` (was `m1`/`m2`)
+- Stats script writes `vps1-status.json` / `vps2-status.json`
+- Dashboard reads these filenames for JSON fallback
+- SERVICES_MAP only uses `vps1`/`vps2` keys
+
+**Service list expansion:**
+- VPS1: 24 services tracked (was 14) — added jitsi, bitcoind, syncthing, all mints, routstr-tor
+- VPS2: 27 services tracked (was 9) — added jitsi, bitcoind-knots, grasp, all mints, nutshell, routstr-tor, relatr, voting-worker, fips
+
+**Implementation checklist:**
+
+- [ ] D1 Generate TOLLGATE_STATUS Nostr keypair, add to .env + group_vars/all.yml
+- [ ] D2 Expand SERVICES_VPS1 / SERVICES_VPS2 in gen-vps-stats.py with all deployed services
+- [ ] D3 Add Nostr publishing to gen-vps-stats.py (coincurve + bech32 + websockets)
+- [ ] D4 Rewrite dashboard index.html as pure Nostr client with JSON fallback
+- [ ] D5 Update Ansible backup role — pip deps (coincurve, bech32, websockets), env vars
+- [ ] D6 Update Ansible caddy role — template dashboard HTML to inject STATUS_NPUB
+- [ ] D7 Normalize machine-id: re-run 22-backup.yml to write vps1/vps2 to /etc/tollgate-machine-id
+- [ ] D8 Deploy to both VPSes via Ansible
+- [ ] D9 Verify: Nostr events on relay, dashboard live, JSON fallback works
+- [ ] D10 Cleanup stale m1-status.json, m2-status.json, vps-stats.json symlink
+- [ ] D11 Commit and push to all remotes
+
 ### Lower priority (polish)
 
 - [ ] R11 Verify solix nsite deployed

@@ -3,13 +3,15 @@
 
 Runs via systemd timer (every 10 seconds) and writes to the services dir.
 Each VPS probes only its own local services (localhost, no CORS, instant).
+Also publishes status as a Nostr kind 31998 parameterized replaceable event.
 """
+import hashlib
 import json
 import os
 import socket
-import ssl
 import subprocess
 import sys
+import time
 import urllib.request
 import urllib.error
 from datetime import datetime, timezone
@@ -17,6 +19,12 @@ from datetime import datetime, timezone
 MACHINE_ID_FILE = "/etc/tollgate-machine-id"
 STATS_DIR = "/srv/tollgate/services"
 ENV_FILE = "/opt/tollgate/.env"
+NOSTR_STATUS_KIND = 31998
+NOSTR_STATUS_DTAG = "tollgate-vps-status"
+NOSTR_PUB_RELAYS = [
+    "wss://relay1.orangesync.tech",
+    "wss://relay2.orangesync.tech",
+]
 
 
 def load_env():
@@ -64,11 +72,10 @@ def probe_tcp(host, port, timeout=2):
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(timeout)
-        import time as _t
-        start = _t.monotonic()
+        start = time.monotonic()
         s.connect((host, port))
         s.close()
-        ms = int((_t.monotonic() - start) * 1000)
+        ms = int((time.monotonic() - start) * 1000)
         return {"healthy": True, "ms": ms}
     except Exception:
         return {"healthy": False, "ms": 0}
@@ -212,7 +219,7 @@ def get_cpu_cores():
         return 1
 
 
-SERVICES_M1 = [
+SERVICES_VPS1 = [
     {"name": "caddy",            "type": "http",  "url": "http://localhost:80"},
     {"name": "strfry",           "type": "tcp",   "host": "localhost", "port": 7777},
     {"name": "obelisk",          "type": "tcp",   "host": "localhost", "port": 8080},
@@ -227,25 +234,51 @@ SERVICES_M1 = [
     {"name": "fips",             "type": "tcp",   "host": "localhost", "port": 8443},
     {"name": "act-runner",       "type": "systemd", "unit": "tollgate-act-runner.service"},
     {"name": "cashu-brrr",       "type": "http",  "url": "http://localhost:3000"},
+    {"name": "jitsi-meet",       "type": "http",  "url": "http://localhost:8090"},
+    {"name": "bitcoin-core",     "type": "systemd", "unit": "bitcoind.service"},
+    {"name": "syncthing",        "type": "systemd", "unit": "syncthing@syncthing.service"},
+    {"name": "mint-testnut",     "type": "docker", "container": "mint-testnut"},
+    {"name": "mint-routstr",     "type": "docker", "container": "mint-routstr-mint"},
+    {"name": "mint-test-gb",     "type": "docker", "container": "mint-test-gb"},
+    {"name": "mint-test-kb",     "type": "docker", "container": "mint-test-kb"},
+    {"name": "mint-test-mb",     "type": "docker", "container": "mint-test-mb"},
+    {"name": "mint-test-min",    "type": "docker", "container": "mint-test-min"},
+    {"name": "routstr-tor",      "type": "docker", "container": "tollgate-routstr-tor"},
 ]
 
-SERVICES_M2 = [
+SERVICES_VPS2 = [
     {"name": "caddy",            "type": "http",  "url": "http://localhost:80"},
     {"name": "strfry",           "type": "tcp",   "host": "localhost", "port": 7777},
     {"name": "obelisk",          "type": "tcp",   "host": "localhost", "port": 8080},
     {"name": "blossom",          "type": "tcp",   "host": "localhost", "port": 3001},
     {"name": "nsite-gateway",    "type": "tcp",   "host": "localhost", "port": 3002},
-    {"name": "grasp",            "type": "tcp",   "host": "localhost", "port": 7334},
-    {"name": "grasp-mirror",     "type": "http",  "url": "http://localhost:7335"},
     {"name": "ngit-relay",       "type": "tcp",   "host": "localhost", "port": 7778},
-    {"name": "micro-vpn",        "type": "http",  "url": "http://localhost:5010/api/v1/status"},
+    {"name": "relatr",           "type": "http",  "url": "http://localhost:3000"},
+    {"name": "fips",             "type": "tcp",   "host": "localhost", "port": 8443},
+    {"name": "act-runner",       "type": "systemd", "unit": "tollgate-act-runner.service"},
+    {"name": "cashu-brrr",       "type": "http",  "url": "http://localhost:3000"},
+    {"name": "routstr",          "type": "http",  "url": "http://localhost:8000/v1/models"},
+    {"name": "routstr-mint",     "type": "http",  "url": "http://localhost:8089/v1/info"},
+    {"name": "jitsi-meet",       "type": "http",  "url": "http://localhost:8090"},
+    {"name": "bitcoin-knots",    "type": "systemd", "unit": "bitcoind-knots.service"},
+    {"name": "syncthing",        "type": "systemd", "unit": "syncthing@syncthing.service"},
+    {"name": "grasp",            "type": "systemd", "unit": "ngit-grasp.service"},
+    {"name": "grasp-mirror",     "type": "systemd", "unit": "grasp-mirror.service"},
+    {"name": "voting-worker",    "type": "systemd", "unit": "tollgate-voting-worker.service"},
+    {"name": "mint-testnut",     "type": "docker", "container": "mint-testnut"},
+    {"name": "mint-routstr",     "type": "docker", "container": "mint-routstr-mint"},
+    {"name": "mint-test-gb",     "type": "docker", "container": "mint-test-gb"},
+    {"name": "mint-test-kb",     "type": "docker", "container": "mint-test-kb"},
+    {"name": "mint-test-mb",     "type": "docker", "container": "mint-test-mb"},
+    {"name": "mint-test-min",    "type": "docker", "container": "mint-test-min"},
+    {"name": "nutshell-compat",  "type": "docker", "container": "nutshell-compat"},
+    {"name": "nutshell-mint",    "type": "docker", "container": "nutshell-mint"},
+    {"name": "routstr-tor",      "type": "docker", "container": "tollgate-routstr-tor"},
 ]
 
 SERVICES_MAP = {
-    "m1": SERVICES_M1,
-    "m2": SERVICES_M2,
-    "vps-1": SERVICES_M1,
-    "vps-2": SERVICES_M2,
+    "vps1": SERVICES_VPS1,
+    "vps2": SERVICES_VPS2,
 }
 
 
@@ -265,10 +298,8 @@ def probe_services(services):
 
 
 PEER_FETCH = {
-    "m1": {"peer_id": "m2", "peer_ip_env": "VPS2_IP"},
-    "m2": {"peer_id": "m1", "peer_ip_env": "VPS_IP"},
-    "vps-1": {"peer_id": "vps-2", "peer_ip_env": "VPS2_IP"},
-    "vps-2": {"peer_id": "vps-1", "peer_ip_env": "VPS_IP"},
+    "vps1": {"peer_id": "vps2", "peer_ip_env": "VPS2_IP"},
+    "vps2": {"peer_id": "vps1", "peer_ip_env": "VPS_IP"},
 }
 
 
@@ -280,31 +311,93 @@ def fetch_peer_status(machine_id):
     peer_ip = env.get(peer["peer_ip_env"], os.environ.get(peer["peer_ip_env"], ""))
     if not peer_ip:
         return
-    for path in [f"{peer['peer_id']}-status.json", "vps-stats.json"]:
-        url = f"https://services.orangesync.tech/{path}"
-        try:
-            cmd = f"curl -sk --resolve services.orangesync.tech:443:{peer_ip} --connect-timeout 5 --max-time 10 '{url}'"
-            data = run(cmd)
-            if not data:
-                continue
+    path = f"{peer['peer_id']}-status.json"
+    url = f"https://services.orangesync.tech/{path}"
+    try:
+        cmd = f"curl -sk --resolve services.orangesync.tech:443:{peer_ip} --connect-timeout 5 --max-time 10 '{url}'"
+        data = run(cmd)
+        if not data:
+            return
+        d = json.loads(data)
+        if d.get("machine_id") == peer["peer_id"]:
+            peer_file = os.path.join(STATS_DIR, f"{peer['peer_id']}-status.json")
+            tmp = peer_file + ".tmp"
+            with open(tmp, "w") as f:
+                f.write(data)
+            os.replace(tmp, peer_file)
+    except (json.JSONDecodeError, ValueError):
+        pass
+    except Exception:
+        pass
+
+
+def serialize_event(evt):
+    return json.dumps(
+        [0, evt['pubkey'], evt['created_at'], evt['kind'], evt['tags'], evt['content']],
+        separators=(',', ':'),
+    )
+
+
+def sign_event(evt, nsec_hex):
+    try:
+        from coincurve import PrivateKey
+    except ImportError:
+        return None
+    sk = PrivateKey(bytes.fromhex(nsec_hex))
+    pubkey = sk.public_key.format(compressed=True)[1:].hex()
+    evt['pubkey'] = pubkey
+    serialized = serialize_event(evt)
+    evt['id'] = hashlib.sha256(serialized.encode()).hexdigest()
+    sig = sk.sign_schnorr(bytes.fromhex(evt['id']))
+    evt['sig'] = sig.hex()
+    return evt
+
+
+def create_status_event(content_json_str, nsec_hex, machine_id):
+    evt = {
+        'kind': NOSTR_STATUS_KIND,
+        'content': content_json_str,
+        'tags': [
+            ['d', NOSTR_STATUS_DTAG],
+            ['t', 'tollgate-infrastructure'],
+            ['t', machine_id],
+            ['machine', machine_id],
+        ],
+        'created_at': int(time.time()),
+    }
+    return sign_event(evt, nsec_hex)
+
+
+def publish_nostr_status(stats_json_str, nsec_hex):
+    machine_id = stats_json_str and json.loads(stats_json_str).get("machine_id", "unknown")
+    evt = create_status_event(stats_json_str, nsec_hex, machine_id)
+    if evt is None:
+        return
+    try:
+        import asyncio
+        import websockets
+    except ImportError:
+        return
+
+    async def _publish():
+        payload = json.dumps(["EVENT", evt])
+        for relay_url in NOSTR_PUB_RELAYS:
             try:
-                d = json.loads(data)
-                if d.get("machine_id") == peer["peer_id"] or path == "vps-stats.json":
-                    peer_file = os.path.join(STATS_DIR, f"{peer['peer_id']}-status.json")
-                    tmp = peer_file + ".tmp"
-                    with open(tmp, "w") as f:
-                        f.write(data)
-                    os.replace(tmp, peer_file)
-                    return
-            except (json.JSONDecodeError, ValueError):
+                async with websockets.connect(relay_url, max_size=2**20, close_timeout=3) as ws:
+                    await ws.send(payload)
+                    await asyncio.wait_for(ws.recv(), timeout=5)
+            except Exception:
                 pass
-        except Exception:
-            pass
+
+    try:
+        asyncio.run(_publish())
+    except Exception:
+        pass
 
 
 def main():
     machine_id = get_machine_id()
-    services = SERVICES_MAP.get(machine_id, SERVICES_M1)
+    services = SERVICES_MAP.get(machine_id, SERVICES_VPS1)
 
     stats = {
         "machine_id": machine_id,
@@ -330,11 +423,19 @@ def main():
 
     fetch_peer_status(machine_id)
 
-    old_file = os.path.join(STATS_DIR, "vps-stats.json")
-    if os.path.exists(old_file) and not os.path.islink(old_file):
-        os.remove(old_file)
-    if not os.path.exists(old_file):
-        os.symlink(f"{machine_id}-status.json", old_file)
+    env = load_env()
+    nsec_hex = env.get("TOLLGATE_STATUS_NSEC_HEX", "")
+    if nsec_hex:
+        stats_json_str = json.dumps(stats, separators=(',', ':'))
+        publish_nostr_status(stats_json_str, nsec_hex)
+
+    for old_name in ["vps-stats.json"]:
+        old_file = os.path.join(STATS_DIR, old_name)
+        if os.path.exists(old_file):
+            try:
+                os.remove(old_file)
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":

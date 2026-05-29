@@ -76,6 +76,27 @@
     dest: /etc/tollgate-machine-id
     mode: '0644'
 
+- name: Install Python deps for Nostr publishing
+  pip:
+    name:
+      - coincurve>=20.0.0
+      - bech32>=1.2.0
+      - websockets>=12.0
+    state: present
+    executable: pip3
+    extra_args: --break-system-packages
+
+- name: Ensure Nostr status env vars in tollgate env
+  lineinfile:
+    path: /opt/tollgate/.env
+    regexp: "^{{ item.key }}="
+    line: "{{ item.key }}={{ item.value }}"
+    create: yes
+  loop:
+    - { key: "TOLLGATE_STATUS_NSEC_HEX", value: "{{ tollgate_status_nsec_hex }}" }
+    - { key: "TOLLGATE_STATUS_NPUB", value: "{{ tollgate_status_npub }}" }
+  no_log: yes
+
 - name: Deploy VPS stats generator
   copy:
     src: gen-vps-stats.py
