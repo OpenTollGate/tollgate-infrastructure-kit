@@ -8,7 +8,12 @@
       - libssl-dev
       - libzstd-dev
       - liblmdb-dev
+      - libsecp256k1-dev
+      - flatbuffers-compiler
+      - libflatbuffers-dev
+      - perl
       - git
+      - golang
     state: present
     update_cache: yes
 

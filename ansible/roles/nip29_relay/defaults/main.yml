@@ -1,6 +1,6 @@
 ---
 nip29_enabled: true
-nip29_port: 7778
+nip29_port: 7780
 nip29_base_dir: "/opt/strfry-nip29"
 nip29_db_dir: "{{ nip29_base_dir }}/db"
 nip29_relay_nsec: "{{ lookup('env', 'NIP29_RELAY_NSEC') }}"
