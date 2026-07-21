@@ -25,14 +25,15 @@
 - name: Check existing strfry source
   stat:
     path: "{{ nip29_repos_dir }}/strfry/.git"
-  register: nip29_strfry_repo
+  register: nip29_strfry_src
 
 - name: Clone strfry source
   git:
-    repo: "{{ nip29_strfry_repo }}"
+    repo: "{{ nip29_strfry_repo_url }}"
     dest: "{{ nip29_repos_dir }}/strfry"
     depth: 1
-  when: not nip29_strfry_repo.stat.exists
+    recursive: yes
+  when: not nip29_strfry_src.stat.exists
 
 - name: Build strfry
   command: make
@@ -53,14 +54,14 @@
 - name: Check existing relay29 source
   stat:
     path: "{{ nip29_repos_dir }}/relay29/.git"
-  register: nip29_relay29_repo
+  register: nip29_relay29_src
 
 - name: Clone relay29 source
   git:
-    repo: "{{ nip29_relay29_repo }}"
+    repo: "{{ nip29_relay29_repo_url }}"
     dest: "{{ nip29_repos_dir }}/relay29"
     depth: 1
-  when: not nip29_relay29_repo.stat.exists
+  when: not nip29_relay29_src.stat.exists
 
 - name: Build strfry29
   command: "go build -o strfry29 ./strfry29/"

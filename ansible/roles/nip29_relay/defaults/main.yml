@@ -9,6 +9,6 @@ nip29_domain: "{{ ansible_host | default('127.0.0.1', true) }}"
 nip29_sync_peers: []
 nip29_sync_interval_min: 5
 nip29_go_version: "1.24.4"
-nip29_strfry_repo: "https://github.com/hoytech/strfry.git"
-nip29_relay29_repo: "https://github.com/gzuuus/relay29.git"
+nip29_strfry_repo_url: "https://github.com/hoytech/strfry.git"
+nip29_relay29_repo_url: "https://github.com/fiatjaf/relay29.git"
 nip29_repos_dir: "{{ lookup('env', 'HOME') }}/repos"
