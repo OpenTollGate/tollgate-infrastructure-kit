@@ -7,8 +7,8 @@ relay {
     realIpHeader = ""
 
     writePolicy {
-        type = "callback"
-        path = "{{ nip29_base_dir }}/strfry29"
+        plugin = "{{ nip29_base_dir }}/strfry29-bin"
+        timeoutSeconds = 10
     }
 
     negentropy {

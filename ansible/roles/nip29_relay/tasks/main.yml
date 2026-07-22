@@ -68,18 +68,18 @@
     depth: 1
   when: not nip29_relay29_src.stat.exists
 
-- name: Build strfry29
-  command: "go build -o strfry29 ./strfry29/"
+- name: Build strfry29 plugin binary
+  command: "go build -buildvcs=false -o strfry29-bin ./strfry29/"
   args:
     chdir: "{{ nip29_repos_dir }}/relay29"
-    creates: "{{ nip29_repos_dir }}/relay29/strfry29"
+    creates: "{{ nip29_repos_dir }}/relay29/strfry29-bin"
   environment:
     PATH: "/usr/local/go/bin:{{ ansible_env.PATH }}"
 
-- name: Copy strfry29 binary
+- name: Copy strfry29 plugin binary
   copy:
-    src: "{{ nip29_repos_dir }}/relay29/strfry29"
-    dest: "{{ nip29_base_dir }}/strfry29"
+    src: "{{ nip29_repos_dir }}/relay29/strfry29-bin"
+    dest: "{{ nip29_base_dir }}/strfry29-bin"
     remote_src: yes
     mode: '0755'
     force: yes
@@ -90,7 +90,36 @@
     dest: "{{ nip29_base_dir }}/strfry.conf"
     mode: '0644'
   no_log: yes
-  notify: restart strfry nip29
+  notify:
+    - wipe strfry nip29 db
+    - restart strfry nip29
+
+- name: Convert relay secret key from nsec to hex
+  shell: >-
+    python3 -c "
+    import os, sys
+    s = os.environ['NIP29_RELAY_KEY'].strip()
+    if s.startswith('nsec1'):
+        CHARSET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l'
+        pos = s.index('1') + 1
+        data = [CHARSET.index(c) for c in s[pos:]]
+        data = data[:-6]
+        acc = 0; bits = 0; val = []
+        for d in data:
+            acc = ((acc << 5) | d) & ((1 << 13) - 1)
+            bits += 5
+            while bits >= 8:
+                bits -= 8
+                val.append((acc >> bits) & 0xff)
+        print(bytes(val).hex())
+    else:
+        print(s)
+    "
+  environment:
+    NIP29_RELAY_KEY: "{{ nip29_relay_nsec }}"
+  register: nip29_relay_hex_key
+  changed_when: false
+  no_log: yes
 
 - name: Deploy strfry29 config
   template:
@@ -98,7 +127,9 @@
     dest: "{{ nip29_base_dir }}/strfry29.json"
     mode: '0644'
   no_log: yes
-  notify: restart strfry nip29
+  notify:
+    - wipe strfry nip29 db
+    - restart strfry nip29
 
 - name: Deploy strfry systemd service
   template:
@@ -170,6 +201,6 @@
       Base dir: {{ nip29_base_dir }}
       Domain: {{ nip29_domain | default('(unset)') }}
       strfry: {{ nip29_base_dir }}/strfry
-      strfry29: {{ nip29_base_dir }}/strfry29
+      strfry29: {{ nip29_base_dir }}/strfry29-bin
       Sync peers: {{ nip29_sync_peers | join(', ') }}
       Sync interval: every {{ nip29_sync_interval_min }} min

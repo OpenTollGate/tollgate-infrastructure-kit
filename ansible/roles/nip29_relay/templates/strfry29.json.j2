@@ -1,6 +1,6 @@
 {
   "domain": "{{ nip29_domain }}:{{ nip29_port }}",
-  "relay_secret_key": "{{ nip29_relay_nsec }}",
+  "relay_secret_key": "{{ nip29_relay_hex_key.stdout }}",
   "strfry_config_path": "{{ nip29_base_dir }}/strfry.conf",
   "strfry_executable_path": "{{ nip29_base_dir }}/strfry",
   "permissions": {
