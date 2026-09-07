@@ -1,0 +1,12 @@
+# Gitleaks allowlist — every entry justified.
+title = "tollgate-infrastructure-kit gitleaks config"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Docs use YOUR_TOKEN placeholder in curl examples (troubleshooting guide)"
+regexTarget = "secret"
+regexes = [
+  '''(?i)^your[-_]token$''',
+]
