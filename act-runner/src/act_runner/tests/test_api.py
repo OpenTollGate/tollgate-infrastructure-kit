@@ -48,6 +48,35 @@ def test_health_endpoint(api_and_db):
     asyncio.get_event_loop().run_until_complete(go())
 
 
+def test_health_endpoint_reports_resource_caps():
+    import asyncio
+    from aiohttp.test_utils import TestClient, TestServer
+
+    config = RunnerConfig(
+        api_host="127.0.0.1",
+        api_port=0,
+        repos=[],
+        job_concurrency=1,
+        container_options="--memory=2g --memory-swap=2g --cpus=1 --pids-limit=1024",
+    )
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
+        db_path = f.name
+    db = BuildDB(db_path)
+    api = RunnerAPI(config, db)
+
+    async def go():
+        server = TestServer(api.app)
+        async with TestClient(server) as client:
+            resp = await client.get("/api/health")
+            assert resp.status == 200
+            data = await resp.json()
+            assert data["job_concurrency"] == 1
+            assert data["container_options"] == config.container_options
+
+    asyncio.get_event_loop().run_until_complete(go())
+    os.unlink(db_path)
+
+
 def test_repos_endpoint(api_and_db):
     api, db = api_and_db
     import asyncio

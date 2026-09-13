@@ -5,8 +5,8 @@ Requires=docker.service
 
 [Service]
 Type=simple
-User=debian
-Group=debian
+User={{ act_runner_user }}
+Group={{ act_runner_group }}
 ExecStart={{ act_runner_venv }}/bin/tollgate-act-runner
 Environment=ACT_RUNNER_CONFIG={{ tollgate_base_dir }}/act-runner/config.yaml
 Environment=ACT_RUNNER_NSEC={{ act_runner_nsec }}
@@ -17,6 +17,12 @@ Environment=ACT_RUNNER_SECRET_NSEC_HEX={{ tollgate_module_nsec_hex }}
 {% endif %}
 {% if act_runner_artifact_dir %}
 Environment=ACT_RUNNER_ARTIFACT_DIR={{ act_runner_artifact_dir }}
+{% endif %}
+{% if act_runner_systemd_cpu_quota %}
+CPUQuota={{ act_runner_systemd_cpu_quota }}
+{% endif %}
+{% if act_runner_systemd_memory_max %}
+MemoryMax={{ act_runner_systemd_memory_max }}
 {% endif %}
 WorkingDirectory={{ tollgate_base_dir }}/act-runner
 Restart=on-failure

@@ -23,6 +23,8 @@ act_binary: {{ act_runner_binary }}
 api_host: 0.0.0.0
 api_port: {{ act_runner_port }}
 log_level: {{ act_runner_log_level }}
+job_concurrency: {{ act_runner_job_concurrency }}
+container_options: "{{ act_runner_container_options }}"
 relays:
 {% for relay in act_runner_relays %}
   - "{{ relay }}"

@@ -13,8 +13,8 @@
     path: "{{ item }}"
     state: directory
     mode: '0755'
-    owner: debian
-    group: debian
+    owner: "{{ act_runner_user }}"
+    group: "{{ act_runner_group }}"
   loop:
     - "{{ tollgate_base_dir }}/act-runner"
     - "{{ tollgate_base_dir }}/act-runner/work"
@@ -31,13 +31,33 @@
       arm64) ACT_ARCH="arm64" ;;
       *) echo "Unsupported arch: $ARCH"; exit 1 ;;
     esac
-    ACT_VERSION="0.2.77"
+    ACT_VERSION="{{ act_runner_version }}"
     curl -sL "https://github.com/nektos/act/releases/download/v${ACT_VERSION}/act_Linux_${ACT_ARCH}.tar.gz" | \
       tar xz -C /tmp act
     mv /tmp/act {{ act_runner_binary }}
     chmod +x {{ act_runner_binary }}
   args:
     creates: "{{ act_runner_binary }}"
+
+- name: Read installed act version
+  command: "{{ act_runner_binary }} --version"
+  register: act_runner_act_version
+  changed_when: false
+  failed_when: false
+
+- name: Warn when the installed act drifts from the declared version
+  debug:
+    msg: >-
+      ACT VERSION DRIFT: {{ act_runner_binary }} is
+      "{{ act_runner_act_version.stdout | default('unknown') }}" but this host
+      declares act_runner_version={{ act_runner_version }}. The install task is
+      `creates:`-guarded and will not replace an existing binary, so the host
+      runs a different act than the role names. Align act_runner_version in
+      host_vars (or remove the binary and re-run) so the declaration matches
+      the binary actually in use.
+  when:
+    - act_runner_act_version.rc | default(1) == 0
+    - act_runner_version not in (act_runner_act_version.stdout | default(''))
 
 - name: Copy act-runner package to VPS
   synchronize:
@@ -78,8 +98,8 @@
     src: act-runner-config.yaml.j2
     dest: "{{ tollgate_base_dir }}/act-runner/config.yaml"
     mode: '0644'
-    owner: debian
-    group: debian
+    owner: "{{ act_runner_user }}"
+    group: "{{ act_runner_group }}"
   notify: restart act-runner
 
 - name: Deploy act-runner systemd unit
@@ -116,14 +136,19 @@
   until: runner_caddy_health.status == 200
   retries: 15
   delay: 3
-  when: machine_active | default(true)
+  when:
+    - machine_active | default(true)
+    - act_runner_verify_caddy | bool
 
 - name: Display act-runner deployment info
   debug:
     msg: |
       act-runner deployed successfully!
-      API: https://{{ act_runner_domain }}/api/health
-      Dashboard: https://{{ act_runner_domain }}
+      Host: {{ inventory_hostname }}  User: {{ act_runner_user }}
       Port: {{ act_runner_port }}
+      Health: http://localhost:{{ act_runner_port }}/api/health
+      Public URL: {{ 'https://' ~ act_runner_domain ~ '/api/health' if act_runner_verify_caddy | bool else 'n/a (no Caddy on this host)' }}
       Repos: {{ act_runner_repos | length }}
       Poll interval: {{ act_runner_poll_interval }}s
+      Job concurrency: {{ act_runner_job_concurrency }}
+      Container options: {{ act_runner_container_options | default('', true) or '(none)' }}

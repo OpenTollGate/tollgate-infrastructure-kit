@@ -132,7 +132,13 @@ Internet → Cloudflare DNS (auto A records via API)
        │     REST API: /api/health, /api/repos, /api/builds, /api/builds/<id>/log
        ├── runner.{{ base_domain }} (Caddy proxy + static dashboard)
        │     Dark-themed CI dashboard, auto-refreshes every 15s
-       └── Config: allowlisted repos in YAML, Nostr keypair for event signing
+       ├── Config: allowlisted repos in YAML, Nostr keypair for event signing
+       └── ci_runners group (27-act-runner.yml): vps1, vps2, dq05
+             vps1/vps2 = public runners, Caddy-fronted, GRASP allowlist
+             dq05 = fleet laptop-class host, no public domain, GitHub
+                    allowlist, capped job/daemon resources
+                    (ansible/inventory/host_vars/dq05.yml,
+                     docs/act-runner-dq05.md)
 
      System services (not HTTP):
       ├── shadowsocks-libev (TCP :65101, MPTCP enabled)

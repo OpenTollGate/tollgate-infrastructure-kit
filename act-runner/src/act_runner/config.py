@@ -46,6 +46,8 @@ class RunnerConfig:
     log_level: str = "info"
     repos: list[RepoConfig] = field(default_factory=list)
     secrets: dict[str, str] = field(default_factory=dict)
+    job_concurrency: int = 1
+    container_options: str = ""
 
     @classmethod
     def load(cls, config_path: Optional[str] = None) -> "RunnerConfig":
@@ -95,6 +97,10 @@ class RunnerConfig:
             cfg.relays = data["relays"]
         if "log_level" in data:
             cfg.log_level = data["log_level"]
+        if "job_concurrency" in data:
+            cfg.job_concurrency = int(data["job_concurrency"])
+        if "container_options" in data and data["container_options"] is not None:
+            cfg.container_options = str(data["container_options"])
 
         cfg._apply_env_overrides()
         return cfg
@@ -110,6 +116,7 @@ class RunnerConfig:
             "ACT_RUNNER_DB_PATH": "db_path",
             "ACT_RUNNER_WORK_DIR": "work_dir",
             "ACT_RUNNER_ARTIFACT_DIR": "artifact_dir",
+            "ACT_RUNNER_CONTAINER_OPTIONS": "container_options",
         }
         for env_key, attr in env_map.items():
             val = os.environ.get(env_key)
@@ -118,6 +125,10 @@ class RunnerConfig:
                     setattr(self, attr, int(val))
                 else:
                     setattr(self, attr, val)
+
+        concurrency = os.environ.get("ACT_RUNNER_JOB_CONCURRENCY")
+        if concurrency:
+            self.job_concurrency = int(concurrency)
 
         for env_key, secret_name in os.environ.items():
             if env_key.startswith("ACT_RUNNER_SECRET_"):

@@ -111,6 +111,18 @@
 - [x] **tollgate-act-runner** systemd service running
 - [x] **Add repos to allowlist** — all 31 repos from `npub12m5ex...` added to `act_runner_repos` in `group_vars/all.yml`. Polling via `localhost:7334` (GRASP HTTP), branch `master`.
 
+### ACT Runner on DQ05
+- [x] **`ci_runners` group** — `hosts.yml` gains a `ci_runners` group (vps1, vps2, dq05); `27-act-runner.yml` now targets `hosts: ci_runners` instead of `hosts: vps`
+- [x] **`group_vars/ci_runners.yml`** — group floor: `act_runner_user`/`act_runner_group`, `job_concurrency: 1`, `container_options`, systemd CPU/memory caps, `act_runner_verify_caddy`, `act_runner_version`
+- [x] **`host_vars/dq05.yml`** — DQ05 has no `debian` user (user/group = `c03rad0r`); job caps `--memory=2g --memory-swap=2g --cpus=1.5 --pids-limit=512`, daemon `CPUQuota=150%`/`MemoryMax=768M`; own GitHub repo allowlist (port 7334/GRASP mirror unreachable from DQ05); own relay `ws://127.0.0.1:7780`; `verify_caddy: false` (no public subdomain); `act_runner_version: "0.2.89"` (node runs 0.2.89, role pinned 0.2.77)
+- [x] **Role parameterized** — `tasks/main.yml` no longer hardcodes `owner: debian`/`group: debian` (5 sites); `act-runner.service.j2` no longer hardcodes `User=debian`/`Group=debian`; both take `act_runner_user`/`act_runner_group`
+- [x] **`act` version drift handled** — version moved from a hardcoded `0.2.77` in the install shell task to `act_runner_version`; role now reads `act --version` and warns when the installed binary drifts from the declared version (the `creates:` guard never replaces an existing binary)
+- [x] **New caps plumbed end to end** — `act_runner/config.py` `job_concurrency`/`container_options` → `executor.run_act()` `act push --concurrent-jobs N [--container-options …]` → `daemon.py` → `/api/health`; rendered by `act-runner-config.yaml.j2`; both flags verified present in act 0.2.89
+- [x] **Tests** — 50 passed (was 44): +4 `test_config.py`, +2 `test_executor.py` (flags reach argv), +1 `test_api.py`
+- [x] **`tests/integration/test_act_runner.sh`** — Caddy checks skippable via `ACT_RUNNER_CADDY=0`; asserts `job_concurrency`/`container_options` in the health body
+- [x] **Docs** — `docs/act-runner-dq05.md` (co-tenants, caps, capability envelope, host differences) + README index + PLAN.md
+- [ ] **Real capped job on DQ05** — not run; see the PR body for the decision and evidence
+
 ### ACT Runner Custom Pipeline Support
 - [x] **config.py** — added `pipeline`, `custom_command`, `trigger` fields to `RepoConfig` + YAML parsing
 - [x] **watcher.py** — added `get_pr_branches()` + `trigger: pr_branch` support in `watch_repos()`

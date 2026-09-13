@@ -1,0 +1,58 @@
+---
+# CI-runner hosts — targets for ansible/playbooks/27-act-runner.yml
+# (role: ansible/roles/act_runner).
+#
+# Group members: vps1, vps2 (public runners, `runner.orangesync.tech`) and
+# dq05 (fleet laptop-class host, no public domain — see
+# ansible/inventory/host_vars/dq05.yml).
+#
+# These values are the group-wide floor; a host may tighten (never loosen)
+# them in its own host_vars file. Rationale for the caps lives with the
+# host that needs them, in ansible/inventory/host_vars/dq05.yml.
+#
+# NOTE: `act_runner_repos` (the allowlist) and the relay list live in
+# ansible/inventory/group_vars/all.yml and are written for the VPS runners
+# (they point at the `http://localhost:7334` GRASP mirror on vps1). A host
+# that cannot reach that mirror MUST override both in its own host_vars —
+# DQ05 does, see ansible/inventory/host_vars/dq05.yml. Likewise
+# `act_runner_version` is pinned per host rather than group-wide: the group
+# must not silently declare a version a host does not actually run.
+#
+# Capability envelope of this role: Go build/test/lint lanes only.
+# `act` gives job containers no nested Docker daemon, so docker/SDK lanes
+# (multi-arch OpenWrt SDK packaging, image builds) cannot run here. See
+# docs/act-runner-dq05.md.
+
+# Account the runner (and its job work dirs) runs as. `debian` is the VPS
+# convention; hosts without that account override it in host_vars.
+act_runner_user: "{{ lookup('env', 'ACT_RUNNER_USER') | default('debian', true) }}"
+act_runner_group: "{{ lookup('env', 'ACT_RUNNER_GROUP') | default(act_runner_user, true) }}"
+
+# Job concurrency: how many workflow jobs `act` may run at once. Capped at 1
+# fleet-wide so a pushed commit cannot start parallel jobs on a shared host.
+act_runner_job_concurrency: 1
+
+# Per-job container resource options, passed straight through to
+# `docker run` by `act --container-options`. Empty here so the public VPS
+# runners keep their current (uncapped) behaviour; DQ05 sets an explicit
+# value because it shares its CPUs/RAM with other production duties.
+act_runner_container_options: ""
+
+# systemd-level guard for the runner *daemon* itself (watcher git calls +
+# `act` process). Job containers live in their own cgroups and are bounded
+# by `act_runner_container_options` above, not by these.
+# Empty string = directive not emitted (keeps existing units byte-identical).
+act_runner_systemd_cpu_quota: ""
+act_runner_systemd_memory_max: ""
+
+# Verify the runner is reachable through Caddy at act_runner_domain. Hosts
+# that are not fronted by Caddy (no public subdomain) set this to false, or
+# the play fails on the final health check.
+act_runner_verify_caddy: true
+
+# Version of the `act` binary this group expects. Group-wide floor = the VPS
+# pin; a host whose binary has drifted pins its real version in host_vars so
+# the declaration matches the binary. The role's install task is
+# `creates:`-guarded (it never replaces an existing binary) and emits an
+# explicit drift warning if the installed version does not contain this string.
+act_runner_version: "0.2.77"

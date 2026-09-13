@@ -77,6 +77,8 @@ async def _run_build(repo, commit_sha: str, branch_name: str):
                 act_binary=_config.act_binary,
                 secrets=_config.secrets,
                 artifact_dir=_config.artifact_dir,
+                job_concurrency=_config.job_concurrency,
+                container_options=_config.container_options,
             )
     except Exception as e:
         _db.update_build(

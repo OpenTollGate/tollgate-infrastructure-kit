@@ -40,6 +40,8 @@ class RunnerAPI:
                 "status": "ok",
                 "repos": len(self.config.repos),
                 "poll_interval": self.config.poll_interval,
+                "job_concurrency": self.config.job_concurrency,
+                "container_options": self.config.container_options,
             }
         )
 

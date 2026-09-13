@@ -24,6 +24,8 @@ def test_config_defaults():
     assert cfg.api_port == 8095
     assert cfg.act_binary == "/usr/local/bin/act"
     assert cfg.repos == []
+    assert cfg.job_concurrency == 1
+    assert cfg.container_options == ""
 
 
 def test_config_load_from_yaml():
@@ -50,6 +52,49 @@ def test_config_load_from_yaml():
         assert cfg.poll_interval == 60
         assert cfg.api_port == 9090
         assert cfg.relays == ["wss://relay.example.com"]
+
+    os.unlink(f.name)
+
+
+def test_config_load_resource_caps_from_yaml():
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+        yaml.dump(
+            {
+                "repos": [],
+                "job_concurrency": 1,
+                "container_options": "--memory=2g --memory-swap=2g --cpus=1 --pids-limit=1024",
+            },
+            f,
+        )
+        f.flush()
+
+        cfg = RunnerConfig.load(f.name)
+        assert cfg.job_concurrency == 1
+        assert cfg.container_options == "--memory=2g --memory-swap=2g --cpus=1 --pids-limit=1024"
+
+    os.unlink(f.name)
+
+
+def test_config_resource_caps_from_env(monkeypatch):
+    monkeypatch.setenv("ACT_RUNNER_JOB_CONCURRENCY", "1")
+    monkeypatch.setenv("ACT_RUNNER_CONTAINER_OPTIONS", "--memory=1536m --cpus=0.5")
+
+    cfg = RunnerConfig.load("/nonexistent/config.yaml")
+    assert cfg.job_concurrency == 1
+    assert cfg.container_options == "--memory=1536m --cpus=0.5"
+
+
+def test_config_resource_caps_default_when_absent(monkeypatch):
+    monkeypatch.delenv("ACT_RUNNER_JOB_CONCURRENCY", raising=False)
+    monkeypatch.delenv("ACT_RUNNER_CONTAINER_OPTIONS", raising=False)
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+        yaml.dump({"repos": []}, f)
+        f.flush()
+
+        cfg = RunnerConfig.load(f.name)
+        assert cfg.job_concurrency == 1
+        assert cfg.container_options == ""
 
     os.unlink(f.name)
 
