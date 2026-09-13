@@ -9,8 +9,9 @@ secrets, artifact server, or correct branch config. This plan makes it work end-
 
 ## Generated Key Pair (for blossom upload)
 
-- NSEC_HEX (hex): `ef61843bb1259a7928d13d5f55bff97b3e593b2b90e49a25455353b73241af28`
-- npub (hex): `13756083586fdd552224e1a6a21f82e71f373e9e4e9a3be566946904de3f8785`
+- NSEC_HEX (hex): REDACTED-ROTATE-REQUIRED
+- NOTE: this private key was committed to this repo in cleartext (see git history) — it is compromised and MUST be rotated by the operator.
+- npub (hex): `<64HEX> (rotated 2026-09-14)`
 
 ## Checklist
 
