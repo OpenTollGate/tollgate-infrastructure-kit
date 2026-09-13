@@ -23,8 +23,12 @@ async def run_act(
     act_binary: str = "/usr/local/bin/act",
     secrets: dict[str, str] | None = None,
     artifact_path: str = "",
+    job_concurrency: int = 1,
+    container_options: str = "",
 ) -> tuple[int, str, str]:
-    cmd = [act_binary, "push", "--bind", "--concurrent-jobs", "1"]
+    cmd = [act_binary, "push", "--bind", "--concurrent-jobs", str(job_concurrency)]
+    if container_options:
+        cmd.extend(["--container-options", container_options])
     for key, value in (secrets or {}).items():
         cmd.extend(["-s", f"{key}={value}"])
     if artifact_path:
@@ -50,6 +54,8 @@ async def execute_build(
     act_binary: str = "/usr/local/bin/act",
     secrets: dict[str, str] | None = None,
     artifact_dir: str = "",
+    job_concurrency: int = 1,
+    container_options: str = "",
 ) -> dict:
     repo_work_dir = os.path.join(work_base, repo.sanitized_name)
     os.makedirs(repo_work_dir, exist_ok=True)
@@ -104,7 +110,12 @@ async def execute_build(
 
     build_start = time.monotonic()
     exit_code, act_output, _ = await run_act(
-        repo_work_dir, act_binary, secrets=secrets, artifact_path=artifact_dir,
+        repo_work_dir,
+        act_binary,
+        secrets=secrets,
+        artifact_path=artifact_dir,
+        job_concurrency=job_concurrency,
+        container_options=container_options,
     )
     duration_ms = int((time.monotonic() - build_start) * 1000)
 

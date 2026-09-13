@@ -107,6 +107,7 @@ make check           # Syntax check playbooks
 - [Services Overview](docs/services.md)
 - [Adding New Services](docs/adding-services.md)
 - [Cloudflare Setup](docs/cloudflare-setup.md)
+- [ACT Runner on DQ05](docs/act-runner-dq05.md)
 - [Troubleshooting](docs/troubleshooting.md)
 
 ## License

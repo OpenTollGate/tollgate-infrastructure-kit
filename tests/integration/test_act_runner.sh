@@ -54,7 +54,22 @@ else
     echo "FAIL (HTTP $BUILDS)"; FAIL=$((FAIL+1))
 fi
 
+echo -n "  [act-runner] job_concurrency in health body ... "
+if echo "$BODY" | grep -q '"job_concurrency"'; then
+    echo "OK"; PASS=$((PASS+1))
+else
+    echo "FAIL (got: $BODY)"; FAIL=$((FAIL+1))
+fi
+
+echo -n "  [act-runner] container_options in health body ... "
+if echo "$BODY" | grep -q '"container_options"'; then
+    echo "OK"; PASS=$((PASS+1))
+else
+    echo "FAIL (got: $BODY)"; FAIL=$((FAIL+1))
+fi
+
 echo ""
+if [ "${ACT_RUNNER_CADDY:-1}" = "1" ]; then
 echo "Caddy proxy tests:"
 
 echo -n "  [runner] HTTPS proxy to API ... "
@@ -71,6 +86,9 @@ if echo "$DASH" | grep -q "200"; then
     echo "OK (HTTP $DASH)"; PASS=$((PASS+1))
 else
     echo "FAIL (HTTP $DASH)"; FAIL=$((FAIL+1))
+fi
+else
+echo "Caddy proxy tests: SKIPPED (ACT_RUNNER_CADDY=0 — host has no public subdomain)"
 fi
 
 echo -n "  [act] binary installed ... "

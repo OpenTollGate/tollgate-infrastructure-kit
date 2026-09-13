@@ -1,6 +1,6 @@
 ---
 - name: Deploy ACT Runner (CI/CD for GRASP repos)
-  hosts: vps
+  hosts: ci_runners
   ignore_unreachable: true
   serial: 1
   become: yes

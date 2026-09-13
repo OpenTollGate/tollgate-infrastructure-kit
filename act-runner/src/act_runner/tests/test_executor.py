@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from act_runner.executor import has_workflows, execute_build, execute_custom_command
+from act_runner.executor import has_workflows, run_act, execute_build, execute_custom_command
 from act_runner.config import RepoConfig
 
 
@@ -87,3 +87,55 @@ async def test_execute_custom_command():
         assert "branch=pr/886-test" in result["log"]
         assert "sha=abc123def456" in result["log"]
         assert Path(result["log_path"]).exists()
+
+
+@pytest.mark.asyncio
+async def test_run_act_passes_resource_caps():
+    captured = {}
+
+    async def fake_exec(*cmd, **kwargs):
+        captured["cmd"] = list(cmd)
+        mock_process = AsyncMock()
+        mock_process.communicate.return_value = (b"job done", b"")
+        mock_process.returncode = 0
+        return mock_process
+
+    caps = "--memory=2g --memory-swap=2g --cpus=1 --pids-limit=1024"
+    with tempfile.TemporaryDirectory() as work_dir, patch(
+        "act_runner.executor.asyncio.create_subprocess_exec", side_effect=fake_exec
+    ):
+        exit_code, output, _ = await run_act(
+            work_dir,
+            act_binary="/usr/local/bin/act",
+            job_concurrency=1,
+            container_options=caps,
+        )
+
+    cmd = captured["cmd"]
+    assert exit_code == 0
+    assert output == "job done"
+    assert cmd[0] == "/usr/local/bin/act"
+    assert cmd[1] == "push"
+    assert cmd[cmd.index("--concurrent-jobs") + 1] == "1"
+    assert cmd[cmd.index("--container-options") + 1] == caps
+
+
+@pytest.mark.asyncio
+async def test_run_act_defaults_keep_existing_behaviour():
+    captured = {}
+
+    async def fake_exec(*cmd, **kwargs):
+        captured["cmd"] = list(cmd)
+        mock_process = AsyncMock()
+        mock_process.communicate.return_value = (b"", b"")
+        mock_process.returncode = 0
+        return mock_process
+
+    with tempfile.TemporaryDirectory() as work_dir, patch(
+        "act_runner.executor.asyncio.create_subprocess_exec", side_effect=fake_exec
+    ):
+        await run_act(work_dir, act_binary="/usr/local/bin/act")
+
+    cmd = captured["cmd"]
+    assert cmd[cmd.index("--concurrent-jobs") + 1] == "1"
+    assert "--container-options" not in cmd
