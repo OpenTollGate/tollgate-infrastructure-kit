@@ -1,0 +1,22 @@
+[Unit]
+Description=nosigner — NIP-46 remote signer (bunker) daemon
+Documentation=https://github.com/OpenTollGate/tollgate-infrastructure-kit/tree/main/nosigner
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=__NOSIGNER_HOME__
+ExecStart=__NOSIGNER_HOME__/venv/bin/python __NOSIGNER_HOME__/nosigner.py --sec-file __NOSIGNER_HOME__/nosigner.nsec --daemon --relay wss://relay.nsec.app --relay wss://relay.primal.net --relay wss://nostr.oxtr.dev
+Restart=on-failure
+RestartSec=3
+
+# Hardening (keep the signer's key + state private)
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=__NOSIGNER_HOME__ %h/.hermes
+
+[Install]
+WantedBy=default.target
