@@ -1,0 +1,13 @@
+---
+# Blossom file server (NIP-96 / Blossom BLOBs).
+#
+# Defaults preserve the historical vps1/vps2 deployment. Override per host —
+# e.g. vps3 keeps the public URL `blossom2.orangesync.tech`.
+blossom_public_domain: "blossom.{{ base_domain }}"
+
+# Mirror mode auto-downloads EVERY file referenced in any event — off, matching
+# the live deployment (it grows ~1 GB/day).
+blossom_mirror_enabled: false
+
+# Max accepted upload size in bytes (10 MiB).
+blossom_upload_max_size: 10485760

@@ -1,0 +1,27 @@
+---
+# vps3 = hermes (23.182.128.219). Added for the 2026-09 host swap: previews stay
+# on vps2 (.51, AVX2) and the tollgate services move here (this CPU lacks AVX2).
+machine_id: vps3
+machine_number: 3
+machine_domain: "vps3.orangesync.tech"
+machine_ip: "{{ lookup('env', 'VPS3_IP') }}"
+other_vps_ip: "{{ lookup('env', 'VPS2_IP') }}"
+machine_active: true
+
+# Roles intended to run on this host. Move services here incrementally; until
+# then this list is the target state, not a claim that they are deployed.
+machine_roles:
+  - system
+  - docker
+  - cloudflare_dns
+  - blossom
+  - grasp
+  - grasp_mirror
+
+machine_cloudflare_subdomains:
+  - blossom2
+  - git
+  - ngit2
+
+# Blossom keeps its public URL when it moves from .51 to .219.
+blossom_public_domain: blossom2.orangesync.tech
