@@ -3,7 +3,7 @@
   file:
     path: "{{ tollgate_base_dir }}/blossom"
     state: directory
-    mode: '0755'
+    mode: "0755"
 
 - name: Deploy blossom docker-compose
   copy:
@@ -30,7 +30,7 @@
       networks:
         {{ docker_network_name }}:
           external: true
-    mode: '0644'
+    mode: "0644"
 
 - name: Deploy blossom config
   copy:
@@ -38,7 +38,7 @@
     content: |
       port: 3000
       host: "0.0.0.0"
-      publicDomain: "blossom.{{ base_domain }}"
+      publicDomain: "{{ blossom_public_domain }}"
 
       database:
         path: "./data/blossom.db"
@@ -52,10 +52,10 @@
       upload:
         enabled: true
         requireAuth: true
-        maxSize: 104857600
+        maxSize: {{ blossom_upload_max_size }}
 
       mirror:
-        enabled: true
+        enabled: {{ blossom_mirror_enabled | lower }}
 
       delete:
         requireAuth: true
@@ -80,7 +80,7 @@
       landingPage:
         enabled: true
         title: "Tollgate Blossom Server"
-    mode: '0644'
+    mode: "0644"
 
 - name: Build and start blossom
   community.docker.docker_compose_v2:
