@@ -1,0 +1,20 @@
+---
+# Provision a dedicated host for Plebeian Market per-PR Docker previews.
+#
+# Targets the `preview_host` inventory group (host `hermes`, address from the
+# VPS3_IP env var). `become` and the Cloudflare credentials come from the
+# repo's ansible.cfg/group_vars, exactly like the other playbooks.
+#
+#   VPS3_IP=23.182.128.219 \
+#   CLOUDFLARE_API_TOKEN=… CLOUDFLARE_ZONE_ID=… \
+#     ansible-playbook playbooks/53-preview-host.yml
+#
+# The Preview Deploy workflow's `Bootstrap VPS` step re-runs the market repo's
+# provision.sh on every deploy; this role converges the same host declaratively
+# and is the source of truth for a brand-new box.
+- name: Provision the Plebeian Market preview host
+  hosts: preview_host
+  become: true
+  gather_facts: true
+  roles:
+    - preview_host

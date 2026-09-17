@@ -1,0 +1,51 @@
+---
+# preview_host — a dedicated host for Plebeian Market per-PR Docker previews.
+#
+# This role is a declarative port of PlebeianApp/market's
+# `infra/preview-vps/provision.sh` (the script the Preview Deploy workflow runs
+# over SSH). It installs Docker + Caddy, ships the gateway/manager scripts,
+# installs their systemd units/timer, and writes the Caddy config that routes
+# `*.test-market.orangesync.tech` on-demand to the per-PR containers.
+#
+# Prefer running this role for a brand-new host; the workflow's `Bootstrap VPS`
+# step then re-converges the same host on every deploy.
+
+# Deploy user and layout. Matches provision.sh (/home/<user>/preview-infra,
+# /home/<user>/previews).
+preview_host_user: "{{ ansible_user | default('debian') }}"
+preview_host_base_dir: "/home/{{ preview_host_user }}/preview-infra"
+preview_host_root: "/home/{{ preview_host_user }}/previews"
+preview_host_ports_dir: "{{ preview_host_root }}/ports"
+
+# The gateway listens here (127.0.0.1) and is fronted by Caddy.
+preview_host_gateway_port: 6799
+
+# Routing suffix + access log consumed by the manager's idle detection.
+preview_host_site_suffix: test-market.orangesync.tech
+preview_host_access_log: /var/log/caddy/access.json
+
+# Manager uses the public GitHub repo anonymously (no token).
+preview_host_github_repo: PlebeianApp/market
+
+# Gateway/manager scripts are fetched from the market repo at an IMMUTABLE
+# commit, with checksums so a changed upstream is a hard failure rather than a
+# silent drift. Override preview_host_market_ref + clear the checksums to move refs.
+preview_host_market_raw_base: https://raw.githubusercontent.com/PlebeianApp/market
+preview_host_market_ref: 64ea84d20fb1f40d0cdff1e2796df63e8feb57ea
+preview_host_gateway_sha256: 82cfc1d4cdb387db56e463661260466d4ffe093f002c0e2886f7b8ba3877229c
+preview_host_manager_sha256: da4c2f5569b5de6fb2ce2d577fea8aa7b9cdb596592105f0067a064ff64de699
+
+# Cloudflare credentials for closed-PR DNS cleanup. Sourced from the repo's
+# group_vars (env-driven) unless overridden.
+preview_host_cloudflare_api_token: "{{ cloudflare_api_token | default('') }}"
+preview_host_cloudflare_zone_id: "{{ cloudflare_zone_id | default('') }}"
+
+# Docker daemon log rotation (matches provision.sh).
+preview_host_docker_log_max_size: 10m
+preview_host_docker_log_max_file: "3"
+
+# Legacy co-located nsite gateway. OFF by default: previews do not need it and
+# its upstream source (github.com/fiatjaf/nsite) is no longer cloneable.
+preview_host_nsite_gateway: false
+preview_host_nsite_domain: nsite.orangesync.tech
+preview_host_nsite_port: 3002

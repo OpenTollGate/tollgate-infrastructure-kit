@@ -439,6 +439,13 @@
 - [ ] **AI triage** — awaiting ppq.ai key + user criteria to run `follow-triage.py`
 - [ ] **Curated purge** — awaiting Amber bunker URI + triage keep-set to run `follow-apply.py`
 
+## Preview Host (Sep 2026)
+- [x] **`preview_host` role** — declarative port of PlebeianApp/market `infra/preview-vps/provision.sh`: Docker + Caddy, pinned gateway/manager scripts (sha256-verified), systemd units/timer, Caddy on-demand-TLS ask + `*.test-market.orangesync.tech` route, `manager.env`
+- [x] **Playbook `53-preview-host.yml`** + `preview_host` inventory group (host `hermes`, `VPS3_IP`)
+- [x] **Dry-run verified** against the preview VPS (`--check --diff`: ok=22, changed=5, failed=0)
+- [x] **`ansible.cfg` fix** — `stdout_callback = yaml` referenced the removed `community.general.yaml` plugin and aborted every run; now `default` + `result_format = yaml`
+- [ ] **Molecule scenario** — optional; role currently validated by `--check` against the live host
+
 ## Blocked / Upstream
 - [ ] True custom unit support (MB, KB, GB, min in keyset) — requires gRPC payment processor or CDK upstream fix
 - [ ] Routstr AI inference via cashu Python lib — keyset ID format mismatch. Pre-built Docker image, needs upstream update or custom build

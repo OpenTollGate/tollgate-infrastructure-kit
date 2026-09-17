@@ -1,0 +1,168 @@
+---
+# Declarative port of PlebeianApp/market `infra/preview-vps/provision.sh`.
+# Section numbers in comments refer to that script.
+
+- name: Install base packages (Docker, Python, git, Caddy prerequisites)  # step 0
+  apt:
+    name:
+      - docker.io
+      - python3
+      - git
+      - curl
+      - gnupg
+      - debian-keyring
+      - debian-archive-keyring
+      - apt-transport-https
+    state: present
+    update_cache: true
+
+- name: Install the Caddy signing key  # step 0
+  shell: |
+    set -o pipefail
+    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' \
+      | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+  args:
+    creates: /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+
+- name: Add the Caddy apt repository  # step 0
+  apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/caddy-stable-archive-keyring.gpg] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main"
+    filename: caddy-stable
+    state: present
+
+- name: Install Caddy  # step 0
+  apt:
+    name: caddy
+    state: present
+    update_cache: true
+
+- name: Configure Docker log rotation  # step 0
+  copy:
+    dest: /etc/docker/daemon.json
+    mode: '0644'
+    content: |
+      {
+        "log-driver": "json-file",
+        "log-opts": {
+          "max-size": "{{ preview_host_docker_log_max_size }}",
+          "max-file": "{{ preview_host_docker_log_max_file }}"
+        }
+      }
+  notify: restart docker
+
+- name: Enable and start Docker  # step 0
+  systemd:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Allow the deploy user to run Docker without sudo  # step 0
+  user:
+    name: "{{ preview_host_user }}"
+    groups: docker
+    append: true
+
+- name: Create the preview directories  # step 1
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ preview_host_user }}"
+    group: "{{ preview_host_user }}"
+    mode: '0755'
+  loop:
+    - "{{ preview_host_base_dir }}"
+    - "{{ preview_host_root }}"
+    - "{{ preview_host_ports_dir }}"
+
+- name: Fetch the pinned gateway + manager scripts  # step 2
+  get_url:
+    url: "{{ preview_host_market_raw_base }}/{{ preview_host_market_ref }}/infra/preview-vps/{{ item.name }}"
+    dest: "{{ preview_host_base_dir }}/{{ item.name }}"
+    checksum: "{{ ('sha256:' ~ item.sha256) if (item.sha256 | length) > 0 else omit }}"
+    owner: "{{ preview_host_user }}"
+    group: "{{ preview_host_user }}"
+    mode: '0644'
+  loop:
+    - name: preview_gateway.py
+      sha256: "{{ preview_host_gateway_sha256 }}"
+    - name: preview_manager.py
+      sha256: "{{ preview_host_manager_sha256 }}"
+  notify: restart preview-gateway
+
+- name: Ship the manager Cloudflare credentials  # step 4
+  template:
+    src: manager.env.j2
+    dest: "{{ preview_host_base_dir }}/manager.env"
+    owner: "{{ preview_host_user }}"
+    group: "{{ preview_host_user }}"
+    mode: '0600'
+  no_log: true
+  notify: restart preview-manager.timer
+
+- name: Ensure the Caddy access-log directory  # step 7
+  file:
+    path: "{{ preview_host_access_log | dirname }}"
+    state: directory
+    owner: caddy
+    group: caddy
+    mode: '0755'
+
+- name: Ensure the Caddy access-log file  # step 7
+  copy:
+    dest: "{{ preview_host_access_log }}"
+    content: ""
+    force: false
+    owner: caddy
+    group: caddy
+    mode: '0644'
+  notify: reload caddy
+
+- name: Deploy the preview-gateway systemd unit  # step 5
+  template:
+    src: preview-gateway.service.j2
+    dest: /etc/systemd/system/preview-gateway.service
+    mode: '0644'
+  notify:
+    - reload systemd
+    - restart preview-gateway
+
+- name: Deploy the preview-manager systemd unit  # step 6
+  template:
+    src: preview-manager.service.j2
+    dest: /etc/systemd/system/preview-manager.service
+    mode: '0644'
+  notify: reload systemd
+
+- name: Deploy the preview-manager systemd timer  # step 6
+  template:
+    src: preview-manager.timer.j2
+    dest: /etc/systemd/system/preview-manager.timer
+    mode: '0644'
+  notify: reload systemd
+
+- name: Deploy the Caddyfile (on-demand TLS ask + preview route)  # steps 8-10
+  template:
+    src: Caddyfile.j2
+    dest: /etc/caddy/Caddyfile
+    owner: root
+    group: root
+    mode: '0644'
+  notify: reload caddy
+
+- name: Enable and start Caddy  # step 11
+  systemd:
+    name: caddy
+    state: started
+    enabled: true
+
+- name: Enable and start preview-gateway  # step 5
+  systemd:
+    name: preview-gateway
+    state: started
+    enabled: true
+
+- name: Enable and start the preview-manager timer  # step 6
+  systemd:
+    name: preview-manager.timer
+    state: started
+    enabled: true
