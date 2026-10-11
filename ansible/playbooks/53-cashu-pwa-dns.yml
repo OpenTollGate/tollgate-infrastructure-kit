@@ -1,0 +1,22 @@
+---
+# DNS half of the dual-hosted Services PWA (kanban t_53d7a46d).
+#
+# Runs on the control machine against the Cloudflare API — no VPS SSH involved —
+# so the DNS half of "point a subdomain of orangesync.tech at the PWA in both
+# cases" is executable while t_8eb57e3a still blocks the VPS install leg.
+#
+#   make pwa-dns
+#
+# Declares (in git, via cashu_pwa_dns_records in inventory/group_vars/all.yml):
+#   pwa.<base_domain>      CNAME felixfelix-bot.github.io   -> GitHub Pages
+#   pwa-vps.<base_domain>  A     vps2                       -> self-hosted Caddy
+
+- name: Declare the Services PWA hostnames in Cloudflare
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+  vars_files:
+    - "{{ playbook_dir }}/../inventory/group_vars/all.yml"
+  roles:
+    - cashu_pwa_dns

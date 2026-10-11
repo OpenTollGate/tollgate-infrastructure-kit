@@ -194,3 +194,41 @@ tollgate_status_pub_relays:
   - "wss://nos.lol"
 
 cloudflare_subdomains: []
+
+# ---------------------------------------------------------------------------
+# Dual-hosted Services PWA (kanban t_53d7a46d)
+#
+# ONE artifact, TWO hosts:
+#   GitHub Pages  https://{{ cashu_pwa_pages_subdomain }}.orangesync.tech
+#                 CNAME -> felixfelix-bot.github.io, free HTTPS, installable,
+#                 zero infra. Canonical URL the operator installs from.
+#   VPS (vps2)    https://{{ cashu_pwa_subdomain }}.orangesync.tech
+#                 A -> vps2, served by Caddy from {{ tollgate_static_dir }}/pwa.
+#
+# The bytes are identical: .github/workflows/pwa-pages.yml in
+# felixfelix-bot/cashu.me builds once, deploys that dist to Pages, and publishes
+# the same tar.gz + sha256 as the rolling release asset
+# {{ cashu_pwa_artifact_repo }}:{{ cashu_pwa_artifact_tag }}. Role cashu_pwa
+# downloads that asset and verifies the published sha256.
+#
+# Names deliberately NOT used: services. (status page), cvm. (registry, vps3),
+# wallet. (existing wallet vhost), nsite./chat./git./relay2./ngit2./blossom2./
+# meet./vote./ci. (all taken).
+#
+# Applied by:
+#   role cashu_pwa_dns  (playbook 53-cashu-pwa-dns.yml) — Cloudflare, no SSH
+#   role cashu_pwa      (playbook 53-cashu-pwa.yml)     — VPS install, needs SSH
+cashu_pwa_pages_subdomain: "{{ lookup('env', 'CASHU_PWA_PAGES_SUBDOMAIN') | default('pwa', true) }}"
+cashu_pwa_subdomain: "{{ lookup('env', 'CASHU_PWA_SUBDOMAIN') | default('pwa-vps', true) }}"
+cashu_pwa_pages_host: "{{ lookup('env', 'CASHU_PWA_PAGES_HOST') | default('felixfelix-bot.github.io', true) }}"
+cashu_pwa_artifact_repo: "felixfelix-bot/cashu.me"
+cashu_pwa_artifact_tag: "pwa-dist-latest"
+cashu_pwa_dns_records:
+  - full_name: "{{ cashu_pwa_pages_subdomain }}.{{ base_domain }}"
+    type: CNAME
+    content: "{{ cashu_pwa_pages_host }}"
+    purpose: "canonical install URL (GitHub Pages custom domain)"
+  - full_name: "{{ cashu_pwa_subdomain }}.{{ base_domain }}"
+    type: A
+    content: "{{ vps2_ip }}"
+    purpose: "self-hosted Caddy vhost on vps2 (pwa-vps)"

@@ -1,0 +1,28 @@
+---
+# Self-hosted leg of the dual-hosted Services PWA (kanban t_53d7a46d).
+#
+# Installs the artifact GitHub Pages already serves — the same tarball, not a
+# second build. The Pages workflow (.github/workflows/pwa-pages.yml in
+# felixfelix-bot/cashu.me) builds ONCE, deploys that dist to Pages and publishes
+# the identical tar.gz + sha256 as the rolling release asset below.
+#
+# Deploy with:  make pwa-deploy        (playbook 53-cashu-pwa.yml)
+# Requires SSH to the VPS (gated: t_8eb57e3a).
+
+# Upstream repo that builds + publishes the single artifact.
+cashu_pwa_repo: "felixfelix-bot/cashu.me"
+cashu_pwa_release_tag: "pwa-dist-latest"
+cashu_pwa_artifact_name: "dist-pwa.tar.gz"
+
+cashu_pwa_artifact_url: >-
+  https://github.com/{{ cashu_pwa_repo }}/releases/download/{{ cashu_pwa_release_tag }}/{{ cashu_pwa_artifact_name }}
+cashu_pwa_checksum_url: "{{ cashu_pwa_artifact_url }}.sha256"
+
+# Local staging + served directory. Served by Caddy as {{ cashu_pwa_hostname }}.
+cashu_pwa_download_dir: "{{ tollgate_base_dir }}/pwa-dl"
+cashu_pwa_static_dir: "{{ tollgate_static_dir }}/pwa"
+cashu_pwa_stamp: "{{ cashu_pwa_static_dir }}/.artifact.json"
+
+# Caddy vhost name; DNS (A -> this VPS) is declared in group_vars/all.yml
+# (cashu_pwa_dns_records) and applied by the cashu_pwa_dns role.
+cashu_pwa_hostname: "{{ cashu_pwa_subdomain }}.{{ base_domain }}"

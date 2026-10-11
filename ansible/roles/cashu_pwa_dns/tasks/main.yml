@@ -1,0 +1,130 @@
+---
+# DNS-as-IaC for the dual-hosted Services PWA (kanban t_53d7a46d).
+#
+# Two hostnames, one artifact:
+#   pwa.<base_domain>      CNAME -> felixfelix-bot.github.io   (GitHub Pages, public)
+#   pwa-vps.<base_domain>  A     -> vps2                      (self-hosted Caddy vhost)
+#
+# Runs anywhere (Cloudflare API only, no VPS SSH needed), which is why the DNS
+# half of the dual-host story is executable while the VPS install leg is gated
+# behind t_8eb57e3a (TCP/22 to 23.182.128.0/24 unreachable).
+#
+# Records are declared in ansible/inventory/group_vars/all.yml
+# (cashu_pwa_dns_records) — this role only applies them and reads them back.
+
+- name: Validate Cloudflare API token
+  uri:
+    url: "https://api.cloudflare.com/client/v4/user/tokens/verify"
+    headers:
+      Authorization: "Bearer {{ cloudflare_api_token }}"
+    return_content: true
+  register: cashu_pwa_cf_token
+  failed_when: >-
+    not (cashu_pwa_cf_token.json.success | default(false) | bool)
+    or (cashu_pwa_cf_token.json.result.status | default('')) != 'active'
+
+- name: Get Cloudflare zone id for {{ cloudflare_zone_name }}
+  uri:
+    url: "https://api.cloudflare.com/client/v4/zones?name={{ cloudflare_zone_name }}"
+    headers:
+      Authorization: "Bearer {{ cloudflare_api_token }}"
+    return_content: true
+  register: cashu_pwa_cf_zone
+  failed_when: (cashu_pwa_cf_zone.json.result | default([])) | length == 0
+  when: cloudflare_zone_id | default('') == ''
+  no_log: true
+
+- name: Resolve zone id
+  set_fact:
+    cashu_pwa_zone_id: >-
+      {{ cloudflare_zone_id
+         if cloudflare_zone_id | default('') != ''
+         else cashu_pwa_cf_zone.json.result[0].id }}
+
+- name: List existing DNS records in the zone
+  uri:
+    url: "https://api.cloudflare.com/client/v4/zones/{{ cashu_pwa_zone_id }}/dns_records?per_page=500"
+    headers:
+      Authorization: "Bearer {{ cloudflare_api_token }}"
+    return_content: true
+  register: cashu_pwa_cf_existing
+  no_log: true
+
+- name: Index existing records by name (lower-cased, as Cloudflare stores them)
+  set_fact:
+    cashu_pwa_cf_by_name: >-
+      {{ dict(cashu_pwa_cf_existing.json.result | default([])
+              | map(attribute='name') | map('lower')
+              | zip(cashu_pwa_cf_existing.json.result | default([]))) }}
+
+- name: Upsert the PWA records (PUT when the name exists, POST otherwise)
+  uri:
+    url: >-
+      https://api.cloudflare.com/client/v4/zones/{{ cashu_pwa_zone_id }}/dns_records{{
+        '/' + cashu_pwa_cf_by_name[rec.full_name | lower].id
+        if (rec.full_name | lower) in (cashu_pwa_cf_by_name | default({}))
+        else '' }}
+    method: >-
+      {{ 'PUT' if (rec.full_name | lower) in (cashu_pwa_cf_by_name | default({})) else 'POST' }}
+    headers:
+      Authorization: "Bearer {{ cloudflare_api_token }}"
+      Content-Type: "application/json"
+    body:
+      type: "{{ rec.type }}"
+      name: "{{ rec.full_name }}"
+      content: "{{ rec.content }}"
+      ttl: 300
+      proxied: false
+    body_format: json
+    status_code: [200]
+  loop: "{{ cashu_pwa_dns_records }}"
+  loop_control:
+    loop_var: rec
+    label: "{{ rec.full_name }} {{ rec.type }} -> {{ rec.content }}"
+  register: cashu_pwa_cf_write
+  changed_when: true
+
+- name: Change report
+  debug:
+    msg: >-
+      {{ 'created' if rec.rec.full_name | lower not in (cashu_pwa_cf_by_name | default({}))
+         else 'updated' }} {{ rec.rec.full_name }}
+      {{ rec.rec.type }} -> {{ rec.rec.content }}
+      (id {{ rec.json.result.id }})
+  loop: "{{ cashu_pwa_cf_write.results }}"
+  loop_control:
+    loop_var: rec
+    label: "{{ rec.rec.full_name }}"
+
+# Gate: read the post-state back from the provider, not from our own request.
+- name: Read the PWA records back from Cloudflare
+  uri:
+    url: "https://api.cloudflare.com/client/v4/zones/{{ cashu_pwa_zone_id }}/dns_records?name={{ rec.full_name }}"
+    headers:
+      Authorization: "Bearer {{ cloudflare_api_token }}"
+    return_content: true
+  loop: "{{ cashu_pwa_dns_records }}"
+  loop_control:
+    loop_var: rec
+    label: "{{ rec.full_name }}"
+  register: cashu_pwa_cf_readback
+  no_log: true
+
+- name: Assert the live records match what IaC declares
+  assert:
+    that:
+      - item.json.result | length == 1
+      - item.json.result[0].type == item.rec.type
+      - item.json.result[0].content | lower == item.rec.content | lower
+      - item.json.result[0].proxied == false
+    fail_msg: >-
+      Cloudflare does not match IaC for {{ item.rec.full_name }}:
+      wanted {{ item.rec.type }} {{ item.rec.content }},
+      got {{ item.json.result | map(attribute='type') | list }}
+      {{ item.json.result | map(attribute='content') | list }}
+    success_msg: >-
+      {{ item.rec.full_name }} {{ item.rec.type }} -> {{ item.rec.content }}
+      (proxied=false, id {{ item.json.result[0].id }})
+  loop: "{{ cashu_pwa_cf_readback.results }}"
+  loop_control:
+    label: "{{ item.rec.full_name }}"

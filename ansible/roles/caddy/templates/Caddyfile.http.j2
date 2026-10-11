@@ -462,6 +462,28 @@ vpn.{{ base_domain }} {
 }
 {% endif %}
 
+{% if 'cashu_pwa' in machine_roles %}
+# Self-hosted origin of the Services PWA (kanban t_53d7a46d). Serves the SAME
+# artifact GitHub Pages serves: the rolling release asset pwa-dist-latest in
+# felixfelix-bot/cashu.me, installed by role cashu_pwa. SPA fallback is
+# mandatory — the app uses history-mode routing.
+{{ cashu_pwa_subdomain | default('pwa-vps') }}.{{ base_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    root * {{ tollgate_static_dir }}/pwa
+    file_server
+    try_files {path} /index.html
+
+    header {
+        # A PWA must never serve a stale manifest or service worker.
+        /manifest.webmanifest Cache-Control "public, max-age=300"
+        /sw.js Cache-Control "no-cache"
+    }
+}
+{% endif %}
+
 :80 {
     handle {
         respond "Tollgate Infrastructure Kit" 200
