@@ -22,6 +22,7 @@
   failed_when: >-
     not (cashu_pwa_cf_token.json.success | default(false) | bool)
     or (cashu_pwa_cf_token.json.result.status | default('')) != 'active'
+  no_log: true
 
 - name: Get Cloudflare zone id for {{ cloudflare_zone_name }}
   uri:
@@ -83,6 +84,7 @@
     label: "{{ rec.full_name }} {{ rec.type }} -> {{ rec.content }}"
   register: cashu_pwa_cf_write
   changed_when: true
+  no_log: true
 
 - name: Change report
   debug:
