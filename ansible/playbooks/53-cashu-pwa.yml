@@ -1,0 +1,12 @@
+---
+- name: Deploy the cashu.me Services PWA on the VPS (self-host leg)
+  # Gated behind SSH to the VPS: kanban t_8eb57e3a (TCP/22 to 23.182.128.0/24
+  # unreachable). Nothing here has been executed against a live node yet.
+  hosts: vps2
+  ignore_unreachable: true
+  serial: 1
+  become: true
+  gather_facts: true
+  roles:
+    - role: cashu_pwa
+      when: "'cashu_pwa' in machine_roles"

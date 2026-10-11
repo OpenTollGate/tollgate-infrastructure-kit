@@ -37,6 +37,9 @@ machine_roles:
   - jitsi_meet
   - bitcoin_knots
   - strfry_agg
+  # Dual-hosted Services PWA self-host leg (kanban t_53d7a46d): renders the
+  # pwa-vps vhost in Caddy and enables role cashu_pwa on vps2.
+  - cashu_pwa
 
 machine_cloudflare_subdomains:
   - relay2

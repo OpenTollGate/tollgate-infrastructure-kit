@@ -1,0 +1,109 @@
+---
+# Installs the SAME artifact GitHub Pages serves (see defaults/main.yml).
+# Everything here is idempotent; a re-run with the same release asset is a no-op
+# apart from the checksum-verified re-download.
+
+- name: Create the PWA staging and served directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ cashu_pwa_download_dir }}"
+    - "{{ cashu_pwa_static_dir }}"
+
+- name: Read the published sha256 of the artifact
+  uri:
+    url: "{{ cashu_pwa_checksum_url }}"
+    return_content: true
+  register: cashu_pwa_checksum
+  retries: 3
+  delay: 5
+  until: (cashu_pwa_checksum.status | default(0)) == 200
+
+- name: Record the expected sha256 (from the release, not from the download)
+  set_fact:
+    cashu_pwa_expected_sha256: "{{ cashu_pwa_checksum.content.split()[0] | lower }}"
+
+- name: Download the artifact, checksum-verified against the release sha256
+  get_url:
+    url: "{{ cashu_pwa_artifact_url }}"
+    dest: "{{ cashu_pwa_download_dir }}/{{ cashu_pwa_artifact_name }}"
+    checksum: "sha256:{{ cashu_pwa_expected_sha256 }}"
+    mode: "0644"
+    force: true
+  register: cashu_pwa_fetch
+
+- name: Unpack the artifact into the served directory
+  unarchive:
+    src: "{{ cashu_pwa_download_dir }}/{{ cashu_pwa_artifact_name }}"
+    dest: "{{ cashu_pwa_static_dir }}"
+    remote_src: true
+    extra_opts:
+      - "--overwrite"
+  register: cashu_pwa_unpack
+
+- name: Normalise permissions under the served directory
+  shell: |
+    find {{ cashu_pwa_static_dir }} -type d -exec chmod 0755 {} \;
+    find {{ cashu_pwa_static_dir }} -type f -exec chmod 0644 {} \;
+  changed_when: false
+  args:
+    executable: /bin/bash
+
+- name: Stat the files a browser needs to install this as a PWA
+  stat:
+    path: "{{ cashu_pwa_static_dir }}/{{ item }}"
+  loop:
+    - index.html
+    - sw.js
+    - manifest.webmanifest
+  register: cashu_pwa_stat
+
+- name: Refuse to declare success when an entrypoint is missing
+  assert:
+    that:
+      - item.stat.exists
+      - item.stat.size > 0
+    fail_msg: "{{ item.item }} missing (or empty) in {{ cashu_pwa_static_dir }}"
+    success_msg: "{{ item.item }} present ({{ item.stat.size }} bytes)"
+  loop: "{{ cashu_pwa_stat.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+# Post-state, read back from the node: which artifact bytes are actually served.
+- name: Read the installed artifact stamp back from the node
+  stat:
+    path: "{{ cashu_pwa_stamp }}"
+    checksum_algorithm: sha256
+  register: cashu_pwa_previous_stamp
+
+- name: Write the artifact stamp (what is served, from where)
+  copy:
+    dest: "{{ cashu_pwa_stamp }}"
+    mode: "0644"
+    content: |
+      {
+        "artifact": "{{ cashu_pwa_artifact_name }}",
+        "source": "{{ cashu_pwa_artifact_url }}",
+        "sha256": "{{ cashu_pwa_expected_sha256 }}",
+        "repo": "{{ cashu_pwa_repo }}",
+        "release_tag": "{{ cashu_pwa_release_tag }}",
+        "hostname": "{{ cashu_pwa_hostname }}",
+        "previous_present": {{ cashu_pwa_previous_stamp.stat.exists | bool | to_json }}
+      }
+
+- name: Hash the served entrypoints (evidence the right bytes are on disk)
+  shell: |
+    set -e
+    sha256sum {{ cashu_pwa_static_dir }}/index.html \
+              {{ cashu_pwa_static_dir }}/manifest.webmanifest \
+              {{ cashu_pwa_static_dir }}/sw.js
+    echo "--- artifact stamp ---"
+    cat {{ cashu_pwa_stamp }}
+  register: cashu_pwa_post_state
+  changed_when: false
+
+- name: Post-state on {{ cashu_pwa_hostname }}
+  debug:
+    msg: "{{ cashu_pwa_post_state.stdout_lines }}"
