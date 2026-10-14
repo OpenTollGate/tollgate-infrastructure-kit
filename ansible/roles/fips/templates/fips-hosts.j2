@@ -1,0 +1,10 @@
+# /etc/fips/hosts — managed by Ansible
+# Private FIPS mesh — Felix's devices only
+# Public test mesh nodes removed (bloom filter saturation on large public mesh)
+
+{% for alias, npub in fips_mesh_hosts.items() %}
+{{ alias }} {{ npub }}
+{% endfor %}
+{% for alias, npub in fips_extra_hosts.items() %}
+{{ alias }} {{ npub }}
+{% endfor %}
