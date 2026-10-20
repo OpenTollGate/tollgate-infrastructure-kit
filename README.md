@@ -30,6 +30,7 @@ make deploy
 | Blob Storage | `https://blossom.<BASE_DOMAIN>` | blossom-server — Nostr blob storage (BUD-01 to BUD-11) |
 | nsite Gateway | `https://nsite.<BASE_DOMAIN>` | Gateway for Nostr-hosted static sites |
 | Release Explorer | `https://releases.<BASE_DOMAIN>` | Tollgate firmware release browser |
+| Awesome TollGate | `https://awesome.<BASE_DOMAIN>` | Curated directory of TollGate projects and resources |
 | Hive CI | `https://ci.<BASE_DOMAIN>` | Decentralized CI frontend |
 | GRASP Git Server | `https://git.<BASE_DOMAIN>` | ngit-grasp — Nostr-based git hosting |
 

@@ -439,6 +439,17 @@
 - [ ] **AI triage** — awaiting ppq.ai key + user criteria to run `follow-triage.py`
 - [ ] **Curated purge** — awaiting Amber bunker URI + triage keep-set to run `follow-apply.py`
 
+
+### Awesome TollGate + Release Explorer Deployment Workflows (Oct 2026)
+- [x] **awesome_tollgate role** — clone → npm install → `npm run build` → rsync to `{{ tollgate_static_dir }}/awesome`; rebuilds when the clone updates (no `creates:` staleness)
+- [x] **Playbook 41** — `ansible/playbooks/41-awesome-tollgate.yml` (mirrors 09)
+- [x] **Caddy** — `awesome.<BASE_DOMAIN>` server block (both Caddyfile.j2 + Caddyfile.http.j2) + `handle /awesome/*` on both base-domain servers
+- [x] **DNS** — `awesome` added to `cloudflare_shared_subdomains` (A record on both VPS)
+- [x] **machine_roles** — `awesome_tollgate` on m1 + m2
+- [x] **release_explorer staleness fix** — `creates:` markers replaced with clone-changed/stat-driven rebuilds; `npx react-scripts build` → `npm run build` (runs prebuild/postbuild: manifest + 404.html)
+- [x] **Integration test** — `tests/integration/test_static_sites.sh <user@host> <domain>` (6 checks: both sites, SPA fallbacks, path serving)
+- [ ] **Live deploy + verification** — run playbook 41 + 09 against a VPS, then the integration test
+
 ## Blocked / Upstream
 - [ ] True custom unit support (MB, KB, GB, min in keyset) — requires gRPC payment processor or CDK upstream fix
 - [ ] Routstr AI inference via cashu Python lib — keyset ID format mismatch. Pre-built Docker image, needs upstream update or custom build

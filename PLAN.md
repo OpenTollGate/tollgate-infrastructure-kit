@@ -324,3 +324,18 @@ All changes are in `web/src/SimpleAuditorApp.tsx` only.
 | Unit | pytest | Registry, event validator, gRPC client, audit log, daemon |
 | Integration | Bash + pytest | Package imports, full pytest suite, service health |
 | E2E | Playwright (TypeScript) | API endpoints, dashboard UI, mint REST API, TLS |
+
+
+## Static Site Deployment Workflows (Oct 2026)
+
+### awesome-tollgate (`awesome.<BASE_DOMAIN>`)
+New role + playbook 41. Build on host (Node 22, `npm run build` incl. prebuild
+manifest generation), deploy static to `{{ tollgate_static_dir }}/awesome`,
+serve via Caddy. DNS: shared subdomain `awesome`. Rebuild keyed on
+clone-change or missing artifacts — not `creates:` markers.
+
+### release-explorer (`releases.<BASE_DOMAIN>`)
+Existing role fixed: `creates:` markers prevented rebuilds after upstream
+updates; `npx react-scripts build` bypassed the repo's `prebuild` (project
+manifest) and `postbuild` (`404.html` SPA fallback). Now `npm run build` with
+clone-changed/stat-driven rebuild logic.

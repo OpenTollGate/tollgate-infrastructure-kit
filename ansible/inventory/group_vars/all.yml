@@ -167,6 +167,7 @@ cloudflare_shared_subdomains:
   - vote
   - workshop
   - releases
+  - awesome
   - ci
   - runner
   - solix

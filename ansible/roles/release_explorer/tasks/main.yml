@@ -12,23 +12,36 @@
     dest: "{{ tollgate_base_dir }}/src/release-explorer"
     depth: 1
     force: yes
+  register: explorer_clone
+
+- name: Check explorer node_modules marker
+  stat:
+    path: "{{ tollgate_base_dir }}/src/release-explorer/node_modules/.package-lock.json"
+  register: explorer_node_modules
+
+- name: Check explorer build output
+  stat:
+    path: "{{ tollgate_base_dir }}/src/release-explorer/build/index.html"
+  register: explorer_build
 
 - name: Install release explorer dependencies
   command: npm install --legacy-peer-deps
   args:
     chdir: "{{ tollgate_base_dir }}/src/release-explorer"
-    creates: "{{ tollgate_base_dir }}/src/release-explorer/node_modules/.package-lock.json"
+  environment:
+    NPM_CONFIG_LEGACY_PEER_DEPS: "true"
+  when: explorer_clone.changed or not explorer_node_modules.stat.exists
 
 - name: Build release explorer
-  shell: |
-    export PATH="$PATH:$(npm bin -g)"
-    npx react-scripts build
+  shell: npm run build
   args:
     chdir: "{{ tollgate_base_dir }}/src/release-explorer"
-    creates: "{{ tollgate_base_dir }}/src/release-explorer/build/index.html"
   environment:
     NPM_CONFIG_LEGACY_PEER_DEPS: "true"
     PATH: "{{ ansible_env.PATH }}:/usr/bin:/usr/local/bin"
+    CI: "true"
+    DISABLE_ESLINT_PLUGIN: "true"
+  when: explorer_clone.changed or not explorer_build.stat.exists
 
 - name: Ensure static files directory exists
   file:
@@ -37,6 +50,7 @@
     mode: '0755'
 
 - name: Deploy release explorer static files
-  shell: rsync -a --delete "{{ tollgate_base_dir }}/src/release-explorer/build/" "{{ tollgate_static_dir }}/releases/"
-  args:
-    creates: "{{ tollgate_static_dir }}/releases/index.html"
+  shell: |
+    rsync -a --delete "{{ tollgate_base_dir }}/src/release-explorer/build/" "{{ tollgate_static_dir }}/releases/"
+    test -f "{{ tollgate_static_dir }}/releases/index.html"
+    test -f "{{ tollgate_static_dir }}/releases/404.html"
