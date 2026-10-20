@@ -1,0 +1,64 @@
+---
+- name: Install Node.js 22
+  shell: |
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+    apt-get install -y nodejs
+  args:
+    creates: /usr/bin/node
+
+- name: Clone awesome-tollgate
+  git:
+    repo: "https://github.com/OpenTollGate/awesome-tollgate.git"
+    dest: "{{ tollgate_base_dir }}/src/awesome-tollgate"
+    depth: 1
+    force: yes
+  register: awesome_clone
+
+- name: Check node_modules marker
+  stat:
+    path: "{{ tollgate_base_dir }}/src/awesome-tollgate/node_modules/.package-lock.json"
+  register: node_modules_marker
+
+- name: Check build output
+  stat:
+    path: "{{ tollgate_base_dir }}/src/awesome-tollgate/build/index.html"
+  register: build_output
+
+- name: Install awesome-tollgate dependencies
+  command: npm install --legacy-peer-deps
+  args:
+    chdir: "{{ tollgate_base_dir }}/src/awesome-tollgate"
+  environment:
+    NPM_CONFIG_LEGACY_PEER_DEPS: "true"
+  when: awesome_clone.changed or not node_modules_marker.stat.exists
+
+- name: Build awesome-tollgate
+  shell: npm run build
+  args:
+    chdir: "{{ tollgate_base_dir }}/src/awesome-tollgate"
+  environment:
+    NPM_CONFIG_LEGACY_PEER_DEPS: "true"
+    PATH: "{{ ansible_env.PATH }}:/usr/bin:/usr/local/bin"
+    CI: "true"
+    DISABLE_ESLINT_PLUGIN: "true"
+  when: awesome_clone.changed or not build_output.stat.exists
+
+- name: Ensure awesome static files directory exists
+  file:
+    path: "{{ tollgate_static_dir }}/awesome"
+    state: directory
+    mode: '0755'
+
+- name: Verify build artifacts exist
+  stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ tollgate_base_dir }}/src/awesome-tollgate/build/index.html"
+    - "{{ tollgate_base_dir }}/src/awesome-tollgate/build/404.html"
+  register: build_artifacts
+
+- name: Deploy awesome-tollgate static files
+  shell: |
+    rsync -a --delete "{{ tollgate_base_dir }}/src/awesome-tollgate/build/" "{{ tollgate_static_dir }}/awesome/"
+    test -f "{{ tollgate_static_dir }}/awesome/index.html"
+    test -f "{{ tollgate_static_dir }}/awesome/404.html"

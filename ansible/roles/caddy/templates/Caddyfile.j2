@@ -1,4 +1,4 @@
-{% for sub in ['relay', 'chat', 'blossom', 'nsite', 'releases', 'ci', 'git'] %}
+{% for sub in ['relay', 'chat', 'blossom', 'nsite', 'releases', 'awesome', 'ci', 'git'] %}
 {{ sub }}.{{ base_domain }} {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
@@ -13,6 +13,10 @@
     reverse_proxy localhost:{{ nsite_gateway_port }}
 {% elif sub == 'releases' %}
     root * {{ tollgate_static_dir }}/releases
+    file_server
+    try_files {path} /index.html
+{% elif sub == 'awesome' %}
+    root * {{ tollgate_static_dir }}/awesome
     file_server
     try_files {path} /index.html
 {% elif sub == 'ci' %}

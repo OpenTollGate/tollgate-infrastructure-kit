@@ -1,0 +1,9 @@
+---
+- name: Deploy awesome-tollgate
+  hosts: vps
+  ignore_unreachable: true
+  serial: 1
+  become: true
+  gather_facts: true
+  roles:
+    - awesome_tollgate

@@ -182,6 +182,18 @@ releases.{{ base_domain }} {
 }
 {% endif %}
 
+{% if 'awesome_tollgate' in machine_roles %}
+awesome.{{ base_domain }} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    root * {{ tollgate_static_dir }}/awesome
+    file_server
+    try_files {path} /index.html
+}
+{% endif %}
+
 {% if 'hive_ci' in machine_roles %}
 ci.{{ base_domain }} {
     tls {
@@ -321,6 +333,13 @@ vpn.{{ base_domain }} {
         try_files {path} /index.html
     }
 {% endif %}
+{% if 'awesome_tollgate' in machine_roles %}
+    handle /awesome/* {
+        root * {{ tollgate_static_dir }}/awesome
+        file_server
+        try_files {path} /index.html
+    }
+{% endif %}
 {% if 'hive_ci' in machine_roles %}
     handle /ci/* {
         root * {{ tollgate_static_dir }}/hive-ci
@@ -396,6 +415,13 @@ vpn.{{ base_domain }} {
 {% if 'release_explorer' in machine_roles %}
     handle /releases/* {
         root * {{ tollgate_static_dir }}/releases
+        file_server
+        try_files {path} /index.html
+    }
+{% endif %}
+{% if 'awesome_tollgate' in machine_roles %}
+    handle /awesome/* {
+        root * {{ tollgate_static_dir }}/awesome
         file_server
         try_files {path} /index.html
     }

@@ -15,6 +15,7 @@ machine_roles:
   - blossom
   - nsite_gateway
   - release_explorer
+  - awesome_tollgate
   - hive_ci
   - mint_orchestrator
   - cashu_brrr
@@ -49,6 +50,7 @@ machine_cloudflare_subdomains:
   - vote
   - workshop
   - releases
+  - awesome
   - ci
   - runner
   - solix
